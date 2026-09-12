@@ -1,0 +1,38 @@
+# Alarm message -> subsystem class. Union of Penmanshiel + Kelmarsh vocabularies (2017-2021).
+# Matching is case-insensitive substring on `Message`; first hit wins, top to bottom.
+# `kind`: fault | benign | context  (context classes are never a T2 target)
+# Spec: docs/problem-statement.md section 8. Extend by appending patterns; do not rename classes.
+classes:
+  generator_cooling:
+    kind: fault
+    patterns: ["Overload generator fan", "Overload generator heating", "Overload transf. fan", "Overload transformer fan"]
+  brake_hydraulics:
+    kind: fault
+    patterns: ["Brake accumulator", "Timeout brake", "Feedback brake", "Brake pads", "brake resistor", "Hydraulic oil flushing", "Low hydraulic pressure", "Max. operation time hydraulic"]
+  pitch_system:
+    kind: fault
+    patterns: ["Battery charge cycle axis", "Pitch measuring", "Limit switch error", "lubrication pump pitch", "Pitch batteries", "Pitch controller", "Temperature motor axis"]
+  converter_grid:
+    kind: fault
+    patterns: ["Frequency converter", "Grid loss", "Overvoltage", "grid frequency", "Repeating error BP", "Converter torque", "conv. generator speed"]
+  gearbox_lubrication:
+    kind: fault
+    patterns: ["gearbox oil", "gear oil", "Missing gear oil", "gear bypass filter", "Implausible gear speed", "Particle sensor", "Oil filter gear", "gear bearing"]
+  yaw_cable:
+    kind: fault
+    patterns: ["Cable autounwind", "Manual yaw", "Deviation winddirection", "yaw motor", "Yaw speed"]
+  structural_overspeed:
+    kind: fault
+    patterns: ["Tower oscillation", "Oscillation encoder", "High rotor speed", "Max. acceleration", "Tower resonance", "drivetrain oscillation", "Drive train monitor", "Extreme gust"]
+  sensor_comms:
+    kind: fault
+    patterns: ["Comm. failure", "communication unavailable", "4-20", "Vane 2 defect", "PMU", "time synchronization", "Rotor sensor"]
+  environmental_stop:
+    kind: benign
+    patterns: ["Wind < start wind", "Max. wind speed", "Absence of wind", "warm-up", "Ice", "Icing"]
+  curtailment_external:
+    kind: benign
+    patterns: ["Externally stopped", "P output externally reduced", "Reduced power converter"]
+  manual_safety:
+    kind: context
+    patterns: ["Manual stop", "Park master stop", "Remote stop", "Safety chain", "Emergency stop", "Battery test", "Test brake program", "Manual brake"]

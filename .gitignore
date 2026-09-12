@@ -44,15 +44,15 @@ Desktop.ini
 
 # Keep uv.lock and .python-version tracked for reproducible environments.
 
-# Data & model artefacts live on the VM, never in git
-data/
+# Data & model artefacts live on the VM, never in git (root data/ only; src/turbine_tslm/data is code)
+!/data/README.md
 *.zip
 *.parquet
 *.zarr
 checkpoints/
 runs/
 wandb/
-outputs/
+/outputs/
 *.pt
 *.safetensors
 *.ckpt
