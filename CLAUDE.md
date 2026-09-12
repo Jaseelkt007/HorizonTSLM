@@ -56,6 +56,8 @@ uv run ruff check src tests && uv run ruff format src tests
 ```
 
 Python ≥ 3.12; `uv` is the only supported way to run things (`uv run …`), `uv.lock` is committed.
+On WSL with the repo under `/mnt/<drive>`, put the venv on the Linux side first (copying torch onto the Windows mount
+fails with I/O errors): `export UV_PROJECT_ENVIRONMENT=~/.venvs/turbine` before any `uv` command.
 
 ## Architecture
 
@@ -89,6 +91,13 @@ Key conventions everyone depends on:
   training dataset class, not in the data.
 - **Output template** is fixed: five labelled lines then `Answer: <class>`; the label after `Answer:` is what gets
   scored.
+- **Predictions** (`src/turbine_tslm/eval/score.py`): every model writes `predictions.jsonl`, one object per window:
+  `{"window_id", "score" (P(fault within H), higher = more likely), "label" (class or "none") | "text" (generated
+  answer, label parsed from its last `Answer:` line)}`. Score it with
+  `uv run python -m turbine_tslm.eval.score preds.jsonl --out results.json` → AUROC, recall at 10 % / 5 % false
+  alarms, hard P/R/F1, per-class recall, subsystem macro-F1 and confusion, per split × horizon. Floors:
+  `uv run python -m turbine_tslm.eval.baselines always_no --out outputs/always_no.jsonl`. Nothing in `eval/` reads
+  signals, only the label columns of the parquet.
 - `configs/`: one YAML per experiment, `<task>_<model>_<variant>.yaml`; the submitted run is `configs/submission.yaml`.
 
 ## Working on the shared Nebius VM
