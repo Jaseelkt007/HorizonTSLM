@@ -7,14 +7,14 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 
 if api_key:
-    print("GEMINI_API_KEY wurde erfolgreich geladen.\n")
+    print("GEMINI_API_KEY loaded successfully.\n")
 else:
-    print("Warnung: GEMINI_API_KEY konnte nicht geladen werden. Bitte in .env überprüfen.\n")
+    print("Warning: GEMINI_API_KEY could not be loaded. Please check your .env file.\n")
 
 # 2. Load the first 1000 rows of the SCADA CSV file
 csv_path = r"C:\Users\benja\Desktop\Projekte\Hackathons\EHL_Zurich\zurich_ehl_timeseries\data\Kelmarsh_SCADA_2016_3082\Turbine_Data_Kelmarsh_1_2016-01-03_-_2017-01-01_228.csv"
 
-print(f"Lade Daten von: {csv_path}...")
+print(f"Loading data from: {csv_path}...")
 df = pd.read_csv(csv_path, nrows=1000, skiprows=9)
 
 # Clean up the first column name which might start with '# '
@@ -23,7 +23,7 @@ if df.columns[0].startswith('# '):
 
 
 # 3. Print the first 5 rows to inspect column names
-print("\n--- Erste 5 Zeilen des DataFrames ---")
+print("\n--- First 5 rows of the DataFrame ---")
 print(df.head())
 print("-" * 40)
 
@@ -44,6 +44,6 @@ def chunk_to_json_list(dataframe: pd.DataFrame, chunk_size: int = 50) -> list[st
 # Test the function
 json_chunks = chunk_to_json_list(df, chunk_size=50)
 
-print(f"\nDer DataFrame mit {len(df)} Zeilen wurde in {len(json_chunks)} Chunks aufgeteilt (jeweils max 50 Zeilen).")
-print("\nVorschau des ersten JSON-Chunks (erste 200 Zeichen):")
+print(f"\nThe DataFrame with {len(df)} rows was split into {len(json_chunks)} chunks (max 50 rows each).")
+print("\nPreview of the first JSON chunk (first 200 characters):")
 print(json_chunks[0][:200] + "...")
