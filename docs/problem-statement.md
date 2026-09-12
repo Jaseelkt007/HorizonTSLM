@@ -306,6 +306,8 @@ at 10 % false alarms** for T4.
 
 ## 11. Decisions for the team
 
+- **Split direction — decided:** train on Penmanshiel (larger), hold out Kelmarsh. Verified: both
+  farms populate the same core channels and share 73 alarm messages; Kelmarsh-only ones are rare.
 - **Window length** — 24 h proposed (144 steps). 12 h halves compute; 48 h helps thermal drifts.
 - **Channel set** — 16 (section 2) or a minimal 8 (wind, power, rotor rpm, pitch A, gen bearing
   rear, stator, gear oil temp, gear oil pressure)?

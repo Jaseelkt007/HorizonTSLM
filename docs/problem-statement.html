@@ -297,7 +297,7 @@ Answer: &lt;subsystem class&gt;</code></pre>
 
 <h2 id="decisions">11 · Decisions for the team</h2>
 <ul class="qs">
-  <li><b>Split direction</b> — proposal: train on Penmanshiel (bigger), test on Kelmarsh. Confirm once the connector shows both farms populate the same channels and message vocabulary.</li>
+  <li><b>Split direction — decided:</b> train on Penmanshiel (larger), hold out Kelmarsh. Verified in the raw files: both farms populate the same core channels and share 73 alarm messages; Kelmarsh-only messages are rare.</li>
   <li><b>Window length</b> — 24 h is the proposal (144 steps). 12 h halves the compute; 48 h helps thermal drifts. Decide with the model person.</li>
   <li><b>Channel set</b> — the 16 in section 2 or a smaller 8 (wind, power, rotor rpm, pitch A, gen bearing rear, stator, gear oil temp, gear oil pressure)? Fewer channels = faster SoftPrompt; Flamingo does not care much.</li>
   <li><b>T4 horizon</b> — 6 h ahead is the proposal. Longer is more useful and harder.</li>
