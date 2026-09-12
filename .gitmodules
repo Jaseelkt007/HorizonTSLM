@@ -1,0 +1,6 @@
+[submodule "third_party/OpenTSLM"]
+	path = third_party/OpenTSLM
+	url = https://github.com/OpenTSLM/OpenTSLM.git
+[submodule "third_party/TimeNet"]
+	path = third_party/TimeNet
+	url = https://github.com/OpenTSLM/TimeNet.git
