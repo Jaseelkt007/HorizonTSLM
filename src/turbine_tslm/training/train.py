@@ -63,6 +63,8 @@ DEFAULTS: dict[str, Any] = {
     "out_dir": None,  # default outputs/<run_name>
     "checkpoint_dir": None,  # default $DATA_DIR/checkpoints/<run_name>
     "windows": None,  # parquet label tables; default $DATA_DIR/interim/*_windows.parquet
+    "wandb_project": None,  # e.g. "turbine-tslm": mirror train_log.jsonl + final metrics to Weights & Biases
+    # (needs `uv sync --extra wandb` and WANDB_API_KEY in the environment; run name = run_name)
 }
 
 
@@ -392,7 +394,7 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                 )
 
 
-def score_predictions(cfg: dict[str, Any], pred_path: Path) -> None:
+def score_predictions(cfg: dict[str, Any], pred_path: Path) -> dict[str, Any]:
     preds = scoring.load_predictions(pred_path)
     labels = scoring.load_labels(cfg["windows"])
     res = scoring.score(preds, labels)
@@ -403,6 +405,7 @@ def score_predictions(cfg: dict[str, Any], pred_path: Path) -> None:
         json.dumps(scoring._json_safe(res), indent=1), encoding="utf-8"
     )
     (out / "report.md").write_text(report + "\n", encoding="utf-8")
+    return res
 
 
 # --------------------------------------------------------------------------------------------- main
@@ -431,6 +434,16 @@ def main(argv: list[str] | None = None) -> int:
     (out / "config.yaml").write_text(yaml.safe_dump(cfg), encoding="utf-8")
     print(f"[config] {json.dumps({k: v for k, v in cfg.items() if k != 'windows'})}")
     log_fh = open(out / "train_log.jsonl", "a", encoding="utf-8")  # noqa: SIM115 — closed in main
+    wb = None
+    if cfg["wandb_project"]:
+        import wandb
+
+        wb = wandb.init(
+            project=cfg["wandb_project"],
+            name=cfg["run_name"],
+            config=cfg,
+            resume="allow",
+        )
 
     def log(rec: dict[str, Any]) -> None:
         log_fh.write(json.dumps(rec) + "\n")
@@ -443,6 +456,8 @@ def main(argv: list[str] | None = None) -> int:
             ),
             flush=True,
         )
+        if wb is not None:
+            wb.log({k: v for k, v in rec.items() if k != "step"}, step=rec.get("step"))
 
     model = build_model(cfg)
     sets, train_loader, val_loader, collate = make_loaders(cfg, model.get_eos_token())
@@ -456,7 +471,18 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[predict] using {best} ({meta})")
     pred_path = out / "predictions.jsonl"
     predict(cfg, model, sets, collate, pred_path)
-    score_predictions(cfg, pred_path)
+    res = score_predictions(cfg, pred_path)
+    if wb is not None:
+        summary = {}
+        for split, per_h in res["results"].items():
+            for h, m in per_h.items():
+                for k in ("auroc", "ap", "recall_at_10far", "recall_at_5far"):
+                    summary[f"{split}/h{h}/{k}"] = m[k]
+                summary[f"{split}/h{h}/subsystem_macro_f1"] = m["subsystem"][
+                    "macro_f1_over_positives"
+                ]
+        wb.log(summary)
+        wb.finish()
     log_fh.close()
     return 0
 

@@ -57,7 +57,11 @@ uv run python -m turbine_tslm.training.turbine_dataset            # dataset size
 uv run python -m turbine_tslm.training.train configs/smoke_flamingo.yaml       # 64-sample GPU smoke run (VM)
 uv run python -m turbine_tslm.training.train configs/t1_flamingo_llama1b.yaml  # MVP; --predict-only reuses best.pt
 uv run python -m turbine_tslm.eval.score outputs/<run>/predictions.jsonl       # re-score any predictions file
+uv run python scripts/wandb_backfill.py outputs/<run> --project turbine-tslm   # upload a run to W&B after the fact
 ```
+
+Weights & Biases: `uv sync --extra wandb`, `WANDB_API_KEY` in the environment, then `wandb_project: turbine-tslm` in
+the run config (or `--set wandb_project=turbine-tslm`) logs train/val loss per step and the final metric table.
 
 `opentslm` is installed from the submodule as an editable path dependency (`[tool.uv.sources]`), with
 open-flamingo pinned to 2.x via `override-dependencies` (the 0.0.2 wheel breaks `OpenTSLMFlamingo`). After
