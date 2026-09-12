@@ -53,9 +53,23 @@ uv run timenet-build build timenet/hello-world # build the TimeNet demo dataset 
 uv run pytest tests/ -x                        # all tests
 uv run pytest tests/test_taxonomy.py -k name   # one test
 uv run ruff check src tests && uv run ruff format src tests
+uv run python -m turbine_tslm.training.turbine_dataset            # dataset sizes + one formatted sample
+uv run python -m turbine_tslm.training.train configs/smoke_flamingo.yaml       # 64-sample GPU smoke run (VM)
+uv run python -m turbine_tslm.training.train configs/t1_flamingo_llama1b.yaml  # MVP; --predict-only reuses best.pt
+uv run python -m turbine_tslm.eval.score outputs/<run>/predictions.jsonl       # re-score any predictions file
+uv run python scripts/wandb_backfill.py outputs/<run> --project turbine-tslm   # upload a run to W&B after the fact
 ```
 
+Weights & Biases: `uv sync --extra wandb`, `WANDB_API_KEY` in the environment, then `wandb_project: turbine-tslm` in
+the run config (or `--set wandb_project=turbine-tslm`) logs train/val loss per step and the final metric table.
+
+`opentslm` is installed from the submodule as an editable path dependency (`[tool.uv.sources]`), with
+open-flamingo pinned to 2.x via `override-dependencies` (the 0.0.2 wheel breaks `OpenTSLMFlamingo`). After
+`git submodule update --init`, `uv sync` is all that is needed.
+
 Python ≥ 3.12; `uv` is the only supported way to run things (`uv run …`), `uv.lock` is committed.
+On WSL with the repo under `/mnt/<drive>`, put the venv on the Linux side first (copying torch onto the Windows mount
+fails with I/O errors): `export UV_PROJECT_ENVIRONMENT=~/.venvs/turbine` before any `uv` command.
 
 ## Architecture
 
@@ -66,7 +80,7 @@ statement. `data/` and `connectors/` are done and tested; `training/`, `eval/`, 
 |---|---|---|
 | `data/` | `greenbyte.py` (zip → SCADA/status frames) → `channels.py` (19 channels, 2 derived) → `windows.py` (events → anchors → labels → 144×19 windows, split) ; `taxonomy.yaml`/`.py` message → class ; `prompts.py` pre/post-prompt + answer templates | §2, §6, §7, §8 |
 | `connectors/cubico/` | `base.py` shared TimeNet connector (download = window table, convert = records + annotations + tasks); `penmanshiel/`, `kelmarsh/` cards | §2, §6 |
-| `training/` | glue from `TimeNet().load_torch()` items to the TSLM, LoRA fine-tune, checkpoint export | §5 |
+| `training/` | `turbine_dataset.py` OpenTSLM `QADataset` over the TimeNet registry (split annotation → train/validation/test, z-score + `series_text`) ; `train.py` YAML config → Flamingo/SP warm-started from an OpenTSLM Hub checkpoint → trainable-only checkpoints in `$DATA_DIR/checkpoints/<run>` → generate + yes/no log-likelihood score → `outputs/<run>/predictions.jsonl` + report | §5, §7 |
 | `eval/` | baselines + metrics; the two headline numbers are T2 macro-F1 on Kelmarsh and T4 recall@10 % FAR | §9 |
 | `demo/` | pick turbine + window → answer in the FINDING/EVIDENCE/CAUSE/IMPACT/ACTION template | §7 |
 
@@ -89,6 +103,13 @@ Key conventions everyone depends on:
   training dataset class, not in the data.
 - **Output template** is fixed: five labelled lines then `Answer: <class>`; the label after `Answer:` is what gets
   scored.
+- **Predictions** (`src/turbine_tslm/eval/score.py`): every model writes `predictions.jsonl`, one object per window:
+  `{"window_id", "score" (P(fault within H), higher = more likely), "label" (class or "none") | "text" (generated
+  answer, label parsed from its last `Answer:` line)}`. Score it with
+  `uv run python -m turbine_tslm.eval.score preds.jsonl --out results.json` → AUROC, recall at 10 % / 5 % false
+  alarms, hard P/R/F1, per-class recall, subsystem macro-F1 and confusion, per split × horizon. Floors:
+  `uv run python -m turbine_tslm.eval.baselines always_no --out outputs/always_no.jsonl`. Nothing in `eval/` reads
+  signals, only the label columns of the parquet.
 - `configs/`: one YAML per experiment, `<task>_<model>_<variant>.yaml`; the submitted run is `configs/submission.yaml`.
 
 ## Working on the shared Nebius VM
@@ -103,6 +124,6 @@ public — keep them out.
 
 ## Open questions (resolve with organisers / team, then update this file)
 
-- Whether glue between TimeNet `load_torch()` and the OpenTSLM training loop exists, or we write it.
+- ~~Whether glue between TimeNet and the OpenTSLM training loop exists~~ — written: `training/turbine_dataset.py`.
 - Decisions in `docs/problem-statement.md` §11: channel set (16 vs 8), window length, T4 horizon, which LLM
   paraphrases the rule-generated explanations.

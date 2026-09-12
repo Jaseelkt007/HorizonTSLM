@@ -1,0 +1,15 @@
+# Smoke test: 64 windows per split, one epoch, Gemma-3-270m warm-started from the OpenTSLM HAR-CoT Flamingo.
+# uv run python -m turbine_tslm.training.train configs/smoke_flamingo.yaml
+run_name: smoke_flamingo
+model_type: OpenTSLMFlamingo
+llm_id: google/gemma-3-270m
+init_checkpoint: OpenTSLM/gemma-3-270m-pt-har-flamingo
+epochs: 1
+batch_size: 4
+lr: 1.0e-4
+max_samples: 64
+eval_splits: [val]
+predict_mode: both
+max_new_tokens: 16
+checkpoint_every_steps: 8
+log_every_steps: 2

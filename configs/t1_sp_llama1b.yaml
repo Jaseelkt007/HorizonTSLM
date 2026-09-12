@@ -1,0 +1,19 @@
+# Second experiment: OpenTSLM-SP (soft prompt: encoder + projector tokens in the LLM input) with LoRA on Llama-3.2-1B,
+# warm-started from the OpenTSLM HAR-CoT SP checkpoint. Same data, splits and eval as t1_flamingo_llama1b.
+# uv run python -m turbine_tslm.training.train configs/t1_sp_llama1b.yaml
+run_name: t1_sp_llama1b
+model_type: OpenTSLMSP
+llm_id: meta-llama/Llama-3.2-1B
+init_checkpoint: OpenTSLM/llama-3.2-1b-har-sp
+lora: true
+epochs: 5
+batch_size: 4   # SP puts 19x36 series tokens in the LLM input; batch 8 hits OOM
+eval_batch_size: 16
+lr: 1.0e-4
+warmup_frac: 0.03
+early_stop_patience: 2
+eval_splits: [val, test_a, test_b]
+predict_mode: loglik   # batched candidate scoring; 'generate' for free text
+autocast_bf16: true
+wandb_project: turbine-tslm   # skipped with a warning when WANDB_API_KEY is absent
+checkpoint_every_steps: 100
