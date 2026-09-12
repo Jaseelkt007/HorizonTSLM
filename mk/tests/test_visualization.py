@@ -4,7 +4,7 @@ import numpy as np
 import pytest
 
 from src.data.schemas import FAULT_CLASSES, SELECTED_SIGNALS, SIGNAL_NAMES, WINDOW_STEPS
-from src.visualization.dashboard import (
+from mk.dashboard import (
     compute_theoretical_power,
     load_static_metadata,
     load_timenet_dataset,

@@ -12,8 +12,12 @@ import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import streamlit as st
 
-# Ensure repository root is in sys.path
-REPO_ROOT = Path(__file__).resolve().parents[2]
+# Dynamically locate repository root (containing pyproject.toml)
+_curr = Path(__file__).resolve().parent
+while not (_curr / "pyproject.toml").exists() and _curr.parent != _curr:
+    _curr = _curr.parent
+REPO_ROOT = _curr
+
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
@@ -211,7 +215,6 @@ def main():
         return
 
     window_ids = filtered_df["record_id"].tolist()
-    default_rec = window_ids[0]
 
     # Quick navigation
     col_nav1, col_nav2 = st.sidebar.columns(2)
@@ -290,7 +293,6 @@ def main():
         with col_map:
             st.markdown("#### 📍 Turbine Geographic Layout (Northamptonshire, UK)")
             if not df_static.empty and "Latitude" in df_static.columns and "Longitude" in df_static.columns:
-                # Plotly scatter map
                 fig_map = px.scatter(
                     df_static,
                     x="Longitude",
@@ -470,7 +472,6 @@ def main():
             st.plotly_chart(fig_stack, use_container_width=True)
 
         else:
-            # Single Overlay
             fig_ov = go.Figure()
             for c in selected_signals_sidebar:
                 if c in plot_df:
@@ -513,7 +514,6 @@ def main():
 
         with col_curve:
             st.markdown("#### Wind Speed vs Active Power Curve")
-            # Theoretical curve
             ws_ref = np.linspace(0, 25, 200)
             p_ref = compute_theoretical_power(ws_ref)
 
@@ -589,9 +589,7 @@ def main():
         st.subheader("⚖️ Anomaly vs Baseline Normal Operation")
         st.write("Compare the current window against a normal operating baseline window to isolate anomaly signatures.")
 
-        # Filter normal windows
         normal_records = df_records[df_records["fault_class"] == "Normal Operation"]
-        # Prefer same turbine if available
         same_turb_normals = normal_records[normal_records["turbine_id"] == rec_row["turbine_id"]]
         baseline_candidates = same_turb_normals if not same_turb_normals.empty else normal_records
 
@@ -618,8 +616,7 @@ def main():
                 delta_color="inverse",
             )
 
-        # Plot comparison
-        steps = np.arange(WINDOW_STEPS) * 10  # minutes from start
+        steps = np.arange(WINDOW_STEPS) * 10
         fig_comp = go.Figure()
         fig_comp.add_trace(
             go.Scatter(
@@ -638,7 +635,6 @@ def main():
             )
         )
 
-        # Delta trace
         delta_vals = cur_telemetry[comp_signal].values - baseline_df[comp_signal].values
         fig_comp.add_trace(
             go.Bar(
