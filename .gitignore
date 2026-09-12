@@ -43,3 +43,27 @@ Thumbs.db
 Desktop.ini
 
 # Keep uv.lock and .python-version tracked for reproducible environments.
+
+# Data & model artefacts live on the VM, never in git (root data/ only; src/turbine_tslm/data is code)
+!/data/README.md
+*.zip
+*.parquet
+*.zarr
+checkpoints/
+runs/
+wandb/
+/outputs/
+*.pt
+*.safetensors
+*.ckpt
+.ipynb_checkpoints/
+
+# Nebius internal guides (do not distribute)
+hackathon-25-bypass.pdf
+Serverless-hackathon-guide.pdf
+
+# Local tooling state
+.claude/
+.codex/
+.entire/
+.env
