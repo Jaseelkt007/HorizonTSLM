@@ -21,6 +21,8 @@ DATA_DIR=./data scripts/download_data.sh   # ~4.6 GB
 ## Setup
 
 ```bash
+git clone --recurse-submodules https://github.com/Jaseelkt007/zurich_ehl_timeseries.git
+# already cloned? -> git submodule update --init
 uv sync --group dev          # Python >= 3.12; installs timenet[cli,torch], pytest, ruff, jupyter
 uv run timenet-build build timenet/hello-world && uv run python scripts/smoke_timenet.py
 ```
@@ -36,7 +38,8 @@ src/turbine_tslm/
   demo/         live demo                                                      (demo)
 configs/        one YAML per experiment; configs/submission.yaml is the submitted run
 scripts/        entry points (download_data.sh, smoke_timenet.py)
-docs/           briefs, problem statement, figures
+docs/           briefs, problem statement, figures, opentslm-paper/ (LaTeX text of the paper)
+third_party/    OpenTSLM and TimeNet as pinned git submodules (upstream code, read-only)
 data/           git-ignored; see data/README.md
 ```
 
