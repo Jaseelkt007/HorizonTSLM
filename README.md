@@ -25,17 +25,17 @@ uv sync --group dev          # Python >= 3.12; installs timenet[cli,torch], pyte
 uv run timenet-build build timenet/hello-world && uv run python scripts/smoke_timenet.py
 ```
 
-## Layout
+## Layout (proposed — each owner creates their own part)
 
 ```
 src/turbine_tslm/
-  data/         raw loaders, windows, taxonomy.yaml, target-text generation   (preprocessing)
+  data/         taxonomy.yaml (alarm message -> subsystem class); loaders, windows, target text go here
   connectors/   TimeNet connectors cubico/penmanshiel, cubico/kelmarsh        (preprocessing)
   training/     TimeNet -> TSLM glue, LoRA fine-tune, checkpoint export       (training)
   eval/         baselines and metrics                                          (evaluation)
   demo/         live demo                                                      (demo)
 configs/        one YAML per experiment; configs/submission.yaml is the submitted run
-scripts/        entry points (download_data.sh, smoke_timenet.py, ...)
+scripts/        entry points (download_data.sh, smoke_timenet.py)
 docs/           briefs, problem statement, figures
 data/           git-ignored; see data/README.md
 ```

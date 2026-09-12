@@ -44,8 +44,8 @@ Python ≥ 3.12; `uv` is the only supported way to run things (`uv run …`), `u
 
 ## Architecture
 
-`src/turbine_tslm/` is one installable package; each subpackage maps to a team role and to a section of the
-problem statement.
+`src/turbine_tslm/` is one installable package. The subpackages below are the agreed layout; each owner creates
+theirs (only `data/taxonomy.yaml` exists today). Each maps to a team role and a section of the problem statement.
 
 | Package | Role | Spec |
 |---|---|---|
