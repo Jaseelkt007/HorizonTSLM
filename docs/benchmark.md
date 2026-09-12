@@ -1,0 +1,45 @@
+# Baseline comparison
+
+Run the three XGBoost ablations with the fixed train/validation/test splits:
+
+```bash
+uv sync --group dev
+uv run python scripts/train_xgboost_baseline.py --model context_only
+uv run python scripts/train_xgboost_baseline.py --model sensors_only
+uv run python scripts/train_xgboost_baseline.py --model combined
+```
+
+Each run tunes its XGBoost settings on `val` only, refits on `train + val`, and writes test-A and test-B JSONL files to `outputs/predictions/`.  Its matching metrics JSON includes overall and 1/3/6-hour AUROC, recall at 10% false-alarm rate, positive-class macro-F1, and a confusion matrix.
+
+`brake_hydraulics` is retained in the confusion matrix but excluded from macro-F1 because it has only four examples in the project label set.
+
+Score any model's JSONL using the shared harness:
+
+```bash
+uv run python -m turbine_tslm.eval.score --windows data/interim/penmanshiel_windows.parquet --split test_a --predictions outputs/predictions/MODEL_test_a.jsonl --output outputs/MODEL_test_a_metrics.json
+uv run python -m turbine_tslm.eval.score --windows data/interim/kelmarsh_windows.parquet --split test_b --predictions outputs/predictions/MODEL_test_b.jsonl --output outputs/MODEL_test_b_metrics.json
+```
+
+| Comparison | Inputs | What it establishes |
+| --- | --- | --- |
+| `context_only` | anchor state, calendar month, requested horizon | Available operational-context proxy only |
+| `sensors_only` | 24-hour SCADA summary statistics | Value of sensors for a conventional model |
+| `combined` | SCADA statistics plus context | Incremental value after context |
+| text-only LLM | The same statistics expressed in text | Whether a general LLM can use summaries without native sequence input |
+| OpenTSLM | Raw 144 x 19 sequence plus the permitted prompt context | Whether native sensor-sequence processing improves the honest unseen-farm test |
+
+The parquet tables do **not** include alarm/status events before the anchor. Therefore `context_only` must not be presented as a true logs-only result. To make the requested logs-only/combined claim, add a leakage-safe pre-anchor status-log feature builder (event counts, recency, duration by subsystem) and rerun it as `logs_only` and `sensors_plus_logs`. Never use `next_event_*`, `lead_time_min`, `fault_within_*`, `label`, or `is_positive` as inputs.
+
+Report test-A and test-B separately; compare models primarily on test-B and include confidence intervals or paired bootstrap intervals before making a positive claim about incremental value.
+
+## First reproducible XGBoost run
+
+These are the overall metrics from the fixed-seed `v1` run above.  They are deliberately kept here rather than committed as generated prediction artefacts; rerunning the command reproduces the JSONL and detailed metric files locally.
+
+| Model | Test-A AUROC | Test-A recall @ 10% FAR | Test-A macro-F1+ | Test-B AUROC | Test-B recall @ 10% FAR | Test-B macro-F1+ |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: |
+| context-only proxy | 0.547 | 0.156 | 0.066 | 0.563 | 0.138 | 0.087 |
+| XGBoost sensors-only | 0.774 | 0.504 | 0.162 | 0.609 | 0.231 | 0.095 |
+| XGBoost combined | 0.767 | 0.516 | 0.167 | 0.615 | 0.226 | 0.084 |
+
+The sensor summaries substantially improve binary early-warning discrimination over available context on both sites.  The tiny and mixed effect of adding current context means it should not be described as an improvement.  Macro-F1 is low because several rare subsystem classes have too few training examples; inspect the saved confusion matrices rather than over-interpret a single aggregate.

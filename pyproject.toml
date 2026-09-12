@@ -8,6 +8,8 @@ dependencies = [
     "pandas>=3.0.5",
     "pyyaml>=6.0",
     "timenet[cli,torch]>=0.1.0",
+    "scikit-learn>=1.5",
+    "xgboost>=2.1",
 ]
 
 [build-system]
