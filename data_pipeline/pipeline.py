@@ -1,9 +1,12 @@
 import os
+from pathlib import Path
 import pandas as pd
 from dotenv import load_dotenv
 
-# 1. Load environment variables (including GEMINI_API_KEY)
-load_dotenv()
+# 1. Resolve project root and load environment variables (including GEMINI_API_KEY)
+root_dir = Path(__file__).resolve().parent.parent
+dotenv_path = root_dir / ".env"
+load_dotenv(dotenv_path)
 api_key = os.getenv("GEMINI_API_KEY")
 
 if api_key:
@@ -12,7 +15,7 @@ else:
     print("Warning: GEMINI_API_KEY could not be loaded. Please check your .env file.\n")
 
 # 2. Load the first 1000 rows of the SCADA CSV file
-csv_path = r"C:\Users\benja\Desktop\Projekte\Hackathons\EHL_Zurich\zurich_ehl_timeseries\data\Kelmarsh_SCADA_2016_3082\Turbine_Data_Kelmarsh_1_2016-01-03_-_2017-01-01_228.csv"
+csv_path = root_dir / "data" / "Kelmarsh_SCADA_2016_3082" / "Turbine_Data_Kelmarsh_1_2016-01-03_-_2017-01-01_228.csv"
 
 print(f"Loading data from: {csv_path}...")
 df = pd.read_csv(csv_path, nrows=1000, skiprows=9)
