@@ -41,7 +41,7 @@ DEFAULTS: dict[str, Any] = {
     "gradient_checkpointing": False,
     "model_dtype": "float32",  # Flamingo: transformers>=5 loads the LLM in its config dtype (bf16) while the OpenTSLM
     # encoder/perceiver/cross-attention are fp32 -> cast the whole model to one dtype (checkpoints were trained fp32)
-    "autocast_bf16": False,  # bf16 autocast around forward passes (speed); parameters stay in model_dtype
+    "autocast_bf16": True,  # bf16 autocast around forward passes (speed); parameters stay in model_dtype
     "epochs": 3,
     "batch_size": 4,
     "eval_batch_size": 8,
@@ -54,7 +54,9 @@ DEFAULTS: dict[str, Any] = {
     "dataset_ids": ["cubico/penmanshiel", "cubico/kelmarsh"],
     "eval_splits": ["val", "test_a", "test_b"],
     "max_new_tokens": 24,
-    "score_method": "loglik",  # loglik | none
+    "predict_mode": "loglik",  # loglik: batched teacher-forced scoring of every answer candidate (fast, no
+    # generation); generate: free generation + parse + yes/no log-likelihood (needed for evidence text); both
+    "score_batch_size": 32,  # candidate sequences per forward pass in loglik mode
     "checkpoint_every_steps": 200,
     "log_every_steps": 10,
     "resume": True,  # continue from last.pt in checkpoint_dir if present
@@ -341,51 +343,134 @@ def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
 # --------------------------------------------------------------------------------------------- predict
 
 
+def _sum_logprob(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
+    """Per-sample sum of log p(label token) over positions where labels != -100 (next-token shifted)."""
+    logp = torch.log_softmax(logits[:, :-1].float(), dim=-1)
+    tgt = labels[:, 1:]
+    mask = tgt != -100
+    tok = logp.gather(-1, tgt.clamp(min=0).unsqueeze(-1)).squeeze(-1)
+    return (tok * mask).sum(dim=1)
+
+
+@torch.no_grad()
+def batch_answer_loglik(model, batch: list[dict[str, Any]]) -> torch.Tensor:
+    """Sum log-likelihood of each item's ``answer`` given its prompt, for a whole batch in one forward pass."""
+    if hasattr(model, "text_tokenizer"):  # OpenTSLMFlamingo
+        input_ids, images, attention_mask, labels = model.pad_and_apply_batch(
+            batch, include_labels=False
+        )
+        out = model.model(
+            vision_x=images, lang_x=input_ids, attention_mask=attention_mask
+        )
+        logits = out.logits if hasattr(out, "logits") else out[0]
+        return _sum_logprob(logits, labels)
+    # OpenTSLMSP: replicate its compute_loss without the batch-mean reduction
+    answers = [b["answer"] for b in batch]
+    inputs_embeds, attention_mask = model.pad_and_apply_batch(batch)
+    B, L, _ = inputs_embeds.size()
+    ans = model.tokenizer(answers, return_tensors="pt", padding=True)
+    ans_ids = ans.input_ids.to(model.device)
+    ans_mask = ans.attention_mask.to(model.device)
+    ans_emb = model.llm.get_input_embeddings()(ans_ids).to(inputs_embeds.dtype)
+    inputs_embeds = torch.cat([inputs_embeds, ans_emb], dim=1)
+    attention_mask = torch.cat([attention_mask, ans_mask], dim=1)
+    labels = torch.full(
+        (B, attention_mask.size(1)), -100, device=model.device, dtype=torch.long
+    )
+    labels[:, L:] = ans_ids.masked_fill(ans_mask == 0, -100)
+    out = model.llm(
+        inputs_embeds=inputs_embeds, attention_mask=attention_mask, return_dict=True
+    )
+    return _sum_logprob(out.logits, labels)
+
+
 @torch.no_grad()
 def answer_loglik(
     cfg: dict[str, Any], model, sample: dict[str, Any], answer: str, collate
 ) -> float:
-    """Sum log-likelihood of ``answer`` given the prompt (compute_loss is the mean over answer tokens)."""
     s = dict(sample)
     s["answer"] = answer
-    n_tok = len(tokenizer_of(model)(answer, add_special_tokens=False).input_ids)
     with autocast(cfg):
-        loss = model.compute_loss(collate([s])).item()
-    return -loss * n_tok
+        return float(batch_answer_loglik(model, collate([s]))[0])
+
+
+def candidate_answers(model, classes: tuple[str, ...]) -> list[str]:
+    eos = model.get_eos_token()
+    return [f"Answer: no{eos}"] + [f"Answer: yes, {c}{eos}" for c in classes]
+
+
+@torch.no_grad()
+def score_candidates(
+    cfg: dict[str, Any], model, chunk: list[dict[str, Any]], cands: list[str], collate
+) -> torch.Tensor:
+    """(len(chunk), len(cands)) sum log-likelihoods, computed in sub-batches of score_batch_size sequences."""
+    seqs = []
+    for s in chunk:
+        for c in cands:
+            item = dict(s)
+            item["answer"] = c
+            seqs.append(item)
+    out = []
+    step = max(1, cfg["score_batch_size"])
+    for i in range(0, len(seqs), step):
+        with autocast(cfg):
+            out.append(batch_answer_loglik(model, collate(seqs[i : i + step])).cpu())
+    return torch.cat(out).view(len(chunk), len(cands))
 
 
 @torch.no_grad()
 def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
+    from turbine_tslm.data.taxonomy import fault_classes
+
     model.eval()
     wanted = set(cfg["eval_splits"])
     samples = [
         s for d in (sets["validation"], sets["test"]) for s in d if s["split"] in wanted
     ]
-    print(f"[predict] {len(samples)} windows over {sorted(wanted)}")
+    mode = cfg["predict_mode"]
+    classes = fault_classes()
+    cands = candidate_answers(model, classes)
+    print(f"[predict] {len(samples)} windows over {sorted(wanted)}, mode={mode}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bs = cfg["eval_batch_size"]
     t0 = time.time()
     with open(out_path, "w", encoding="utf-8") as fh:
         for i in range(0, len(samples), bs):
             chunk = samples[i : i + bs]
-            with autocast(cfg):
-                texts = model.generate(
-                    collate(chunk), max_new_tokens=cfg["max_new_tokens"]
-                )
-            for s, text in zip(chunk, texts, strict=True):
-                rec = {
+            recs = [
+                {
                     "window_id": s["window_id"],
                     "split": s["split"],
                     "horizon_h": s["horizon_h"],
                     "gold": s["label"],
-                    "text": text,
-                    "label": scoring.parse_answer(text),
                 }
-                if cfg["score_method"] == "loglik":
-                    ll_yes = answer_loglik(cfg, model, s, "Answer: yes", collate)
-                    ll_no = answer_loglik(cfg, model, s, "Answer: no", collate)
-                    rec["score"] = 1 / (1 + math.exp(-(ll_yes - ll_no)))
-                    rec["loglik"] = {"yes": ll_yes, "no": ll_no}
+                for s in chunk
+            ]
+            if mode in ("loglik", "both"):
+                ll = score_candidates(cfg, model, chunk, cands, collate)
+                probs = torch.softmax(ll, dim=1)
+                for rec, p in zip(recs, probs, strict=True):
+                    p_yes = float(1 - p[0])
+                    cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
+                    best = int(torch.argmax(cls_p))
+                    rec["score"] = p_yes
+                    rec["label"] = classes[best] if p_yes >= 0.5 else "none"
+                    rec["class_scores"] = {
+                        c: float(v) for c, v in zip(classes, cls_p, strict=True)
+                    }
+            if mode in ("generate", "both"):
+                with autocast(cfg):
+                    texts = model.generate(
+                        collate(chunk), max_new_tokens=cfg["max_new_tokens"]
+                    )
+                for rec, s, text in zip(recs, chunk, texts, strict=True):
+                    rec["text"] = text
+                    if mode == "generate":
+                        rec["label"] = scoring.parse_answer(text)
+                        ll_yes = answer_loglik(cfg, model, s, "Answer: yes", collate)
+                        ll_no = answer_loglik(cfg, model, s, "Answer: no", collate)
+                        rec["score"] = 1 / (1 + math.exp(-(ll_yes - ll_no)))
+            for rec in recs:
                 fh.write(json.dumps(rec) + "\n")
             if (i // bs) % 20 == 0:
                 print(
@@ -436,14 +521,23 @@ def main(argv: list[str] | None = None) -> int:
     log_fh = open(out / "train_log.jsonl", "a", encoding="utf-8")  # noqa: SIM115 — closed in main
     wb = None
     if cfg["wandb_project"]:
-        import wandb
+        netrc = Path.home() / ".netrc"
+        if os.environ.get("WANDB_API_KEY") or (
+            netrc.exists() and "wandb" in netrc.read_text(encoding="utf-8")
+        ):
+            import wandb
 
-        wb = wandb.init(
-            project=cfg["wandb_project"],
-            name=cfg["run_name"],
-            config=cfg,
-            resume="allow",
-        )
+            wb = wandb.init(
+                project=cfg["wandb_project"],
+                name=cfg["run_name"],
+                config=cfg,
+                resume="allow",
+            )
+        else:
+            print(
+                "[wandb] no WANDB_API_KEY / ~/.netrc login found — logging to train_log.jsonl only",
+                flush=True,
+            )
 
     def log(rec: dict[str, Any]) -> None:
         log_fh.write(json.dumps(rec) + "\n")
