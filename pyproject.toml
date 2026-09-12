@@ -8,7 +8,11 @@ dependencies = [
     "pandas>=3.0.5",
     "pyyaml>=6.0",
     "timenet[cli,torch]>=0.1.0",
+    "opentslm",
 ]
+
+[tool.uv.sources]
+opentslm = { path = "third_party/OpenTSLM", editable = true }
 
 [build-system]
 requires = ["hatchling"]
