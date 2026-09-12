@@ -53,3 +53,17 @@ These are the overall metrics from the fixed-seed `v1` run above.  They are deli
 | XGBoost combined | 0.767 | 0.516 | 0.167 | 0.615 | 0.226 | 0.084 |
 
 The sensor summaries substantially improve binary early-warning discrimination over available context on both sites.  The tiny and mixed effect of adding current context means it should not be described as an improvement.  Macro-F1 is low because several rare subsystem classes have too few training examples; inspect the saved confusion matrices rather than over-interpret a single aggregate.
+
+## Final comparison status
+
+Use this table in the project tracker; only rows with completed predictions may appear as numerical results on a slide.
+
+| Input / model | Test-B AUROC | Test-B recall @ 10% FAR | Status |
+| --- | ---: | ---: | --- |
+| Operational-context proxy (XGBoost) | 0.563 | 0.138 | Complete; **not** a logs-only baseline |
+| Sensors-only summary statistics (XGBoost) | 0.609 | 0.231 | Complete |
+| Sensors + current context (XGBoost) | 0.615 | 0.226 | Complete; **not** sensors + logs |
+| Historical logs-only (XGBoost) | — | — | Waiting for `hist_*` parquet columns |
+| Sensors + historical logs (XGBoost) | — | — | Waiting for `hist_*` parquet columns |
+| Gemini text-only summary baseline | — | — | Resumable test jobs running; score after both JSONLs are complete |
+| OpenTSLM raw sensor sequence | — | — | Owned by training teammate |
