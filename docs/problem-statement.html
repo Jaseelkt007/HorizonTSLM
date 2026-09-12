@@ -85,7 +85,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
   <h1>Turbine Alarm Explainer</h1>
   <p class="lede">Reasoning over wind-turbine signals: a Time-Series Language Model that reads a turbine's SCADA channels and tells the operations engineer what happened, which subsystem is involved, what it cost, and whether trouble is coming.</p>
   <div class="meta">
-    <span>Data <b>Kelmarsh (6 × Senvion MM92, 2016–21) + Penmanshiel (14 × Senvion MM82, 2016–21)</b></span>
+    <span>Data <b>Penmanshiel (14 × Senvion MM82, train) + Kelmarsh (6 × Senvion MM92, held-out site), 2017–21</b></span>
     <span>Licence <b>CC-BY-4.0, Cubico Sustainable Investments</b></span>
     <span>Written in the shape of <b>aioniclabs.ai/use-cases</b></span>
   </div>
@@ -140,7 +140,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
 
 <div class="callout warn">
   <span class="eyebrow">Data facts that shape the design</span>
-  <p>Kelmarsh 2016 has temperatures / RPM / pitch only from May 2016 → we use June 2016 onward. 649 of 2,122 status rows in one turbine-year have an open end ("-") → treat as point events. "Battery test" and "Manual stop" dominate the log → excluded from the fault classes, kept as context. After filtering, ~900 real Stop/Warning events per 6 turbines per year → roughly 5,000 Kelmarsh + 8,000 Penmanshiel labelled events overall.</p>
+  <p>2016 is incomplete (Kelmarsh temperatures / RPM / pitch only from May 2016) → we use 2017 → 2021 for both farms. 649 of 2,122 status rows in one turbine-year have an open end ("-") → treat as point events. "Battery test" and "Manual stop" dominate the log → excluded from the fault classes, kept as context. After filtering (2017–21): 10,410 fault-type Stop/Warning events at Penmanshiel (2,503 IEC "Forced outage") and 3,387 at Kelmarsh (694); 122 and 87 distinct messages.</p>
 </div>
 
 <h2 id="problems">3 · Problems we solve</h2>
@@ -149,7 +149,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
   <li><b>Explain, not just flag.</b> An alarm code says <em>what tripped</em>; it does not say what the temperatures, power and pitch were doing in the hours before. The model narrates that.</li>
   <li><b>Price the event.</b> Lost production in kWh, whether the turbine is still down, whether wind is available — the engineer's basis for prioritising a site visit.</li>
   <li><b>Anticipate.</b> Given a quiet window, is a forced outage likely in the next hours, and in which subsystem?</li>
-  <li><b>Generalise across machines.</b> A model trained on one farm must still read a different turbine model at another site — that is what the operator's fleet looks like.</li>
+  <li><b>Generalise across machines.</b> Train on Penmanshiel (MM82), still read Kelmarsh (MM92) — a different site and turbine model, which is what the operator's fleet looks like.</li>
 </ul>
 
 <h2 id="workflow">4 · Workflow, in Aionic's four stages</h2>
@@ -196,7 +196,7 @@ Answer: generator_cooling</code></pre>
   <thead><tr><th>#</th><th>Task</th><th>Prompt (abridged)</th><th>Output</th><th>Label source</th><th>TimeNet type</th><th>Priority</th></tr></thead>
   <tbody>
     <tr><td class="num">T1</td><td><b>Event explanation</b> — the headline task</td><td>"This is turbine K1 (MM92, 2.05 MW). The window ends at the start of a status event. Describe what happened in the signals, name the most likely subsystem, state the impact and recommend an action."</td><td>Structured text (FINDING / EVIDENCE / CAUSE / IMPACT / ACTION) ending in <code>Answer: &lt;subsystem&gt;</code></td><td>Alarm message + category (subsystem via taxonomy); evidence sentences generated from the window by rules; kWh from Lost Production columns</td><td><code>AnswerTask</code> with <code>rationale</code></td><td><span class="pill must">Must</span></td></tr>
-    <tr><td class="num">T2</td><td><b>Subsystem classification</b> — the measurable core of T1</td><td>Same window. "Which subsystem does this event belong to?" (list of classes given)</td><td>One of 10 classes (section 8)</td><td>Alarm message → taxonomy</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
+    <tr><td class="num">T2</td><td><b>Subsystem classification</b> — the measurable core of T1</td><td>Same window. "Which subsystem does this event belong to?" (list of classes given)</td><td>One of 11 classes (section 8)</td><td>Alarm message → taxonomy</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
     <tr><td class="num">T3</td><td><b>Fault-vs-benign triage</b></td><td>Same window. "Is this a component fault, an environmental / operational stop, or normal operation?"</td><td><code>fault</code> / <code>benign_stop</code> / <code>normal</code></td><td>IEC category + message; <em>normal</em> = windows with no event</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
     <tr><td class="num">T4</td><td><b>Precursor detection</b> — "anticipate"</td><td>A 12 h window that contains <em>no</em> event. "Will a forced outage start within the next 6 h? If so, which subsystem?"</td><td><code>none</code> or a subsystem</td><td>Next event in the log after the window; negatives sampled from quiet periods</td><td><code>ClassificationTask</code></td><td><span class="pill should">Should</span></td></tr>
     <tr><td class="num">T5</td><td><b>Outage localisation</b></td><td>A 48 h window containing one stop. "When did the turbine stop producing although wind was available?"</td><td>Time interval (start, end)</td><td>Event start/end from the log</td><td><code>TemporalLocalizationTask</code></td><td><span class="pill">Stretch</span> (TimeRLM comparison)</td></tr>
@@ -235,7 +235,7 @@ Answer: generator_cooling</code></pre>
 <ul>
   <li><b>Positive windows:</b> one per Stop / Warning event that maps to a fault or benign-stop class (dedup events that start within 10 min of each other on the same turbine → keep the highest-severity message).</li>
   <li><b>Normal windows:</b> random 24 h windows with no Stop/Warning inside and none in the following 6 h, sampled to match positives 1:1.</li>
-  <li><b>Split (no leakage):</b> Penmanshiel is the larger farm (14 turbines, ~2.3× the events), so it trains; Kelmarsh is held out entirely. Train = Penmanshiel turbines 1–12, 2016 → 2019; validation = Penmanshiel turbines 13–15, same years; test A = Penmanshiel 2020 → mid-2021, all turbines (unseen <em>time</em>); test B = Kelmarsh, all 6 turbines, 2016-06 → 2021 (unseen <em>site and turbine model</em>, MM92 vs MM82).</li>
+  <li><b>Split (no leakage) — train on the larger farm, hold out the smaller one:</b> train = Penmanshiel turbines 1–12 (no #3 exists), 2017 → 2019; validation = Penmanshiel turbines 13–15, same years (unseen turbines); test A = Penmanshiel, all 14 turbines, 2020 → 2021 (unseen <em>time</em>); test B = Kelmarsh, all 6 turbines, 2017 → 2021 (unseen <em>site and turbine model</em>, MM82 → MM92). Penmanshiel has ~2× the data — 10,410 fault-type events vs 3,387 — so it trains. 73 messages occur on both farms; the 14 Kelmarsh-only ones are rare (≤ 4 each), so the taxonomy is built from the union.</li>
 </ul>
 
 <h2 id="output">7 · Output specification</h2>
@@ -255,7 +255,7 @@ Answer: &lt;subsystem class&gt;</code></pre>
 </ol>
 
 <h2 id="taxonomy">8 · Subsystem taxonomy (the label space)</h2>
-<p>The ~120 raw messages collapse into 10 classes. The mapping is a versioned table in the connector so anyone can audit or extend it.</p>
+<p>The ~130 raw messages (union of both farms) collapse into 11 classes. The mapping is a versioned table in the connector so anyone can audit or extend it.</p>
 <div class="tablewrap"><table>
   <thead><tr><th>Class</th><th>Raw messages (examples)</th><th>Type</th></tr></thead>
   <tbody>
@@ -267,7 +267,8 @@ Answer: &lt;subsystem class&gt;</code></pre>
     <tr><td><code>yaw_cable</code></td><td>Cable autounwind, Manual yaw, Deviation winddirection &gt; 60°</td><td>fault / operational</td></tr>
     <tr><td><code>structural_overspeed</code></td><td>Tower oscillation X/Y level 1/2, Oscillation encoder tower, High rotor speed nacelle</td><td>fault</td></tr>
     <tr><td><code>sensor_comms</code></td><td>Comm. failure FPM, Data communication unavailable, 4-20 mA anemometer / vane, Vane 2 defect, No assignment to a PMU</td><td>fault (data)</td></tr>
-    <tr><td><code>environmental_stop</code></td><td>Wind &lt; start wind, Absence of wind during run-up, Gearbox warm-up stage, ice/curtailment messages</td><td>benign stop</td></tr>
+    <tr><td><code>environmental_stop</code></td><td>Wind &lt; start wind, Max. wind speed, Absence of wind during run-up, Gearbox warm-up stage, ice</td><td>benign stop</td></tr>
+    <tr><td><code>curtailment_external</code></td><td>Externally stopped, P output externally reduced, Reduced power converter (grid request)</td><td>benign stop</td></tr>
     <tr><td><code>manual_safety</code></td><td>Manual stop (on site / remote), Park master stop, Remote stop, Safety chain open, Emergency stop nacelle/base/top box, Battery test, Test brake program</td><td>benign stop (context only, not a T2 target)</td></tr>
   </tbody>
 </table></div>

@@ -101,11 +101,11 @@ Turbine type (MM92 vs MM82), rated power, rotor diameter, hub height. Goes into 
 
 ### Data facts that shape the design (checked in the raw files)
 
-- Kelmarsh 2016: temperatures / RPM / pitch only exist from **May 2016** → use June 2016 onward.
+- 2016 is incomplete (Kelmarsh temperatures / RPM / pitch only exist from May 2016) → we use **2017 → 2021** for both farms.
 - 649 of 2,122 status rows in one turbine-year have an open end (`-`) → treat as point events.
 - `Battery test` and `Manual stop` dominate the log → excluded from fault classes, kept as context.
-- After filtering: ~900 real Stop/Warning events per 6 turbines per year → roughly **5,000
-  Kelmarsh + 8,000 Penmanshiel labelled events** overall.
+- After filtering (2017–21): **10,410 fault-type Stop/Warning events at Penmanshiel (2,503 IEC
+  "Forced outage") and 3,387 at Kelmarsh (694 forced outages)**; 122 and 87 distinct messages.
 
 ---
 
@@ -118,8 +118,8 @@ Turbine type (MM92 vs MM82), rated power, rotor diameter, hub height. Goes into 
 - **Price the event.** Lost kWh, whether the turbine is still down, whether wind is available.
 - **Anticipate.** Given a quiet window, is a forced outage likely in the next hours, in which
   subsystem?
-- **Generalise across machines.** Train on one farm, still work on a different turbine model at
-  another site — that is what a real fleet looks like.
+- **Generalise across machines.** Train on Penmanshiel (MM82), still work on Kelmarsh (MM92) —
+  a different site and turbine model, which is what a real fleet looks like.
 
 ---
 
@@ -178,7 +178,7 @@ All tasks share the same input (section 6) and are stored as TimeNet tasks on th
 | # | Task | Prompt (abridged) | Output | Label source | TimeNet type | Priority |
 |---|---|---|---|---|---|---|
 | T1 | **Event explanation** (headline) | "Turbine K1 (MM92). The window ends at the start of a status event. Describe what happened, name the subsystem, state impact, recommend an action." | 5-line report ending in `Answer: <subsystem>` | Message + category → subsystem; evidence from rules over the window; kWh from Lost Production | `AnswerTask` (+ rationale) | **Must** |
-| T2 | **Subsystem classification** (measurable core of T1) | Same window. "Which subsystem does this event belong to?" (class list given) | 1 of 10 classes (section 8) | Message → taxonomy | `ClassificationTask` | **Must** |
+| T2 | **Subsystem classification** (measurable core of T1) | Same window. "Which subsystem does this event belong to?" (class list given) | 1 of 11 classes (section 8) | Message → taxonomy | `ClassificationTask` | **Must** |
 | T3 | **Fault vs benign triage** | "Is this a component fault, an environmental/operational stop, or normal operation?" | `fault` / `benign_stop` / `normal` | IEC category + message; *normal* = windows with no event | `ClassificationTask` | **Must** |
 | T4 | **Precursor detection** ("anticipate") | 12 h window with *no* event inside. "Will a forced outage start within the next 6 h? Which subsystem?" | `none` or subsystem | Next event after the window; negatives from quiet periods | `ClassificationTask` | Should |
 | T5 | **Outage localisation** | 48 h window with one stop. "When did the turbine stop producing although wind was available?" | (start, end) | Event start/end | `TemporalLocalizationTask` | Stretch (TimeRLM comparison) |
@@ -214,14 +214,19 @@ T2/T3 give the numbers, T1 gives the demo, T4 gives the "sense of time".
 - Normal windows: random 24 h windows with no Stop/Warning inside and none in the following
   6 h, sampled 1:1 with positives.
 
-**Splits (no leakage)**
+**Splits (no leakage)** — train on the larger farm, hold out the smaller one entirely
 
-| Split | Data | Tests |
+| Split | Data | What it tests |
 |---|---|---|
-| Train | Kelmarsh turbines 1–4, 2016-06 → 2019-12 | — |
-| Validation | Kelmarsh turbines 5–6, same years | unseen turbines |
-| Test A | Kelmarsh 2020–21, all turbines | unseen **time** |
-| Test B | Penmanshiel, all 14 turbines, all years | unseen **site and turbine model** |
+| Train | Penmanshiel turbines 1–12 (no #3 exists), 2017 → 2019 | — |
+| Validation | Penmanshiel turbines 13–15, 2017 → 2019 | unseen turbines, same site |
+| Test A | Penmanshiel, all 14 turbines, 2020 → 2021 | unseen **time** |
+| Test B | Kelmarsh, all 6 turbines, 2017 → 2021 | unseen **site and turbine model** (MM82 → MM92) |
+
+Penmanshiel has ~2× the data (14 turbines × 5 years) — 10,410 fault-type events vs 3,387 at
+Kelmarsh — so it is the training farm. 73 alarm messages occur on both farms; the 14
+Kelmarsh-only messages are rare (≤ 4 each), so the taxonomy is built from the union and nothing
+at the test site falls into "unknown".
 
 ---
 
@@ -253,7 +258,7 @@ Answer: <subsystem class>
 
 ## 8. Subsystem taxonomy (label space)
 
-~120 raw messages → 10 classes. The mapping lives as a versioned table in the connector.
+~130 raw messages (union of both farms) → 11 classes. The mapping lives as a versioned table in the connector.
 
 | Class | Raw messages (examples) | Type |
 |---|---|---|
@@ -265,7 +270,8 @@ Answer: <subsystem class>
 | `yaw_cable` | Cable autounwind, Manual yaw, Deviation winddirection > 60° | fault / operational |
 | `structural_overspeed` | Tower oscillation X/Y level 1/2, Oscillation encoder tower, High rotor speed nacelle | fault |
 | `sensor_comms` | Comm. failure FPM, Data communication unavailable, 4-20 mA anemometer / vane, Vane 2 defect, No assignment to a PMU | fault (data) |
-| `environmental_stop` | Wind < start wind, Absence of wind during run-up, Gearbox warm-up stage, ice / curtailment | benign stop |
+| `environmental_stop` | Wind < start wind, Max. wind speed, Absence of wind during run-up, Gearbox warm-up stage, ice | benign stop |
+| `curtailment_external` | Externally stopped, P output externally reduced, Reduced power converter (grid request) | benign stop |
 | `manual_safety` | Manual stop (on site / remote), Park master stop, Remote stop, Safety chain open, Emergency stop, Battery test, Test brake program | benign (context only, not a T2 target) |
 
 ---
