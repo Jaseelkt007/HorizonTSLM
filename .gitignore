@@ -1,0 +1,45 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# Test, lint, and type-check caches
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.pyre/
+.hypothesis/
+.coverage
+.coverage.*
+htmlcov/
+coverage.xml
+
+# Virtual environments
+.venv/
+venv/
+.uv-cache/
+
+# Local configuration
+.env
+.env.*
+!.env.example
+!.env.template
+
+# Notebook checkpoints
+.ipynb_checkpoints/
+
+# Local datasets and generated results
+/data/
+/outputs/
+
+# Editor and OS files
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Keep uv.lock and .python-version tracked for reproducible environments.

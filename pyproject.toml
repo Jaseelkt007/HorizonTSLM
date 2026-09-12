@@ -1,0 +1,11 @@
+[project]
+name = "zurich-ehl-timeseries"
+version = "0.1.0"
+description = "Zurich hackathon time-series project"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "pandas>=3.0.5",
+    "timenet[cli,torch]>=0.1.0",
+]
+
