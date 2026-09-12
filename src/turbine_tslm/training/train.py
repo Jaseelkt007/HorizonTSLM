@@ -49,6 +49,8 @@ DEFAULTS: dict[str, Any] = {
     "warmup_frac": 0.03,
     "grad_clip": 1.0,
     "early_stop_patience": 3,
+    "answer_mode": "label",  # label (MVP) | evidence (rule-based reasoning before the Answer line)
+    "evidence_sentences": 3,
     "max_samples": None,  # per split, stratified (smoke runs)
     "horizons": None,  # e.g. [6]
     "dataset_ids": ["cubico/penmanshiel", "cubico/kelmarsh"],
@@ -215,6 +217,8 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         max_samples=cfg["max_samples"],
         horizons=cfg["horizons"],
         seed=cfg["seed"],
+        answer_mode=cfg["answer_mode"],
+        evidence_sentences=cfg["evidence_sentences"],
     )
     sets = {s: DS(s, EOS_TOKEN=eos) for s in ("train", "validation", "test")}
     for s, d in sets.items():
@@ -412,6 +416,12 @@ def answer_loglik(
         return float(batch_answer_loglik(model, collate([s]))[0])
 
 
+def evidence_prefix(text: str) -> str:
+    """Generated text up to (not including) its last 'Answer' — the reasoning part, whitespace-trimmed."""
+    i = text.lower().rfind("answer")
+    return (text if i < 0 else text[:i]).strip()
+
+
 def candidate_answers(model, classes: tuple[str, ...]) -> list[str]:
     eos = model.get_eos_token()
     return [f"Answer: no{eos}"] + [f"Answer: yes, {c}{eos}" for c in classes]
@@ -419,14 +429,23 @@ def candidate_answers(model, classes: tuple[str, ...]) -> list[str]:
 
 @torch.no_grad()
 def score_candidates(
-    cfg: dict[str, Any], model, chunk: list[dict[str, Any]], cands: list[str], collate
+    cfg: dict[str, Any],
+    model,
+    chunk: list[dict[str, Any]],
+    cands: list[str],
+    collate,
+    prefixes=None,
 ) -> torch.Tensor:
-    """(len(chunk), len(cands)) sum log-likelihoods, computed in sub-batches of score_batch_size sequences."""
+    """(len(chunk), len(cands)) sum log-likelihoods, computed in sub-batches of score_batch_size sequences.
+
+    ``prefixes`` (one string per chunk item, e.g. the model's own generated evidence) is prepended to every
+    candidate, so the yes/no score is conditioned on the reasoning the model actually wrote.
+    """
     seqs = []
-    for s in chunk:
+    for j, s in enumerate(chunk):
         for c in cands:
             item = dict(s)
-            item["answer"] = c
+            item["answer"] = (prefixes[j] + " " if prefixes and prefixes[j] else "") + c
             seqs.append(item)
     out = []
     step = max(1, cfg["score_batch_size"])
@@ -481,13 +500,20 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                     texts = model.generate(
                         collate(chunk), max_new_tokens=cfg["max_new_tokens"]
                     )
-                for rec, s, text in zip(recs, chunk, texts, strict=True):
+                for rec, text in zip(recs, texts, strict=True):
                     rec["text"] = text
-                    if mode == "generate":
+                if mode == "generate":
+                    # score the label candidates conditioned on the evidence the model wrote (text before "Answer")
+                    prefixes = [evidence_prefix(t) for t in texts]
+                    ll = score_candidates(cfg, model, chunk, cands, collate, prefixes)
+                    probs = torch.softmax(ll, dim=1)
+                    for rec, text, p in zip(recs, texts, probs, strict=True):
                         rec["label"] = scoring.parse_answer(text)
-                        ll_yes = answer_loglik(cfg, model, s, "Answer: yes", collate)
-                        ll_no = answer_loglik(cfg, model, s, "Answer: no", collate)
-                        rec["score"] = 1 / (1 + math.exp(-(ll_yes - ll_no)))
+                        rec["score"] = float(1 - p[0])
+                        cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
+                        rec["class_scores"] = {
+                            c: float(v) for c, v in zip(classes, cls_p, strict=True)
+                        }
             for rec in recs:
                 fh.write(json.dumps(rec) + "\n")
             if (i // bs) % 20 == 0:

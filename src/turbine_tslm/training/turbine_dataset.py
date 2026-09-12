@@ -25,6 +25,7 @@ from timenet.registry.factory import default_registry_path
 from timenet.types import AnswerTask
 
 from turbine_tslm.data.channels import CHANNEL_NAMES
+from turbine_tslm.data.evidence import evidence_text
 from turbine_tslm.data.prompts import POST_PROMPT, series_text
 
 DATASET_IDS: tuple[str, ...] = ("cubico/penmanshiel", "cubico/kelmarsh")
@@ -109,6 +110,8 @@ class TurbineQADataset(QADataset):
     max_samples: int | None = None  # per OpenTSLM split, stratified
     horizons: tuple[int, ...] | None = None  # e.g. (6,) to train on one question only
     seed: int = 0
+    answer_mode: str = "label"  # label: "Answer: ..." only (MVP); evidence: rule-based reasoning first (stage 2)
+    evidence_sentences: int = 3
     registry = None
     _rows: list[dict[str, Any]] | None = None
 
@@ -140,6 +143,8 @@ class TurbineQADataset(QADataset):
         return POST_PROMPT
 
     def _get_answer(self, row) -> str:
+        if self.answer_mode == "evidence":
+            return evidence_text(row["series"], row["label"], self.evidence_sentences)
         return row["answer"]
 
     def _get_text_time_series_prompt_list(self, row) -> list[TextTimeSeriesPrompt]:
@@ -165,6 +170,8 @@ def make_dataset_class(name: str, **config) -> type[TurbineQADataset]:
         "horizons",
         "seed",
         "registry",
+        "answer_mode",
+        "evidence_sentences",
     }
     if bad:
         raise TypeError(f"unknown dataset options {sorted(bad)}")
