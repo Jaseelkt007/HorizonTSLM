@@ -329,10 +329,8 @@ def score_predictions(labels: pd.DataFrame, predictions: pd.DataFrame) -> dict[s
     missing = required - set(predictions.columns)
     if missing:
         raise ValueError(f"Prediction file misses columns: {sorted(missing)}")
-    converted = predictions.rename(
-        columns={"pred_label": "label", "score_positive": "score"}
-    )
-    return score(converted[["window_id", "label", "score"]], labels)
+    converted = predictions.rename(columns={"score_positive": "score"})
+    return score(converted[["window_id", "pred_label", "score"]], labels)
 
 
 # --------------------------------------------------------------------------------------------- report
