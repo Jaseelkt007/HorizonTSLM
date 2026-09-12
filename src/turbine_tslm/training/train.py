@@ -66,6 +66,11 @@ DEFAULTS: dict[str, Any] = {
     "out_dir": None,  # default outputs/<run_name>
     "checkpoint_dir": None,  # default $DATA_DIR/checkpoints/<run_name>
     "windows": None,  # parquet label tables; default $DATA_DIR/interim/*_windows.parquet
+    "epoch_loss_splits": [
+        "test_a",
+        "test_b",
+    ],  # diagnostic only: mean answer loss on these splits each epoch
+    # (logged as <split>_loss; never used for checkpoint selection, which is val_loss only)
     "wandb_project": None,  # e.g. "turbine-tslm": mirror train_log.jsonl + final metrics to Weights & Biases
     # (needs `uv sync --extra wandb` and WANDB_API_KEY in the environment; run name = run_name)
 }
@@ -230,7 +235,14 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         shuffle=False,
         collate_fn=collate,
     )
-    return sets, train_loader, val_loader, collate
+    extra = {}
+    for split in cfg["epoch_loss_splits"] or []:
+        rows = [x for x in sets["test"] if x["split"] == split]
+        if rows:
+            extra[split] = DataLoader(
+                rows, batch_size=cfg["batch_size"], shuffle=False, collate_fn=collate
+            )
+    return sets, train_loader, val_loader, collate, extra
 
 
 # --------------------------------------------------------------------------------------------- train
@@ -247,7 +259,9 @@ def mean_loss(cfg: dict[str, Any], model, loader) -> float:
     return tot / max(n, 1)
 
 
-def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
+def train(
+    cfg: dict[str, Any], model, train_loader, val_loader, log, extra_loaders=None
+) -> Path:
     ckdir = Path(cfg["checkpoint_dir"])
     best_path, last_path = ckdir / "best.pt", ckdir / "last.pt"
     opt = make_optimizer(model, cfg)
@@ -311,15 +325,18 @@ def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
                     model, last_path, step=step, epoch=epoch, best_val=best_val
                 )
         val = mean_loss(cfg, model, val_loader)
-        log(
-            {
-                "step": step,
-                "epoch": epoch,
-                "val_loss": val,
-                "best_val": min(best_val, val),
-                "elapsed_s": time.time() - t0,
-            }
-        )
+        rec = {
+            "step": step,
+            "epoch": epoch,
+            "val_loss": val,
+            "best_val": min(best_val, val),
+        }
+        for name, loader in (extra_loaders or {}).items():
+            rec[f"{name}_loss"] = mean_loss(
+                cfg, model, loader
+            )  # diagnostic, not for selection
+        rec["elapsed_s"] = time.time() - t0
+        log(rec)
         save_checkpoint(
             model, last_path, step=step, epoch=epoch + 1, best_val=min(best_val, val)
         )
@@ -555,13 +572,15 @@ def main(argv: list[str] | None = None) -> int:
             wb.log({k: v for k, v in rec.items() if k != "step"}, step=rec.get("step"))
 
     model = build_model(cfg)
-    sets, train_loader, val_loader, collate = make_loaders(cfg, model.get_eos_token())
+    sets, train_loader, val_loader, collate, extra_loaders = make_loaders(
+        cfg, model.get_eos_token()
+    )
     best = Path(cfg["checkpoint_dir"]) / "best.pt"
     if args.predict_only:
         if not best.exists():
             raise SystemExit(f"--predict-only needs {best}")
     else:
-        best = train(cfg, model, train_loader, val_loader, log)
+        best = train(cfg, model, train_loader, val_loader, log, extra_loaders)
     meta = load_checkpoint(model, best)
     print(f"[predict] using {best} ({meta})")
     pred_path = out / "predictions.jsonl"
