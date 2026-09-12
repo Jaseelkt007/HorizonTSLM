@@ -58,7 +58,7 @@ DEFAULTS: dict[str, Any] = {
     "max_new_tokens": 24,
     "predict_mode": "loglik",  # loglik: batched teacher-forced scoring of every answer candidate (fast, no
     # generation); generate: free generation + parse + yes/no log-likelihood (needed for evidence text); both
-    "score_batch_size": 64,  # candidate sequences per forward pass in loglik mode
+    "score_batch_size": 32,  # candidate sequences per forward pass in loglik mode
     "predict_dtype": "bfloat16",  # cast the whole model before prediction (inference only; training keeps model_dtype)
     "checkpoint_every_steps": 200,
     "log_every_steps": 10,
@@ -366,12 +366,19 @@ def train(
 
 
 def _sum_logprob(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """Per-sample sum of log p(label token) over positions where labels != -100 (next-token shifted)."""
-    logp = torch.log_softmax(logits[:, :-1].float(), dim=-1)
+    """Per-sample sum of log p(label token) over positions where labels != -100 (next-token shifted).
+
+    Only the labelled positions go through log-softmax (a full-vocabulary log-softmax over every position of 64
+    long SP sequences is ~40 GB), so memory scales with the number of answer tokens, not the prompt length.
+    """
     tgt = labels[:, 1:]
     mask = tgt != -100
-    tok = logp.gather(-1, tgt.clamp(min=0).unsqueeze(-1)).squeeze(-1)
-    return (tok * mask).sum(dim=1)
+    rows = mask.nonzero(as_tuple=True)
+    sel = logits[:, :-1][rows].float()  # (n_label_tokens, vocab)
+    lp = torch.log_softmax(sel, dim=-1).gather(-1, tgt[rows].unsqueeze(-1)).squeeze(-1)
+    out = torch.zeros(labels.size(0), dtype=lp.dtype, device=lp.device)
+    out.index_add_(0, rows[0], lp)
+    return out
 
 
 @torch.no_grad()
