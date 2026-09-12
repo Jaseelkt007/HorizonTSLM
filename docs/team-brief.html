@@ -1,0 +1,359 @@
+<title>Temporal AI Track Team Brief</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F6F8F9; --ink:#182029; --ink-2:#4A5563; --ink-3:#7A8592;
+  --line:#D5DBE1; --panel:#FFFFFF; --panel-2:#EDF1F4;
+  --signal:#0E8577; --signal-soft:#DDF1EC;
+  --judge:#B9691A; --judge-soft:#FBEEDD;
+  --code-bg:#1E2833; --code-ink:#E6EDF3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111820; --ink:#E8EDF2; --ink-2:#B4BEC9; --ink-3:#7F8A96;
+    --line:#2A3441; --panel:#18212B; --panel-2:#1F2A36;
+    --signal:#3FC2AE; --signal-soft:#123B36;
+    --judge:#E29A4C; --judge-soft:#3A2A16;
+    --code-bg:#0C1218; --code-ink:#D9E1E8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111820; --ink:#E8EDF2; --ink-2:#B4BEC9; --ink-3:#7F8A96;
+  --line:#2A3441; --panel:#18212B; --panel-2:#1F2A36;
+  --signal:#3FC2AE; --signal-soft:#123B36;
+  --judge:#E29A4C; --judge-soft:#3A2A16;
+  --code-bg:#0C1218; --code-ink:#D9E1E8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;padding-inline:20px;padding-block:0 96px}
+.wrap{max-width:760px;margin:0 auto}
+h1,h2,h3{font-family:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:2.4rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.5rem;font-weight:700;margin-top:64px;padding-top:24px;border-top:2px solid var(--ink)}
+h3{font-size:1.1rem;font-weight:700;margin-top:32px}
+p{margin:12px 0}
+a{color:var(--signal);text-decoration-thickness:1px;text-underline-offset:2px}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+header{padding-block:56px 32px;border-bottom:1px solid var(--line)}
+header .eyebrow{margin-bottom:14px}
+header p.lede{font-size:1.1rem;color:var(--ink-2);max-width:60ch;margin-top:16px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:20px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.8rem;color:var(--ink-3)}
+.meta b{color:var(--ink);font-weight:500}
+nav.toc{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 20px;font-size:.92rem}
+nav.toc a{color:var(--ink-2);text-decoration:none;padding:4px 0;border-bottom:1px dashed var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--signal)}
+ul,ol{padding-left:22px;margin:10px 0}
+li{margin:5px 0}
+li::marker{color:var(--ink-3)}
+.tldr{background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--signal);padding:18px 22px;margin-top:28px;border-radius:4px}
+.tldr .eyebrow{color:var(--signal);margin-bottom:6px}
+.tldr ol{margin:6px 0 0}
+.callout{border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin:20px 0;background:var(--panel)}
+.callout .eyebrow{display:block;margin-bottom:6px}
+.callout.judge{background:var(--judge-soft);border-color:transparent}
+.callout.judge .eyebrow{color:var(--judge)}
+.callout.verified{background:var(--signal-soft);border-color:transparent}
+.callout.verified .eyebrow{color:var(--signal)}
+.callout p:first-of-type{margin-top:0}.callout p:last-child{margin-bottom:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:16px 0}
+.tablewrap{overflow-x:auto;margin:16px 0}
+.tablewrap table{margin:0;min-width:560px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--ink)}
+td.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+tr.pick td{background:var(--signal-soft)}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--panel-2);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:4px;overflow-x:auto;font-size:.82rem;line-height:1.5;margin:14px 0}
+pre code{background:none;padding:0;font-size:inherit;color:inherit}
+.flow{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0}
+.flow .step{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:12px 14px;position:relative}
+.flow .step .eyebrow{display:block;margin-bottom:4px}
+.flow .step + .step::before{content:"↓";position:absolute;top:-16px;left:14px;color:var(--ink-3);font-size:.9rem;line-height:1}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.two > div{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px}
+.two h4{margin:0 0 8px;font-family:"Bricolage Grotesque",sans-serif;font-size:1rem}
+.two ul{margin:0;padding-left:18px;font-size:.92rem}
+.pill{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.7rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);margin-left:6px;vertical-align:middle}
+.pill.pick{background:var(--signal);color:#fff;border-color:var(--signal)}
+.token{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.78rem;padding:3px 8px;border-radius:3px;margin:2px 2px;border:1px solid var(--line);background:var(--panel)}
+.token.ts{background:var(--signal-soft);border-color:var(--signal);color:var(--ink)}
+.seq{line-height:2.1;margin:10px 0}
+.checklist li{list-style:none;position:relative;padding-left:26px}
+.checklist li::before{content:"";position:absolute;left:0;top:7px;width:14px;height:14px;border:1.5px solid var(--ink-3);border-radius:3px}
+.qs li{margin:8px 0}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-3)}
+@media (max-width:560px){.two{grid-template-columns:1fr} h1{font-size:1.9rem}}
+@media (prefers-reduced-motion:no-preference){a{transition:color .15s}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">EHL Zurich · Aionic Labs × ETH Agentic Systems Lab · Temporal AI Challenge</div>
+  <h1>Temporal AI Track Team Brief</h1>
+  <p class="lede">Everything we know so far in one place: what the challenge asks, what Aionic does, what the judge told Jaseel about data and training, how OpenTSLM actually works, and where we should go from here.</p>
+  <div class="meta">
+    <span>Date <b>12 Sep 2026</b></span>
+    <span>Hack window <b>24 h · 12–13 Sep</b></span>
+    <span>Status <b>Pre-kickoff · no dataset locked yet</b></span>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#tldr">TL;DR</a>
+    <a href="#challenge">1 · The challenge</a>
+    <a href="#aionic">2 · Who Aionic is</a>
+    <a href="#judge">3 · The judge conversation</a>
+    <a href="#opentslm">4 · How OpenTSLM works</a>
+    <a href="#other-models">5 · Other models to know</a>
+    <a href="#timenet">6 · TimeNet</a>
+    <a href="#datasets">7 · Dataset options</a>
+    <a href="#plan">8 · Proposed plan &amp; open questions</a>
+    <a href="#links">Links</a>
+  </nav>
+</header>
+
+<section id="tldr" class="tldr">
+  <div class="eyebrow">TL;DR</div>
+  <ol>
+    <li><b>The task:</b> pick a real problem, find an open time-series dataset, load it into <b>TimeNet</b> with a reusable connector, fine-tune a <b>Time-Series Language Model</b> (OpenTSLM is the reference), beat a baseline on a leakage-free split, demo it live.</li>
+    <li><b>The judge's steer:</b> the use case follows the data. Aionic's own use cases are anomaly detection, drift, forecasting and plain-language explanation across healthcare, industrials, energy, finance, telecom. Any of those domains is fair game.</li>
+    <li><b>Training model:</b> OpenTSLM stacks several signals (e.g. HR, SpO₂, BP, RR) as separate encoded series and fuses them with text either by <b>soft-prompting</b> (tokens concatenated into the LLM input) or by <b>Flamingo-style gated cross-attention</b>. Training data is <b>(series + prompt → answer)</b> pairs; the LLM stays frozen, only the encoder, projector/cross-attention and LoRA adapters are trained.</li>
+    <li><b>Also on the radar:</b> TimeRLM (code-driven anomaly localization in very long series) and TimesFM-3 (zero-shot multivariate forecasting, non-commercial licence).</li>
+    <li><b>Current dataset recommendation:</b> an industrial/energy dataset with real text attached — Kelmarsh wind-farm SCADA + alarm logs (CC-BY-4.0), with Tennessee Eastman as a low-risk backup. Health/HAR/sleep/ECG are already covered by OpenTSLM and TimeNet, so they score less on novelty.</li>
+  </ol>
+</section>
+
+<h2 id="challenge">1 · The challenge, as written in the brief</h2>
+<p>Track host: Aionic Labs + ETH Agentic Systems Lab (ASL), inside the European Hackathon League event by TUM.ai and J floor. ~50 participants, up to 10 teams. Theme: <em>“Give AI a sense of time”</em> — turn sensor signals into an AI system that interprets what is happening, anticipates what comes next, or helps someone decide how to respond.</p>
+
+<h3>What we must deliver</h3>
+<ul class="checklist">
+  <li><b>Problem + data.</b> A target user, a problem worth solving, and open-source datasets we found ourselves. Bonus: an agentic data-sourcing pipeline that searches / assesses / retrieves / validates datasets.</li>
+  <li><b>TimeNet connector.</b> Bring the data into TimeNet: standardise signals, metadata, annotations; define the questions / labels / targets. <em>Reusable connectors and automated ingestion pipelines are explicitly valued.</em></li>
+  <li><b>Train + evaluate.</b> Train or fine-tune a TSLM. Compare with a baseline on held-out data, with splits that avoid leakage across time, subjects or devices.</li>
+  <li><b>Demo.</b> Show how we sourced the data, real inputs, model outputs, how it helps the user. State evidence <em>and</em> limitations.</li>
+</ul>
+<p><b>Submission package:</b> working demo · code + training configuration · a checkpoint or adapter · dataset documentation · short evaluation with baseline comparison. Then a jury pitch with a live demo covering problem, approach, results, key learnings.</p>
+<p><b>Judging line from the brief:</b> “A useful problem, thoughtful data preparation, meaningful TSLM training, credible evaluation and a clear demo. We especially value well-chosen new datasets and reusable TimeNet connectors that others can build on.”</p>
+<p><b>Support:</b> TimeNet access, technical guidance, training compute.</p>
+
+<h2 id="aionic">2 · Who Aionic is and what they care about</h2>
+<p>Aionic Labs builds <b>Time-Series Language Models (TSLMs)</b>: models that read raw sensor data, take context, and answer in natural language. OpenTSLM is their open-source model (ICML 2026, MIT licence). They are backed by SPRIND and Next Frontier AI and sell enterprise pilots. Their pitch in four verbs: <b>detect</b> subtle drifts and anomalies → <b>explain</b> in plain language → <b>predict</b> how the signal evolves → <b>recommend</b> interventions.</p>
+
+<div class="tablewrap"><table>
+  <thead><tr><th>Domain</th><th>Signals they name</th><th>Tasks</th><th>Who uses it</th></tr></thead>
+  <tbody>
+    <tr><td>Healthcare</td><td>ECG, heart rate, SpO₂, blood pressure, respiration rate, lab trends, bedside monitor vitals</td><td>Anomaly vs. the patient's own baseline, drift monitoring, contextual interpretation with history/meds, draft reports</td><td>Nurses, clinicians, ward leads</td></tr>
+    <tr><td>Industrials</td><td>Fleet telemetry, vibration, temperature, pressure</td><td>“Why is this machine degrading?”, predictive maintenance, anomaly detection</td><td>Maintenance / reliability engineers</td></tr>
+    <tr><td>Energy</td><td>Grid and asset signals, alarms</td><td>“Which alarms matter?”, forecasting, optimisation</td><td>Grid / plant operators</td></tr>
+    <tr><td>Finance</td><td>Market and transaction series</td><td>Anomaly detection, forecasting</td><td>Analysts, risk</td></tr>
+    <tr><td>Telecom</td><td>Network KPIs</td><td>Anomaly detection, drift</td><td>NOC engineers</td></tr>
+  </tbody>
+</table></div>
+
+<p>Their healthcare example is worth copying as a template for our demo output: <em>“Patient P-12: heart rate up 28 % in 40 minutes, SpO₂ drifting −2 %/h against baseline → possible early sepsis, flag for clinical review.”</em> Numbers, a trend, a comparison to baseline, a hypothesis, and a recommended action — in one sentence.</p>
+
+<h2 id="judge">3 · What the judge told Jaseel</h2>
+<p>Jaseel spoke with one of the main judges of the track. Below is what was said, followed by what we could verify from the paper and docs. Where the two differ, the verified version is the one to build on.</p>
+
+<div class="callout judge">
+  <span class="eyebrow">Judge said · on choosing a dataset</span>
+  <p>Look at the Aionic use-case pages (healthcare, industrials, energy, finance, telecom). The recurring tasks are <b>anomaly detection and analysis of the anomaly, drift, and forecasting</b>. There is no prescribed domain — <b>the use case follows the data we choose</b>. Find data first, then shape the task to what Aionic's customers would actually ask.</p>
+</div>
+
+<div class="callout judge">
+  <span class="eyebrow">Judge said · on how OpenTSLM is trained (healthcare example)</span>
+  <p>Take several medical time series for one patient — heart rate, oxygen saturation, blood pressure, respiration. Each is a time series. You <b>stack them</b> and fuse them with the language model either with <b>self-attention in the soft-prompt approach</b> or with <b>cross-attention in the OpenTSLM-Flamingo approach</b>. The text side is trained with <b>prompt / answer pairs</b> — he phrased it as “for each time step”.</p>
+</div>
+
+<div class="callout verified">
+  <span class="eyebrow">Verified from the OpenTSLM paper</span>
+  <p>Broadly correct, with one nuance. Each signal is encoded into patch tokens by a shared encoder and given its own short text description (“heart rate over 24 h at 1 Hz, mean 61, std 12”). SoftPrompt then concatenates <em>all</em> series tokens and text tokens into one sequence that the LLM's own self-attention processes; Flamingo instead compresses each series with a Perceiver Resampler and lets text attend to it through gated cross-attention layers. Training examples are <b>one (all series + prompt → answer) pair per window/sample</b>, not per time step; the loss is ordinary next-token prediction on the answer tokens. Details in section 4.</p>
+</div>
+
+<div class="callout judge">
+  <span class="eyebrow">Judge said · on other models</span>
+  <p>Do not treat OpenTSLM as the only option. He pointed to <b>TimeRLM</b> (“Recursive Language Models Enable Precise Anomaly Localization in Long-Context Time-Series”, from the same OpenTSLM group) and <b>TimesFM-3</b> (Google's zero-shot foundation model for multivariate forecasting). Section 5 covers both.</p>
+</div>
+
+<h2 id="opentslm">4 · How OpenTSLM works</h2>
+<p>Paper: <a href="https://arxiv.org/abs/2510.02410">arXiv 2510.02410</a>, code: <a href="https://github.com/OpenTSLM/OpenTSLM">github.com/OpenTSLM/OpenTSLM</a>. One idea: keep a pretrained LLM frozen, teach a small time-series encoder to produce tokens the LLM can read, and fine-tune with LoRA on (series + question → reasoning + answer) data.</p>
+
+<h3>4.1 Encoding a time series</h3>
+<div class="flow">
+  <div class="step"><span class="eyebrow">Input</span>One signal, any length <code>L</code>, z-normalised. Its mean, std and time scale are written into the text description so the model still knows the absolute scale.</div>
+  <div class="step"><span class="eyebrow">PatchEncoder</span>Cut into non-overlapping patches of size <code>p</code> → <code>N = L / p</code> patches. Each patch goes through a 1-D convolution to a <code>d_enc</code> vector, plus learnable positional encoding.</div>
+  <div class="step"><span class="eyebrow">Per-series description</span>A short text such as <em>“Lead II ECG, 10 s at 500 Hz, mean 0.02, std 0.31”</em> is attached to each series. This is how the model knows which series is which — and it is why multiple signals can be “stacked”.</div>
+</div>
+
+<h3>4.2 Two ways to fuse series and text</h3>
+<div class="two">
+  <div>
+    <h4>OpenTSLM-SoftPrompt</h4>
+    <ul>
+      <li>Patch embeddings → Transformer encoder → MLP projection into the LLM's embedding space.</li>
+      <li>Series tokens are <b>concatenated into the prompt</b>; the LLM's normal self-attention sees text and series together.</li>
+      <li>Trainable: encoder, projector, LoRA. LLM frozen.</li>
+      <li>Simple and strong on short inputs, but memory grows fast with length: ~6 GB at 10 points → ~43 GB at 10 000 points (Llama-3B), out of memory with ≥3 long series.</li>
+    </ul>
+  </div>
+  <div>
+    <h4>OpenTSLM-Flamingo</h4>
+    <ul>
+      <li>Patch embeddings → <b>Perceiver Resampler</b> → fixed number of latent tokens per series, regardless of length.</li>
+      <li><b>Gated cross-attention</b> layers inserted every N LLM blocks: text queries attend to series keys/values; a learnable gate γ controls how much the series influences text.</li>
+      <li>Trainable: encoder, resampler, cross-attention layers, LoRA. LLM frozen.</li>
+      <li>Constant memory: ~20–22 GB (Llama-1B), ~6–7 GB (Gemma-270M). Better on long sequences.</li>
+    </ul>
+  </div>
+</div>
+
+<p>What the LLM input looks like in SoftPrompt (each series is a “text–time-series chunk”):</p>
+<div class="seq">
+  <span class="token">pre-prompt text</span>
+  <span class="token ts">Z₁ series tokens</span><span class="token">“heart rate, 1 Hz, mean 61…”</span>
+  <span class="token ts">Z₂ series tokens</span><span class="token">“SpO₂, 1 Hz, mean 96…”</span>
+  <span class="token ts">Z₃ …</span>
+  <span class="token">question / post-prompt</span>
+  <span class="token">→ answer</span>
+</div>
+<p>Flamingo uses the same layout but the series tokens live outside the text stream and are reached via cross-attention, with <code>&lt;TS&gt;</code> and <code>&lt;endofchunk&gt;</code> markers in the text.</p>
+
+<h3>4.3 Training data format and loss</h3>
+<p>One training sample = a set of series (with descriptions) + a text prompt + a target text. The target is trained with the standard autoregressive LM loss, <code>L = −Σ log P(y_t | y_&lt;t, prompt, series)</code>. The paper forces a structured target: a <b>rationale first, then <code>Answer: &lt;label&gt;</code></b> — this is the chain-of-thought (CoT) part and is why their datasets are called HAR-CoT, Sleep-CoT, ECG-QA-CoT.</p>
+<pre><code>Series:  accel_x (50 Hz, 2.56 s, mean −0.02, std 0.41)
+         accel_y (…)   accel_z (…)
+Prompt:  "You are given three accelerometer axes from a wrist sensor.
+          Which activity is the person doing? Reason step by step."
+Target:  "The z-axis shows periodic peaks at ~2 Hz with large amplitude,
+          consistent with foot strikes; x and y show … Answer: running"</code></pre>
+
+<h3>4.4 Curriculum and hyper-parameters (what we should copy)</h3>
+<div class="tablewrap"><table>
+  <thead><tr><th>Stage</th><th>Dataset</th><th>Size</th><th>Purpose</th></tr></thead>
+  <tbody>
+    <tr><td>1 · Encoder warm-up</td><td>TSQA (synthetic multiple-choice QA)</td><td class="num">38.4 k</td><td>Learn basic temporal patterns</td></tr>
+    <tr><td>1 · Encoder warm-up</td><td>M4-Captions (ChatGPT captions of plots)</td><td class="num">80 k</td><td>Learn to describe series in words</td></tr>
+    <tr><td>2 · Task CoT</td><td>HAR-CoT (3-axis accel, 8 activities)</td><td class="num">68.5 k</td><td>Activity recognition with reasoning</td></tr>
+    <tr><td>2 · Task CoT</td><td>Sleep-CoT (EEG, 5 stages)</td><td class="num">7.4 k</td><td>Sleep staging with reasoning</td></tr>
+    <tr><td>2 · Task CoT</td><td>ECG-QA-CoT (12-lead ECG)</td><td class="num">159.3 k</td><td>Clinical QA with reasoning</td></tr>
+  </tbody>
+</table></div>
+<p>Backbones: Llama-3.2 1B / 3B, Gemma-3 270M / 1B. AdamW, lr 2e-4 (encoder, LoRA) and 1e-4 (projector), 10 % linear warm-up, grad-clip 1.0, early stopping with patience 5. Results: 69.9 % F1 sleep staging and 65.4 % HAR vs 9 % / 52 % for text-only fine-tuned LLMs; the 1B model beats GPT-4o on those tasks.</p>
+
+<div class="callout">
+  <span class="eyebrow">Implications for us</span>
+  <p><b>Stage 1 checkpoints exist</b> on HuggingFace — we should start from a pretrained OpenTSLM (stage 1 or stage 2) and only run our own stage 2 on our dataset. <b>Flamingo + Gemma-270M/1B</b> is the safest choice for a 24 h budget and long industrial windows. Our dataset must produce (series, prompt, rationale + answer) triples; if the raw data has only labels, we generate the rationale text from the label and simple signal statistics (that is exactly what the paper did for HAR-CoT and Sleep-CoT with an LLM).</p>
+</div>
+
+<h2 id="other-models">5 · Other models to know</h2>
+
+<h3>TimeRLM — recursive language models for anomaly localisation <span class="pill">Aug 2026</span></h3>
+<p><a href="https://arxiv.org/abs/2608.03391">arXiv 2608.03391</a> · <a href="https://github.com/OpenTSLM/TimeRLM">github.com/OpenTSLM/TimeRLM</a> · CC-BY-4.0 code and data. From the same group as OpenTSLM. The problem it attacks: TSLMs like OpenTSLM-Flamingo compress a long series into a fixed number of latents, so they lose the ability to say <em>where</em> something happened in 100 k points.</p>
+<ul>
+  <li><b>Mechanism:</b> the series is not put in the context window at all. It is an external variable; the LLM (Qwen3.5-4B + LoRA) writes Python into a sandboxed REPL to slice, filter, compute statistics, render plots (vision variant), and can spawn sub-models on segments (multi-agent variant). It answers with JSON: start/end indices, anomaly type, magnitude, affected channels.</li>
+  <li><b>Training:</b> RL (GRPO) on a synthetic generator, <b>AnomalyXL-Localize</b> — contexts of 16 k–131 k points with injected level shifts, spikes, seasonality changes, variance changes, trends; five task families (localise, classify with evidence, measure magnitude, all-channels, lead-lag).</li>
+  <li><b>Results:</b> localisation IoU 0.68 vs 0.008 for OpenTSLM-Flamingo; transfers to real ECG, sleep and software telemetry without seeing them.</li>
+  <li><b>For us:</b> a strong option if our story is “find the anomaly in a long SCADA / telemetry window and explain it”. It is also a ready-made <b>baseline</b>: run it zero-shot on our test set and compare to our fine-tuned OpenTSLM.</li>
+</ul>
+
+<h3>TimesFM-3 — zero-shot multivariate forecasting <span class="pill">31 Aug 2026</span></h3>
+<p><a href="https://research.google/blog/timesfm-3-a-zero-shot-foundation-model-for-multivariate-forecasting/">Google Research blog</a> · <a href="https://github.com/google-research/timesfm">github.com/google-research/timesfm</a>. 330 M parameters, trained on &gt;1 T time points, first TimesFM that forecasts multiple targets jointly with past and known-future covariates, in one non-autoregressive pass. Ranks first on GIFT-Eval and FEV-Bench among pretrained foundation models.</p>
+<ul>
+  <li><b>Not a language model</b> — numbers in, numbers out. It cannot explain anything.</li>
+  <li><b>Licence:</b> weights are <em>non-commercial, non-production</em> (timesfm-non-commercial-license-v1.0). Fine for a hackathon, worth saying out loud in the pitch.</li>
+  <li><b>For us:</b> the natural forecasting <b>baseline</b> or a tool inside our pipeline (e.g. forecast the expected signal, feed the residual/“surprise” to the TSLM as an extra series to explain). Pairing “TimesFM-3 predicts, OpenTSLM explains” is a credible architecture story.</li>
+</ul>
+
+<h2 id="timenet">6 · TimeNet — the data layer we must use</h2>
+<p>Docs: <a href="https://docs.timenet.ai">docs.timenet.ai</a> · repo: <a href="https://github.com/OpenTSLM/TimeNet">github.com/OpenTSLM/TimeNet</a> · <code>pip install 'timenet[cli,torch]'</code>, Python ≥ 3.11. TimeNet is <b>data only</b>: it converts any raw dataset into one standard on-disk format (<b>TimeF</b>, Parquet/Zarr + <code>manifest.json</code>) and loads it back lazily. No training, no metrics.</p>
+
+<div class="flow">
+  <div class="step"><span class="eyebrow">Connector · our code</span><code>download(cache_dir)</code> fetches raw files (may use network) → <code>convert(raw_refs)</code> parses them into a <code>TimeFDataset</code> (must be offline, so it is testable with fixtures).</div>
+  <div class="step"><span class="eyebrow">Builder · <code>timenet-build build org/name</code></span>Runs download → convert → derive_schema → store into a local registry directory. Idempotent.</div>
+  <div class="step"><span class="eyebrow">Client · <code>TimeNet().load("org/name")</code> / <code>.load_torch(...)</code></span>Loads records, series and tasks lazily; the torch loader gives <code>item["series"]</code> and <code>item["tasks"]</code> ready for a training loop.</div>
+</div>
+
+<h3>Data model</h3>
+<p><b>Dataset</b> (<code>org/name@version</code>) → <b>Record</b> (one recording; <code>subject_ids</code>, <code>start_time</code>) → <b>TimeSeries</b> (a typed spec with unit, signal name, regular/ordinal/irregular time axis, lazy loader) + <b>Annotation</b> (key/value, optional span; also used for record metadata like device or <b>split</b>) + <b>Task</b> (the training target).</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Task type</th><th>Target</th><th>Use for</th></tr></thead>
+  <tbody>
+    <tr><td><code>ClassificationTask</code></td><td>one label from a vocabulary</td><td>fault class, activity, normal/abnormal</td></tr>
+    <tr><td><code>AnswerTask</code></td><td>free text (prompt → answer, optional rationale)</td><td>QA, captions, explanations — the core TSLM shape</td></tr>
+    <tr><td><code>ScalarPredictionTask</code></td><td>number + unit</td><td>RUL, lost production, mean HR</td></tr>
+    <tr><td><code>TemporalLocalizationTask</code></td><td>points / intervals</td><td>“where is the anomaly”</td></tr>
+    <tr><td><code>ForecastingTask</code></td><td>future span of the series</td><td>forecasting baseline vs TSLM</td></tr>
+    <tr><td><code>TSEditing / TSGeneration / TSCorrespondence</code></td><td>series</td><td>probably not for us</td></tr>
+  </tbody>
+</table></div>
+<p>A whole connector is small. The shipped TSQA one is ~40 lines:</p>
+<pre><code>class TSQAConnector(BaseHuggingFaceConnector):
+    HF_REPO = "ChengsenWang/TSQA"
+
+    def convert(self, raw_refs):
+        ds = TimeFDataset(metadata=self.metadata())
+        for i, row in enumerate(raw_refs):
+            ts = TimeSeries.from_values(json.loads(row["Series"]), spec=_SPEC,
+                    signal="c0", time_axis=OrdinalAxis(), time_series_id=f"row-{i}")
+            rec = ds.add_record(time_series=(ts,), record_id=f"row-{i}")
+            rec.add_annotation(Annotation(key="split", value=row["split"], id=f"split-{i}"))
+            ds.add_task(rec, AnswerTask(prompt=row["Question"], target=row["Answer"], id=f"qa-{i}"))
+        return ds
+
+CONNECTOR = TSQAConnector</code></pre>
+<p>Files per connector: <code>datasets/&lt;org&gt;/&lt;name&gt;/{__init__.py, connector.py, dataset.yaml, requirements.txt}</code>. Reusable bases exist for HuggingFace Hub, PhysioNet, EDF and Excel sources. Current catalog is only five datasets — TSQA, ECG-QA-CoT, Sleep-EDFx and two synthetic demos — which is why the brief keeps saying “new datasets and reusable connectors”.</p>
+<p><b>Gap to plan for:</b> the OpenTSLM training code does not read TimeNet directly. We need a small glue script from <code>load_torch()</code> items to OpenTSLM's dataset class. Ask the organisers on-site whether one already exists.</p>
+
+<h2 id="datasets">7 · Dataset options</h2>
+<p>Criteria: truly open licence · real multivariate sensors <b>plus</b> something that becomes language (fault descriptions, alarm text, reports, rich metadata) · a natural leakage-free split · downloadable and parseable in &lt; 2 h · not already in TimeNet / the OpenTSLM paper.</p>
+
+<div class="tablewrap"><table>
+  <thead><tr><th>Dataset</th><th>Domain</th><th>Signals</th><th>Language hook</th><th>Licence · size</th><th>Split</th></tr></thead>
+  <tbody>
+    <tr class="pick"><td><b>Kelmarsh / Penmanshiel wind farms</b> (Zenodo)</td><td>Energy + maintenance</td><td>10-min SCADA, ~300 channels, 6 / 14 turbines, 2016–2021+</td><td><b>Status / alarm logs with real operator text</b>, IEC categories, lost production</td><td>CC-BY-4.0 · 1.6 GB (yearly zips)</td><td>turbine or year</td></tr>
+    <tr><td><b>Tennessee Eastman</b> (Rieth 2017, Harvard Dataverse)</td><td>Process industry</td><td>52 process vars, 500 runs × 21 fault types</td><td>20 named faults with textbook root-cause descriptions → rich CoT</td><td>Public domain · ~1.5 GB</td><td>simulation run</td></tr>
+    <tr><td>MetroPT-3 (UCI)</td><td>Rail maintenance</td><td>15 sensors @ 1 Hz, Feb–Aug 2020</td><td>Company failure reports (air leaks) — few events</td><td>CC-BY · ~1 GB</td><td>time</td></tr>
+    <tr><td>Hydraulic condition monitoring (UCI)</td><td>Maintenance</td><td>17 sensors, 2205 × 60 s cycles</td><td>4 components × graded degradation → multi-label explanation</td><td>UCI · ~500 MB</td><td>cycle blocks</td></tr>
+    <tr><td>Building Data Genome 2</td><td>Energy</td><td>3 053 hourly meters, 1 636 buildings, 2 years, weather</td><td>30 metadata fields → “why is this building's load abnormal?”</td><td>MIT · ~1 GB</td><td>building / site</td></tr>
+    <tr><td>CAPTURE-24 (Oxford)</td><td>Wearables</td><td>wrist accel 100 Hz, 151 people × 24 h</td><td>200+ free-text activity labels from body cameras</td><td>CC-BY · 6.5 GB</td><td>subject</td></tr>
+  </tbody>
+</table></div>
+<p>Ruled out: MIMII / DCASE (audio), SWaT / WADI (application needed), Pecan Street (restricted), EngineMT-QA (already a TSLM dataset by another lab — no novelty, unclear licence).</p>
+
+<h3>Recommendation</h3>
+<p><b>Primary: Kelmarsh wind-farm SCADA + status logs.</b> The only candidate with real operator language attached to real sensors. Tasks we can build in TimeNet: <code>ClassificationTask</code> — which subsystem is faulting (pitch / yaw / gearbox / grid / converter) from the window before an alarm; <code>AnswerTask</code> — “describe what happened to turbine 3 in this window” with target built from the log message, duration and lost production; <code>TemporalLocalizationTask</code> — onset of the event; <code>ScalarPredictionTask</code> — lost production. Clean splits (turbines 1–4 train / 5–6 test, or 2016–19 / 2020). A generic “SCADA + event-log” connector is exactly the reusable thing the brief asks for. Risk: ~300 messy CSV columns — budget 2–3 h, take one or two years only.</p>
+<p><b>Backup: Tennessee Eastman.</b> Public domain, one file, 21 documented fault classes, perfect run-based splits, and the fault descriptions give a rationale target for free. Less “real”, but a working TimeNet dataset in under an hour. Doing both = two new catalog entries.</p>
+<p><b>Agentic sourcing (brief bonus):</b> a small agent that queries the HF Hub, Zenodo, UCI and PhysioNet APIs, scores hits on the criteria above, and emits a draft <code>dataset.yaml</code> + connector skeleton. Even if the final pick is manual, showing this in the demo ticks a jury bullet.</p>
+
+<h2 id="plan">8 · Proposed 24-hour plan and open questions</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Hours</th><th>Track A · data</th><th>Track B · model</th><th>Track C · demo &amp; eval</th></tr></thead>
+  <tbody>
+    <tr><td class="num">0–2</td><td>Lock dataset; download one year; inspect status-log text</td><td>Install OpenTSLM + TimeNet on the provided compute; pull a stage-1 checkpoint; run hello-world</td><td>Define target user + the 3 questions the demo will answer</td></tr>
+    <tr><td class="num">2–6</td><td>Write connector; windows around events + normal windows; split annotation; <code>timenet-build</code></td><td>Glue <code>load_torch()</code> → OpenTSLM dataset class; dry-run on 100 samples</td><td>Baselines: majority class, logistic regression / small CNN on features, TimeRLM zero-shot</td></tr>
+    <tr><td class="num">6–14</td><td>Generate rationale text for targets; dataset card; fixtures + test</td><td>Fine-tune Flamingo-Gemma-1B (or 270M) on train split; watch val</td><td>Eval harness: F1 / accuracy on held-out turbines; qualitative examples</td></tr>
+    <tr><td class="num">14–20</td><td>Second connector (TEP) if time; agentic sourcing script</td><td>Best checkpoint + adapter export; ablation if cheap</td><td>Demo UI: pick a window → model answers; slides</td></tr>
+    <tr><td class="num">20–24</td><td colspan="3">Freeze. Write evaluation + limitations. Rehearse pitch twice.</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Open questions for the organisers</h3>
+<ul class="qs">
+  <li>Is there existing glue between TimeNet's <code>load_torch()</code> and OpenTSLM's training loop, or do we write it?</li>
+  <li>Which GPUs / how much VRAM per team? (Decides Gemma-270M vs 1B vs Llama-1B, SoftPrompt vs Flamingo.)</li>
+  <li>Which pretrained OpenTSLM checkpoints on HuggingFace should we start from for a new domain?</li>
+  <li>Is a hosted TimeNet registry available at the event, or do we submit a local registry folder?</li>
+  <li>Does the jury weigh a novel industrial/energy dataset over a health dataset? (Our read: yes, given the catalog.)</li>
+</ul>
+
+<h2 id="links">Links</h2>
+<ul>
+  <li>Hackathon: <a href="https://ehl.gg/">ehl.gg</a> · Aionic Labs: <a href="https://www.aioniclabs.ai/">aioniclabs.ai</a> · use cases: <a href="https://www.aioniclabs.ai/use-cases/">/use-cases</a> · ASL: <a href="https://www.agenticsystemslab.org/">agenticsystemslab.org</a></li>
+  <li>OpenTSLM paper <a href="https://arxiv.org/abs/2510.02410">arXiv 2510.02410</a> · code <a href="https://github.com/OpenTSLM/OpenTSLM">OpenTSLM/OpenTSLM</a></li>
+  <li>TimeNet docs <a href="https://docs.timenet.ai">docs.timenet.ai</a> · code <a href="https://github.com/OpenTSLM/TimeNet">OpenTSLM/TimeNet</a></li>
+  <li>TimeRLM <a href="https://arxiv.org/abs/2608.03391">arXiv 2608.03391</a> · code <a href="https://github.com/OpenTSLM/TimeRLM">OpenTSLM/TimeRLM</a></li>
+  <li>TimesFM-3 <a href="https://research.google/blog/timesfm-3-a-zero-shot-foundation-model-for-multivariate-forecasting/">Google Research blog</a> · code <a href="https://github.com/google-research/timesfm">google-research/timesfm</a></li>
+  <li>Datasets: <a href="https://zenodo.org/records/5841834">Kelmarsh</a> · <a href="https://zenodo.org/records/5946808">Penmanshiel</a> · <a href="https://dataverse.harvard.edu/dataset.xhtml?persistentId=doi:10.7910/DVN/6C3JR1">Tennessee Eastman</a> · <a href="https://archive.ics.uci.edu/dataset/791/metropt+3+dataset">MetroPT-3</a> · <a href="https://archive.ics.uci.edu/dataset/447/condition%20monitoring%20of%20hydraulic%20systems">Hydraulic systems</a> · <a href="https://github.com/buds-lab/building-data-genome-project-2">BDG2</a> · <a href="https://github.com/OxWearables/capture24">CAPTURE-24</a></li>
+</ul>
+
+<footer>Compiled 12 Sep 2026 from the track brief, the Aionic website, the OpenTSLM / TimeRLM papers, the TimeNet docs and source, and Jaseel's conversation with a track judge. Items marked “judge said” are paraphrased from memory; items marked “verified” were checked against the sources.</footer>
+</div>
