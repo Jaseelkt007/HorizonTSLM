@@ -153,10 +153,14 @@ def build_windows(
             fw[f"{h}h"] = "none" if f is None else f["cls"]
         return fw
 
-    # --- positives
+    # --- positives (one record per (anchor, horizon); a second event at the same anchor is dropped)
+    seen: set[tuple[pd.Timestamp, int]] = set()
     for _, fault in ev.faults.iterrows():
         for h in horizons:
             t = (fault["start"] - pd.Timedelta(hours=h)).floor(f"{STEP_MINUTES}min")
+            if (t, h) in seen:
+                continue
+            seen.add((t, h))
             state = _state(channels, t)
             if state in (None, "stopped"):
                 continue
@@ -188,6 +192,8 @@ def build_windows(
             if n_neg >= n_neg_target:
                 break
             t = grid[i]
+            if any((t, hh) in seen for hh in horizons):
+                continue
             state = _state(channels, t)
             if state in (None, "stopped"):
                 continue

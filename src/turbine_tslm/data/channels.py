@@ -37,7 +37,7 @@ CHANNELS: tuple[Channel, ...] = (
     Channel("gear_oil_temperature", "Gear oil temperature (°C)", "degC", "°C", "gear oil temperature"),
     Channel("main_bearing_temperature", "Front bearing temperature (°C)", "degC", "°C", "main (front) bearing temperature"),
     Channel("gear_oil_inlet_pressure", "Gear oil inlet pressure (bar)", "bar", "bar", "gear oil inlet pressure"),
-    Channel("reactive_power", "Reactive power (kvar)", "kilovar", "kvar", "reactive power"),
+    Channel("reactive_power", "Reactive power (kvar)", "kilovolt_ampere", "kvar", "reactive power"),  # pint has no var; VA is dimensionally identical
     Channel("grid_voltage", "Grid voltage (V)", "volt", "V", "grid voltage"),
     Channel("grid_frequency", "Grid frequency (Hz)", "hertz", "Hz", "grid frequency"),
     Channel("tower_acceleration_x", "Tower Acceleration X (mm/ss)", "millimeter/second**2", "mm/s²", "tower acceleration X"),

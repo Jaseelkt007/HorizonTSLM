@@ -30,6 +30,14 @@ from turbine_tslm.data.prompts import answer_label, pre_prompt
 from turbine_tslm.data.windows import WINDOW_STEPS, build_windows, records_to_frame
 
 
+def _text(v) -> str | None:
+    return None if v is None or (isinstance(v, float) and np.isnan(v)) else str(v)
+
+
+def _num(v) -> float | None:
+    return None if v is None or pd.isna(v) else float(v)
+
+
 def data_dir() -> Path:
     return Path(os.environ.get("DATA_DIR", "data")).expanduser()
 
@@ -57,7 +65,11 @@ class CubicoConnector(BaseConnector[Path]):
         cache_dir.mkdir(parents=True, exist_ok=True)
         out = cache_dir / f"{self.FARM}_windows.parquet"
         if not out.exists():
-            build_window_table(self.FARM, data_dir() / "raw").to_parquet(out, index=False)
+            prebuilt = data_dir() / "interim" / f"{self.FARM}_windows.parquet"  # scripts/build_windows.py output
+            if prebuilt.exists():
+                out.write_bytes(prebuilt.read_bytes())
+            else:
+                build_window_table(self.FARM, data_dir() / "raw").to_parquet(out, index=False)
         return [out]
 
     def convert(self, raw_refs: list[Path]) -> TimeFDataset:
@@ -89,16 +101,19 @@ class CubicoConnector(BaseConnector[Path]):
                 start_time=int(start.timestamp() * 1_000_000),
             )
             ann = {
-                "split": row.split, "farm": row.farm, "turbine_id": row.turbine_id, "year": int(row.year),
-                "anchor": anchor.isoformat(), "horizon_h": int(row.horizon_h), "state_at_anchor": row.state_at_anchor,
-                "label": row.label, "is_positive": bool(row.is_positive),
-                "fault_within_1h": row.fault_within_1h, "fault_within_3h": row.fault_within_3h, "fault_within_6h": row.fault_within_6h,
-                "lead_time_min": None if pd.isna(row.lead_time_min) else float(row.lead_time_min),
-                "next_event_message": row.next_event_message,
-                "next_event_iec": row.next_event_iec,
-                "next_event_duration_h": None if pd.isna(row.next_event_duration_h) else float(row.next_event_duration_h),
+                "split": _text(row.split), "farm": _text(row.farm), "turbine_id": _text(row.turbine_id), "year": int(row.year),
+                "anchor": anchor.isoformat(), "horizon_h": int(row.horizon_h), "state_at_anchor": _text(row.state_at_anchor),
+                "label": _text(row.label), "is_positive": bool(row.is_positive),
+                "fault_within_1h": _text(row.fault_within_1h), "fault_within_3h": _text(row.fault_within_3h),
+                "fault_within_6h": _text(row.fault_within_6h),
+                "lead_time_min": _num(row.lead_time_min),
+                "next_event_message": _text(row.next_event_message),
+                "next_event_iec": _text(row.next_event_iec),
+                "next_event_duration_h": _num(row.next_event_duration_h),
             }
-            record.add_annotations([Annotation(key=k, value=v, id=f"{rid}:{k}") for k, v in ann.items()])
+            # TimeNet rejects a value-less annotation and needs one value type per key, so negatives omit the
+            # next-event fields (parquet stores their missing strings as NaN floats).
+            record.add_annotations([Annotation(key=k, value=v, id=f"{rid}:{k}") for k, v in ann.items() if v is not None])
             prompt = pre_prompt(row.farm, row.turbine_id, anchor.strftime("%B"), row.state_at_anchor, int(row.horizon_h))
             dataset.add_tasks(
                 record,
