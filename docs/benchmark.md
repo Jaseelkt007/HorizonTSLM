@@ -28,6 +28,16 @@ uv run python -m turbine_tslm.eval.score --windows data/interim/kelmarsh_windows
 | text-only LLM | The same statistics expressed in text | Whether a general LLM can use summaries without native sequence input |
 | OpenTSLM | Raw 144 x 19 sequence plus the permitted prompt context | Whether native sensor-sequence processing improves the honest unseen-farm test |
 
+Run the text-only baseline with the API key in `.env`; it uses no raw sequence values, alarm text, or future fields:
+
+```bash
+uv run python scripts/run_gemini_text_baseline.py --split test_a --limit 3  # smoke test
+uv run python scripts/run_gemini_text_baseline.py --split test_a
+uv run python scripts/run_gemini_text_baseline.py --split test_b
+```
+
+The runner uses the account-supported `gemini-3.6-flash`, is resumable, and begins with two concurrent calls to respect account rate limits. It writes the same JSONL schema, so score each completed split with the command above.
+
 The parquet tables do **not** include alarm/status events before the anchor. Therefore `context_only` must not be presented as a true logs-only result. To make the requested logs-only/combined claim, add a leakage-safe pre-anchor status-log feature builder (event counts, recency, duration by subsystem) and rerun it as `logs_only` and `sensors_plus_logs`. Never use `next_event_*`, `lead_time_min`, `fault_within_*`, `label`, or `is_positive` as inputs.
 
 Report test-A and test-B separately; compare models primarily on test-B and include confidence intervals or paired bootstrap intervals before making a positive claim about incremental value.
