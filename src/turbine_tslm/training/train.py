@@ -56,7 +56,8 @@ DEFAULTS: dict[str, Any] = {
     "max_new_tokens": 24,
     "predict_mode": "loglik",  # loglik: batched teacher-forced scoring of every answer candidate (fast, no
     # generation); generate: free generation + parse + yes/no log-likelihood (needed for evidence text); both
-    "score_batch_size": 32,  # candidate sequences per forward pass in loglik mode
+    "score_batch_size": 64,  # candidate sequences per forward pass in loglik mode
+    "predict_dtype": "bfloat16",  # cast the whole model before prediction (inference only; training keeps model_dtype)
     "checkpoint_every_steps": 200,
     "log_every_steps": 10,
     "resume": True,  # continue from last.pt in checkpoint_dir if present
@@ -564,6 +565,8 @@ def main(argv: list[str] | None = None) -> int:
     meta = load_checkpoint(model, best)
     print(f"[predict] using {best} ({meta})")
     pred_path = out / "predictions.jsonl"
+    if cfg["predict_dtype"] and cfg["model_type"] == "OpenTSLMFlamingo":
+        model.to(getattr(torch, cfg["predict_dtype"]))
     predict(cfg, model, sets, collate, pred_path)
     res = score_predictions(cfg, pred_path)
     if wb is not None:
