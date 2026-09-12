@@ -2916,6 +2916,7 @@ version = "0.1.0"
 source = { editable = "." }
 dependencies = [
     { name = "pandas" },
+    { name = "pyyaml" },
     { name = "timenet", extra = ["cli", "torch"] },
 ]
 
@@ -2930,6 +2931,7 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "pandas", specifier = ">=3.0.5" },
+    { name = "pyyaml", specifier = ">=6.0" },
     { name = "timenet", extras = ["cli", "torch"], specifier = ">=0.1.0" },
 ]
 

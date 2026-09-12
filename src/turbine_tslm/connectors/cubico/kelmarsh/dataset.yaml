@@ -1,0 +1,17 @@
+# yaml-language-server: $schema=https://docs.timenet.ai/schemas/dataset-card-v1.schema.json
+yaml_schema_version: 1
+dataset_id: cubico/kelmarsh
+dataset_version: 0.1.0
+name: Kelmarsh wind farm — early-warning windows (held-out site)
+description: >-
+  24 h windows (144 x 10-min steps, 19 SCADA channels) from 6 Senvion MM92 turbines at Kelmarsh, UK, 2017-2021,
+  built with the same connector as cubico/penmanshiel. Every record is split test_b: the unseen-site test set.
+license: CC-BY-4.0
+source_url: https://zenodo.org/records/5841834
+domains:
+  - energy
+tags:
+  - wind
+  - scada
+  - predictive-maintenance
+  - early-warning
