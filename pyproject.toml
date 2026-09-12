@@ -9,7 +9,12 @@ dependencies = [
     "pyyaml>=6.0",
     "timenet[cli,torch]>=0.1.0",
     "opentslm",
+    "open-flamingo>=2.0.1",  # OpenTSLM targets the 2.x API (vision_encoder.visual unwrapped); >=0.0.2 resolves to the 0.0.2 wheel
 ]
+
+[tool.uv]
+# open-flamingo 2.0.1 pins torch==2.0.1 / sentencepiece==0.1.98 (no py3.12 wheels); its code runs fine on current torch.
+override-dependencies = ["torch>=2.9", "sentencepiece>=0.2.0"]
 
 [tool.uv.sources]
 opentslm = { path = "third_party/OpenTSLM", editable = true }
