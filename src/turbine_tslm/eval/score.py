@@ -77,7 +77,11 @@ def parse_answer(text: str, classes: tuple[str, ...] | None = None) -> str:
     classes = classes or fault_classes()
     matches = _ANSWER_RE.findall(text or "")
     if not matches:
-        return NONE
+        # the prompt already ends in 'Answer: ', so a model may emit just ': no' / 'yes, <class>'
+        head = re.sub(r"^\s*:?\s*", "", (text or "").strip().split("\n")[0])
+        if not re.match(r"(yes|no)\b", head, re.IGNORECASE):
+            return NONE
+        matches = [head]
     tail = matches[-1].strip().lower()
     tail = re.split(r"[\n]", tail)[0]
     if tail.startswith("no"):

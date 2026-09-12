@@ -63,6 +63,12 @@ def test_parse_answer_variants():
     assert (
         S.parse_answer("Answer: yes, pitch_system\nAnswer: no", CLASSES) == "none"
     )  # last one wins
+    assert (
+        S.parse_answer(": no", CLASSES) == "none"
+    )  # prompt already ended in 'Answer: '
+    assert S.parse_answer(": yes, pitch_system", CLASSES) == "pitch_system"
+    assert S.parse_answer("yes, gearbox_lubrication.", CLASSES) == "gearbox_lubrication"
+    assert S.parse_answer("The turbine looks fine.", CLASSES) == "none"
 
 
 def test_metric_primitives():
