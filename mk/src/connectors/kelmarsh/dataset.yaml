@@ -1,0 +1,22 @@
+dataset_id: energy/kelmarsh-wind-scada
+dataset_version: 1.0.0
+name: Kelmarsh Wind Farm SCADA & Status Anomaly Dataset
+description: >-
+  Ten-minute multivariate SCADA telemetry and aligned operational status alarm logs
+  from six Senvion MM92 wind turbines at Kelmarsh Wind Farm (UK). Prepared for
+  time-series language model (TSLM) anomaly detection, physics-grounded root cause
+  diagnosis (Chain-of-Thought), and predictive maintenance dispatch.
+license: CC-BY-4.0
+domains:
+  - energy
+tags:
+  - wind-energy
+  - scada
+  - predictive-maintenance
+  - anomaly-detection
+  - root-cause-analysis
+  - chain-of-thought
+source_url: https://doi.org/10.5281/zenodo.5841833
+citation: "Plumley, C., & Takeuchi, R. (2025). Kelmarsh wind farm data (Version 3) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.16807551"
+access: open
+yaml_schema_version: 1

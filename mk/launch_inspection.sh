@@ -5,6 +5,6 @@ set -e
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-echo "[*] Launching Wind Turbine SCADA Fleet Visualizer (Penmanshiel & Kelmarsh) from mk/..."
+echo "[*] Launching Wind Turbine SCADA Data Inspection Visualizer from mk/..."
 cd "$REPO_DIR"
-uv run streamlit run mk/app.py
+uv run streamlit run mk/data_inspection.py

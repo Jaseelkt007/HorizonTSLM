@@ -1,0 +1,22 @@
+dataset_id: energy/penmanshiel-wind-scada
+dataset_version: 1.0.0
+name: Penmanshiel Wind Farm SCADA & Status Anomaly Dataset
+description: >-
+  Ten-minute multivariate SCADA telemetry and aligned operational status alarm logs
+  from fourteen Senvion MM82 wind turbines at Penmanshiel Wind Farm (Scottish Borders, UK).
+  Prepared for time-series language model (TSLM) anomaly detection, physics-grounded
+  root cause diagnosis (Chain-of-Thought), and predictive maintenance dispatch.
+license: CC-BY-4.0
+domains:
+  - energy
+tags:
+  - wind-energy
+  - scada
+  - predictive-maintenance
+  - anomaly-detection
+  - root-cause-analysis
+  - chain-of-thought
+source_url: https://doi.org/10.5281/zenodo.5946807
+citation: "Plumley, C., & Takeuchi, R. (2025). Penmanshiel wind farm data (Version 2) [Data set]. Zenodo. https://doi.org/10.5281/zenodo.16807304"
+access: open
+yaml_schema_version: 1
