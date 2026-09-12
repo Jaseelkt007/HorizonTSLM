@@ -78,10 +78,10 @@ statement. `data/` and `connectors/` are done and tested; `training/`, `eval/`, 
 
 | Package | Role | Spec |
 |---|---|---|
-| `data/` | `greenbyte.py` (zip → SCADA/status frames) → `channels.py` (19 channels, 2 derived) → `windows.py` (events → anchors → labels → 144×19 windows, split) ; `taxonomy.yaml`/`.py` message → class ; `prompts.py` pre/post-prompt + answer templates | §2, §6, §7, §8 |
+| `data/` | `greenbyte.py` (zip → SCADA/status frames) → `channels.py` (19 channels, 2 derived) → `windows.py` (events → anchors → labels → 144×19 windows, split) ; `taxonomy.yaml`/`.py` message → class ; `prompts.py` pre/post-prompt + answer templates ; `evidence.py` rule-based reason-first targets from the raw window (thresholds = 99th percentiles of the tables; class conclusion only with class-relevant evidence) | §2, §6, §7, §8 |
 | `connectors/cubico/` | `base.py` shared TimeNet connector (download = window table, convert = records + annotations + tasks); `penmanshiel/`, `kelmarsh/` cards | §2, §6 |
 | `training/` | `turbine_dataset.py` OpenTSLM `QADataset` over the TimeNet registry (split annotation → train/validation/test, z-score + `series_text`) ; `train.py` YAML config → Flamingo/SP warm-started from an OpenTSLM Hub checkpoint → trainable-only checkpoints in `$DATA_DIR/checkpoints/<run>` → generate + yes/no log-likelihood score → `outputs/<run>/predictions.jsonl` + report | §5, §7 |
-| `eval/` | baselines + metrics; the two headline numbers are T2 macro-F1 on Kelmarsh and T4 recall@10 % FAR | §9 |
+| `eval/` | `score.py` (predictions.jsonl → AUROC, recall@FAR, per-class, macro-F1, confusion) ; `baselines.py` floors ; `faithfulness.py` numeric claims in generated evidence vs facts recomputed from the window + conclusion/Answer consistency | §9 |
 | `demo/` | pick turbine + window → answer in the FINDING/EVIDENCE/CAUSE/IMPACT/ACTION template | §7 |
 
 Data flow: raw zips → (data) windows/labels → (connectors) `TimeFDataset` → `timenet-build` → local registry →
@@ -110,7 +110,12 @@ Key conventions everyone depends on:
   alarms, hard P/R/F1, per-class recall, subsystem macro-F1 and confusion, per split × horizon. Floors:
   `uv run python -m turbine_tslm.eval.baselines always_no --out outputs/always_no.jsonl`. Nothing in `eval/` reads
   signals, only the label columns of the parquet.
+- **Answer modes**: `answer_mode: label` (MVP, `predict_mode: loglik` scores all answer candidates in one batched
+  pass) or `answer_mode: evidence` (stage 2, `predict_mode: generate`: the model writes its reasoning, then the label
+  candidates are scored conditioned on it). Check generated text with `python -m turbine_tslm.eval.faithfulness`.
 - `configs/`: one YAML per experiment, `<task>_<model>_<variant>.yaml`; the submitted run is `configs/submission.yaml`.
+  Runs so far: `t1_flamingo_llama1b` (MVP), `t1_sp_llama1b`, `t1_flamingo_llama1b_evidence`, init ablations
+  `_m4init` / `_fresh` (mentor: start from a neutral checkpoint). Results tables live in `docs/results/<run>/`.
 
 ## Working on the shared Nebius VM
 
