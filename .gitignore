@@ -30,8 +30,8 @@ venv/
 # Notebook checkpoints
 .ipynb_checkpoints/
 
-# Local datasets and generated results
-/data/
+# Local datasets and generated results (see the exceptions at the bottom)
+/data/*
 /outputs/
 
 # Editor and OS files
@@ -67,3 +67,9 @@ Serverless-hackathon-guide.pdf
 .codex/
 .entire/
 .env
+
+# Committed on purpose: data/README.md and the two preprocessed window tables (28 + 19 MB) for local training
+!/data/README.md
+!/data/interim/
+/data/interim/*
+!/data/interim/*_windows.parquet
