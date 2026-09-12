@@ -1,0 +1,308 @@
+<title>Turbine Alarm Explainer</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=IBM+Plex+Sans:ital,wght@0,400;0,500;0,600;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+:root{
+  --paper:#F6F8F9; --ink:#182029; --ink-2:#4A5563; --ink-3:#7A8592;
+  --line:#D5DBE1; --panel:#FFFFFF; --panel-2:#EDF1F4;
+  --signal:#0E8577; --signal-soft:#DDF1EC;
+  --judge:#B9691A; --judge-soft:#FBEEDD;
+  --code-bg:#1E2833; --code-ink:#E6EDF3;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#111820; --ink:#E8EDF2; --ink-2:#B4BEC9; --ink-3:#7F8A96;
+    --line:#2A3441; --panel:#18212B; --panel-2:#1F2A36;
+    --signal:#3FC2AE; --signal-soft:#123B36;
+    --judge:#E29A4C; --judge-soft:#3A2A16;
+    --code-bg:#0C1218; --code-ink:#D9E1E8;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#111820; --ink:#E8EDF2; --ink-2:#B4BEC9; --ink-3:#7F8A96;
+  --line:#2A3441; --panel:#18212B; --panel-2:#1F2A36;
+  --signal:#3FC2AE; --signal-soft:#123B36;
+  --judge:#E29A4C; --judge-soft:#3A2A16;
+  --code-bg:#0C1218; --code-ink:#D9E1E8;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:16px;line-height:1.6;padding-inline:20px;padding-block:0 96px}
+.wrap{max-width:780px;margin:0 auto}
+h1,h2,h3,h4{font-family:"Bricolage Grotesque","IBM Plex Sans",system-ui,sans-serif;text-wrap:balance;line-height:1.15;margin:0}
+h1{font-size:2.4rem;font-weight:700;letter-spacing:-.01em}
+h2{font-size:1.5rem;font-weight:700;margin-top:64px;padding-top:24px;border-top:2px solid var(--ink)}
+h3{font-size:1.1rem;font-weight:700;margin-top:32px}
+h4{font-size:.95rem;font-weight:700;margin-top:18px}
+p{margin:12px 0}
+a{color:var(--signal);text-decoration-thickness:1px;text-underline-offset:2px}
+.eyebrow{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.72rem;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-3)}
+header{padding-block:56px 32px;border-bottom:1px solid var(--line)}
+header .eyebrow{margin-bottom:14px}
+header p.lede{font-size:1.15rem;color:var(--ink-2);max-width:62ch;margin-top:16px}
+.meta{display:flex;flex-wrap:wrap;gap:8px 24px;margin-top:20px;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.8rem;color:var(--ink-3)}
+.meta b{color:var(--ink);font-weight:500}
+nav.toc{margin-top:28px;display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:4px 20px;font-size:.92rem}
+nav.toc a{color:var(--ink-2);text-decoration:none;padding:4px 0;border-bottom:1px dashed var(--line)}
+nav.toc a:hover,nav.toc a:focus-visible{color:var(--signal)}
+ul,ol{padding-left:22px;margin:10px 0}
+li{margin:5px 0}
+li::marker{color:var(--ink-3)}
+.callout{border:1px solid var(--line);border-radius:4px;padding:16px 20px;margin:20px 0;background:var(--panel)}
+.callout .eyebrow{display:block;margin-bottom:6px}
+.callout.warn{background:var(--judge-soft);border-color:transparent}
+.callout.warn .eyebrow{color:var(--judge)}
+.callout.key{background:var(--signal-soft);border-color:transparent}
+.callout.key .eyebrow{color:var(--signal)}
+.callout p:first-of-type{margin-top:0}.callout p:last-child{margin-bottom:0}
+table{border-collapse:collapse;width:100%;font-size:.9rem;margin:16px 0}
+.tablewrap{overflow-x:auto;margin:16px 0}
+.tablewrap table{margin:0;min-width:600px}
+th,td{text-align:left;vertical-align:top;padding:9px 12px;border-bottom:1px solid var(--line)}
+th{font-family:"IBM Plex Mono",ui-monospace,monospace;font-weight:500;font-size:.72rem;letter-spacing:.08em;text-transform:uppercase;color:var(--ink-3);border-bottom:1px solid var(--ink)}
+td.num{font-family:"IBM Plex Mono",ui-monospace,monospace;font-variant-numeric:tabular-nums;white-space:nowrap}
+code{font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.86em;background:var(--panel-2);padding:1px 5px;border-radius:3px}
+pre{background:var(--code-bg);color:var(--code-ink);padding:16px 18px;border-radius:4px;overflow-x:auto;font-size:.82rem;line-height:1.5;margin:14px 0;white-space:pre-wrap}
+pre code{background:none;padding:0;font-size:inherit;color:inherit}
+.stages{display:grid;grid-template-columns:1fr;gap:10px;margin:18px 0;counter-reset:stage}
+.stages .stage{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px 14px 56px;position:relative;counter-increment:stage}
+.stages .stage::before{content:counter(stage);position:absolute;left:16px;top:14px;width:26px;height:26px;border-radius:50%;background:var(--signal);color:#fff;font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:.9rem;display:flex;align-items:center;justify-content:center}
+.stages .stage h4{margin:0 0 4px}
+.stages .stage p{margin:0;font-size:.95rem}
+.pill{display:inline-block;font-family:"IBM Plex Mono",ui-monospace,monospace;font-size:.68rem;letter-spacing:.06em;text-transform:uppercase;padding:2px 8px;border-radius:999px;border:1px solid var(--line);color:var(--ink-2);white-space:nowrap}
+.pill.must{background:var(--signal);color:#fff;border-color:var(--signal)}
+.pill.should{background:var(--signal-soft);border-color:var(--signal)}
+.io{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:18px 0}
+.io > div{background:var(--panel);border:1px solid var(--line);border-radius:4px;padding:14px 16px}
+.io h4{margin:0 0 8px}
+.io ul{margin:0;padding-left:18px;font-size:.92rem}
+.qs li{margin:8px 0}
+footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-size:.85rem;color:var(--ink-3)}
+@media (max-width:560px){.io{grid-template-columns:1fr} h1{font-size:1.9rem}}
+</style>
+
+<div class="wrap">
+<header>
+  <div class="eyebrow">Temporal AI Challenge · Problem statement · v1 for team review</div>
+  <h1>Turbine Alarm Explainer</h1>
+  <p class="lede">Reasoning over wind-turbine signals: a Time-Series Language Model that reads a turbine's SCADA channels and tells the operations engineer what happened, which subsystem is involved, what it cost, and whether trouble is coming.</p>
+  <div class="meta">
+    <span>Data <b>Kelmarsh (6 × Senvion MM92, 2016–21) + Penmanshiel (14 × Senvion MM82, 2016–21)</b></span>
+    <span>Licence <b>CC-BY-4.0, Cubico Sustainable Investments</b></span>
+    <span>Written in the shape of <b>aioniclabs.ai/use-cases</b></span>
+  </div>
+  <nav class="toc" aria-label="Sections">
+    <a href="#user">1 · Target user</a>
+    <a href="#signals">2 · Signals we have</a>
+    <a href="#problems">3 · Problems we solve</a>
+    <a href="#workflow">4 · Workflow &amp; worked example</a>
+    <a href="#tasks">5 · Task definitions (I/O)</a>
+    <a href="#input">6 · Input specification</a>
+    <a href="#output">7 · Output specification</a>
+    <a href="#taxonomy">8 · Subsystem taxonomy</a>
+    <a href="#eval">9 · Evaluation &amp; baselines</a>
+    <a href="#scope">10 · Not in scope · limitations</a>
+    <a href="#decisions">11 · Decisions for the team</a>
+  </nav>
+</header>
+
+<h2 id="user">1 · Target user</h2>
+<p><b>The wind-farm operations engineer</b> at an asset owner or an independent service provider, monitoring 10–100 turbines from a control room. Their morning starts with the overnight event list: a farm of 14 turbines produces roughly <b>4,000 status events a year</b>, most of them benign (low wind, battery tests, comms blips), some of them the first sign of a forced outage that costs days of production and a site visit.</p>
+<p>Today they answer three questions by hand, scrolling 10-minute plots of 300 channels per turbine:</p>
+<ul>
+  <li><b>What happened here, and which subsystem is it?</b> (triage the alarm)</li>
+  <li><b>Does it matter — how much did it cost, does it need a visit?</b> (prioritise)</li>
+  <li><b>Is this turbine drifting toward a stop?</b> (anticipate)</li>
+</ul>
+<p>Secondary users: the site technician who gets the work order, and the asset manager who reviews lost-production reports. This is Aionic's <em>industrials</em> and <em>energy</em> lane in one asset class.</p>
+
+<h2 id="signals">2 · Signals we have</h2>
+<p>Two native streams per turbine, exported from Greenbyte SCADA by the operator, plus static farm metadata. Everything below has been checked in the raw files.</p>
+
+<h3>Stream A — 10-minute SCADA telemetry (the time series)</h3>
+<p>299 columns are exported; only ~70 are actually populated (the rest are empty channels for this turbine type). The model input is a curated set of ~16 base signals, chosen because they are populated, physically meaningful, and cover the subsystems the alarms talk about:</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Group</th><th>Signals (unit)</th><th>What they tell the model</th></tr></thead>
+  <tbody>
+    <tr><td>Environment</td><td>Wind speed (m/s), Wind direction (°), Nacelle ambient temperature (°C)</td><td>Whether the turbine <em>should</em> be producing; yaw misalignment; ambient baseline for thermal channels</td></tr>
+    <tr><td>Operation</td><td>Power (kW), Rotor speed (RPM), Generator RPM (RPM), Blade pitch A/B/C (°), Nacelle position (°)</td><td>Producing / idling / stopped / feathered; curtailment; pitch asymmetry</td></tr>
+    <tr><td>Drivetrain thermal</td><td>Generator bearing front &amp; rear (°C), Stator temperature (°C), Gear oil temperature (°C), Front / rear main bearing (°C), Transformer temperature (°C)</td><td>Cooling faults, lubrication, bearing degradation — the precursor-bearing channels</td></tr>
+    <tr><td>Hydraulics</td><td>Gear oil inlet pressure (bar), Gear oil pump pressure (bar)</td><td>Lubrication pump / filter faults</td></tr>
+    <tr><td>Electrical</td><td>Grid voltage (V), Grid current (A), Grid frequency (Hz), Reactive power (kvar)</td><td>Grid-side events, converter trips</td></tr>
+    <tr><td>Structural</td><td>Tower acceleration X / Y (mm/s²), Drive-train acceleration (mm/s²)</td><td>Tower oscillation alarms, overspeed</td></tr>
+    <tr><td>Bookkeeping (labels, not inputs)</td><td>Lost Production Total (kWh), Potential power (kW), Energy Export (kWh)</td><td>Ground truth for the <em>impact</em> of an event</td></tr>
+  </tbody>
+</table></div>
+
+<h3>Stream B — Status / alarm log (the language)</h3>
+<p>One row per event: <code>Timestamp start, Timestamp end, Duration, Status, Code, Message, Comment, Service contract category, IEC category</code>. Around 120 distinct (status, message) pairs per farm-year. Examples of real messages: <em>Overload generator fan 2 · Brake accumulator defect · Low gearbox oil pressure · Frequency converter error · Grid loss · Tower oscillation X level 2 · Pitch measuring system 1&gt;&lt;2 · Brake pads worn · Cable autounwind · Comm. failure FPM · Wind &lt; start wind · Manual stop – on site</em>. The IEC category (Full Performance, Forced outage, Scheduled Maintenance, Technical Standby, Out of Environmental Specification…) tells us whether an event was a real failure.</p>
+
+<h3>Static metadata</h3>
+<p>Turbine type (MM92 vs MM82), rated power (2.05 MW), rotor diameter, hub height, coordinates. This goes into the text context so the model knows which machine it is looking at.</p>
+
+<div class="callout warn">
+  <span class="eyebrow">Data facts that shape the design</span>
+  <p>Kelmarsh 2016 has temperatures / RPM / pitch only from May 2016 → we use June 2016 onward. 649 of 2,122 status rows in one turbine-year have an open end ("-") → treat as point events. "Battery test" and "Manual stop" dominate the log → excluded from the fault classes, kept as context. After filtering, ~900 real Stop/Warning events per 6 turbines per year → roughly 5,000 Kelmarsh + 8,000 Penmanshiel labelled events overall.</p>
+</div>
+
+<h2 id="problems">3 · Problems we solve</h2>
+<ul>
+  <li><b>Separate real faults from operational noise.</b> Thousands of events; the engineer needs the ones that indicate a component problem, with the evidence in the signals.</li>
+  <li><b>Explain, not just flag.</b> An alarm code says <em>what tripped</em>; it does not say what the temperatures, power and pitch were doing in the hours before. The model narrates that.</li>
+  <li><b>Price the event.</b> Lost production in kWh, whether the turbine is still down, whether wind is available — the engineer's basis for prioritising a site visit.</li>
+  <li><b>Anticipate.</b> Given a quiet window, is a forced outage likely in the next hours, and in which subsystem?</li>
+  <li><b>Generalise across machines.</b> A model trained on one farm must still read a different turbine model at another site — that is what the operator's fleet looks like.</li>
+</ul>
+
+<h2 id="workflow">4 · Workflow, in Aionic's four stages</h2>
+<div class="stages">
+  <div class="stage"><h4>Sense &amp; encode</h4><p>The system takes a 24 h window of the ~16 SCADA channels for one turbine (144 steps at 10 min), the turbine's static description, and the question. Each channel is encoded separately and described in text with its mean, std and unit — the OpenTSLM multi-series "stacking".</p></div>
+  <div class="stage"><h4>Reason &amp; explain</h4><p>The TSLM writes a short structured finding: which signals changed and how, what the turbine state was (producing / idle / feathered), the most plausible subsystem, and the alarm-level description — before it commits to a label.</p></div>
+  <div class="stage"><h4>Act &amp; execute</h4><p>One recommended action with the reason: <em>inspect generator fan 1 before the wind returns</em>, <em>no action — low-wind standby</em>, <em>schedule hydraulic check</em>. The engineer approves or dismisses; nothing is executed automatically.</p></div>
+  <div class="stage"><h4>System implications</h4><p>The finding carries the price: lost production so far (kWh), whether wind is available now, and whether the same message recurred on this turbine recently — the inputs to a prioritised work list across the farm.</p></div>
+</div>
+
+<h3>Worked example — a real event from the data</h3>
+<p>Kelmarsh turbine 1, 9 June 2016. Alarm in the log: <em>Overload generator fan 1</em> (Warning, code 2550, IEC "Forced outage", 12:34–14:14, 1 h 40 min). Hourly means of the six hours before, straight from the SCADA file:</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Hour</th><th>Wind m/s</th><th>Power kW</th><th>Rotor rpm</th><th>Gen. bearing rear °C</th><th>Stator °C</th><th>Ambient °C</th><th>Pitch A °</th></tr></thead>
+  <tbody>
+    <tr><td class="num">06:00</td><td class="num">2.5</td><td class="num">−1.1</td><td class="num">0.7</td><td class="num">39.1</td><td class="num">55.9</td><td class="num">11.4</td><td class="num">45.0</td></tr>
+    <tr><td class="num">08:00</td><td class="num">2.1</td><td class="num">1.0</td><td class="num">1.3</td><td class="num">38.0</td><td class="num">50.2</td><td class="num">14.4</td><td class="num">40.8</td></tr>
+    <tr><td class="num">09:00</td><td class="num">2.9</td><td class="num">15.6</td><td class="num">6.2</td><td class="num">37.6</td><td class="num">51.8</td><td class="num">15.8</td><td class="num">11.9</td></tr>
+    <tr><td class="num">11:00</td><td class="num">2.8</td><td class="num">−1.0</td><td class="num">0.2</td><td class="num">40.5</td><td class="num">52.2</td><td class="num">19.0</td><td class="num">79.0</td></tr>
+    <tr><td class="num">12:00</td><td class="num">2.6</td><td class="num">−2.0</td><td class="num">0.0</td><td class="num">40.6</td><td class="num">50.4</td><td class="num">20.2</td><td class="num">91.3</td></tr>
+  </tbody>
+</table></div>
+<p>What the model should say about it:</p>
+<pre><code>FINDING   Generator cooling warning while the turbine was idle.
+EVIDENCE  Wind 2–3 m/s, below cut-in, for the whole 6 h; power ≈ 0 and rotor
+          stopped except a brief 15 kW run-up at 09:00. Generator rear bearing
+          temperature rose 37.6 → 40.6 °C over 3 h with no load, while stator
+          temperature stayed at 50–56 °C — heat is not being removed. Blades
+          feathered to 91° at 12:00, i.e. the controller took the turbine to
+          stop shortly before the alarm.
+CAUSE     Generator fan 1 overload (cooling circuit), consistent with rising
+          bearing temperature at zero load.
+IMPACT    0 kWh lost so far — no wind available. Risk moves to the next windy
+          period if the fan is not cleared.
+ACTION    Reset and inspect generator fan 1 / its contactor before wind returns;
+          check whether fans 2 and 3 have shown the same message recently.
+Answer: generator_cooling</code></pre>
+<p>Every sentence above is derivable from the window plus the log row. That is the standard for the training targets: <b>no claims the data cannot support</b>.</p>
+
+<h2 id="tasks">5 · Task definitions — inputs and outputs</h2>
+<p>All tasks share the same input object (section 6) and are stored as TimeNet tasks on the same records. Priority tags say what must exist for the demo versus what is a stretch.</p>
+
+<div class="tablewrap"><table>
+  <thead><tr><th>#</th><th>Task</th><th>Prompt (abridged)</th><th>Output</th><th>Label source</th><th>TimeNet type</th><th>Priority</th></tr></thead>
+  <tbody>
+    <tr><td class="num">T1</td><td><b>Event explanation</b> — the headline task</td><td>"This is turbine K1 (MM92, 2.05 MW). The window ends at the start of a status event. Describe what happened in the signals, name the most likely subsystem, state the impact and recommend an action."</td><td>Structured text (FINDING / EVIDENCE / CAUSE / IMPACT / ACTION) ending in <code>Answer: &lt;subsystem&gt;</code></td><td>Alarm message + category (subsystem via taxonomy); evidence sentences generated from the window by rules; kWh from Lost Production columns</td><td><code>AnswerTask</code> with <code>rationale</code></td><td><span class="pill must">Must</span></td></tr>
+    <tr><td class="num">T2</td><td><b>Subsystem classification</b> — the measurable core of T1</td><td>Same window. "Which subsystem does this event belong to?" (list of classes given)</td><td>One of 10 classes (section 8)</td><td>Alarm message → taxonomy</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
+    <tr><td class="num">T3</td><td><b>Fault-vs-benign triage</b></td><td>Same window. "Is this a component fault, an environmental / operational stop, or normal operation?"</td><td><code>fault</code> / <code>benign_stop</code> / <code>normal</code></td><td>IEC category + message; <em>normal</em> = windows with no event</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
+    <tr><td class="num">T4</td><td><b>Precursor detection</b> — "anticipate"</td><td>A 12 h window that contains <em>no</em> event. "Will a forced outage start within the next 6 h? If so, which subsystem?"</td><td><code>none</code> or a subsystem</td><td>Next event in the log after the window; negatives sampled from quiet periods</td><td><code>ClassificationTask</code></td><td><span class="pill should">Should</span></td></tr>
+    <tr><td class="num">T5</td><td><b>Outage localisation</b></td><td>A 48 h window containing one stop. "When did the turbine stop producing although wind was available?"</td><td>Time interval (start, end)</td><td>Event start/end from the log</td><td><code>TemporalLocalizationTask</code></td><td><span class="pill">Stretch</span> (TimeRLM comparison)</td></tr>
+    <tr><td class="num">T6</td><td><b>Impact estimate</b></td><td>"How much production was lost during this event?"</td><td>kWh</td><td>Sum of Lost Production Total over the event span</td><td><code>ScalarPredictionTask</code></td><td><span class="pill">Stretch</span> (also folded into T1's IMPACT line)</td></tr>
+  </tbody>
+</table></div>
+
+<div class="callout key">
+  <span class="eyebrow">In one sentence</span>
+  <p><b>Input:</b> 24 h of ~16 SCADA channels for one turbine + a text context + a question. <b>Output:</b> a short plain-language finding with evidence, subsystem, impact and action, ending in a label we can score. T2/T3 give the numbers, T1 gives the demo, T4 gives the "sense of time".</p>
+</div>
+
+<h2 id="input">6 · Input specification</h2>
+<div class="io">
+  <div>
+    <h4>Time-series part</h4>
+    <ul>
+      <li><b>Window:</b> 24 h = 144 steps at 10 min, ending at the event start (T1–T3) or 6 h before it (T4). 48 h for T5.</li>
+      <li><b>Channels:</b> the ~16 base signals in section 2, fixed order, one <code>TimeSeries</code> each.</li>
+      <li><b>Normalisation:</b> per-channel z-score inside the window; original mean / std / unit written into the channel's text description (OpenTSLM convention) so absolute values are not lost.</li>
+      <li><b>Missing values:</b> forward-fill up to 3 steps, else 0 after z-scoring; windows with &gt;20 % missing in any core channel are dropped.</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Text part</h4>
+    <ul>
+      <li><b>Context:</b> turbine id and type, rated power, month, ambient at window end, number of events of the same message on this turbine in the previous 30 days.</li>
+      <li><b>Per-channel description:</b> "Generator bearing rear temperature, °C, 10-min, mean 39.4, std 1.1".</li>
+      <li><b>Question:</b> one of the T1–T6 prompts, with the class list for T2–T4.</li>
+      <li><b>Not given:</b> the alarm message, code or category — those are the answer.</li>
+    </ul>
+  </div>
+</div>
+
+<h3>Sampling and splits</h3>
+<ul>
+  <li><b>Positive windows:</b> one per Stop / Warning event that maps to a fault or benign-stop class (dedup events that start within 10 min of each other on the same turbine → keep the highest-severity message).</li>
+  <li><b>Normal windows:</b> random 24 h windows with no Stop/Warning inside and none in the following 6 h, sampled to match positives 1:1.</li>
+  <li><b>Split (no leakage):</b> Penmanshiel is the larger farm (14 turbines, ~2.3× the events), so it trains; Kelmarsh is held out entirely. Train = Penmanshiel turbines 1–12, 2016 → 2019; validation = Penmanshiel turbines 13–15, same years; test A = Penmanshiel 2020 → mid-2021, all turbines (unseen <em>time</em>); test B = Kelmarsh, all 6 turbines, 2016-06 → 2021 (unseen <em>site and turbine model</em>, MM92 vs MM82).</li>
+</ul>
+
+<h2 id="output">7 · Output specification</h2>
+<p>The model always answers in the same five-line template followed by the scored label. This is what the demo shows and what T1 is trained on:</p>
+<pre><code>FINDING   one sentence: what kind of event, turbine state
+EVIDENCE  2–4 sentences: which channels moved, by how much, over what time, relative to wind/load
+CAUSE     most plausible subsystem-level cause, hedged when the evidence is weak
+IMPACT    kWh lost in the event span; wind available or not; turbine still down or not
+ACTION    one recommendation, or "no action — <reason>"
+Answer: &lt;subsystem class&gt;</code></pre>
+<p><b>How targets are produced for training</b> (there are no technician reports in the data, so the text is derived):</p>
+<ol>
+  <li>Label lines (CAUSE class, IMPACT numbers, Answer) come directly from the log row and the Lost Production columns.</li>
+  <li>EVIDENCE sentences are generated by rules over the window: largest z-score excursions, temperature deltas vs ambient, power-vs-wind residual (using the farm's own power curve), pitch state, RPM state, step changes in grid channels. Only facts the rules verified go in.</li>
+  <li>A frontier LLM paraphrases the rule output into fluent text (same recipe as OpenTSLM's HAR-CoT / Sleep-CoT), with the instruction not to add facts. A random 5 % sample is human-checked by us.</li>
+  <li>Benign classes get short targets ("Low-wind standby, no fault. No action.").</li>
+</ol>
+
+<h2 id="taxonomy">8 · Subsystem taxonomy (the label space)</h2>
+<p>The ~120 raw messages collapse into 10 classes. The mapping is a versioned table in the connector so anyone can audit or extend it.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Class</th><th>Raw messages (examples)</th><th>Type</th></tr></thead>
+  <tbody>
+    <tr><td><code>generator_cooling</code></td><td>Overload generator fan 1/2/3, Overload transformer fan inlet/outlet air</td><td>fault</td></tr>
+    <tr><td><code>brake_hydraulics</code></td><td>Brake accumulator defect, Timeout brake closed, Feedback brake 1, Brake pads worn, Error brake resistor CHP, Hydraulic oil flushing operation</td><td>fault</td></tr>
+    <tr><td><code>pitch_system</code></td><td>Battery charge cycle axis 1/2/3 error, Pitch measuring system 1&gt;&lt;2, Limit switch error 95° axis N, Error lubrication pump pitch, Pitch batteries charging cycle</td><td>fault</td></tr>
+    <tr><td><code>converter_grid</code></td><td>Frequency converter error / not ready, Grid loss, Overvoltage, Maximum grid frequency, Reduced power converter, Repeating error BP52</td><td>fault</td></tr>
+    <tr><td><code>gearbox_lubrication</code></td><td>Low gearbox oil pressure, Overload gear oil pump, Overload gear bypass filter, Implausible gear speed, Particle sensor defect</td><td>fault</td></tr>
+    <tr><td><code>yaw_cable</code></td><td>Cable autounwind, Manual yaw, Deviation winddirection &gt; 60°</td><td>fault / operational</td></tr>
+    <tr><td><code>structural_overspeed</code></td><td>Tower oscillation X/Y level 1/2, Oscillation encoder tower, High rotor speed nacelle</td><td>fault</td></tr>
+    <tr><td><code>sensor_comms</code></td><td>Comm. failure FPM, Data communication unavailable, 4-20 mA anemometer / vane, Vane 2 defect, No assignment to a PMU</td><td>fault (data)</td></tr>
+    <tr><td><code>environmental_stop</code></td><td>Wind &lt; start wind, Absence of wind during run-up, Gearbox warm-up stage, ice/curtailment messages</td><td>benign stop</td></tr>
+    <tr><td><code>manual_safety</code></td><td>Manual stop (on site / remote), Park master stop, Remote stop, Safety chain open, Emergency stop nacelle/base/top box, Battery test, Test brake program</td><td>benign stop (context only, not a T2 target)</td></tr>
+  </tbody>
+</table></div>
+
+<h2 id="eval">9 · Evaluation and baselines</h2>
+<div class="tablewrap"><table>
+  <thead><tr><th>Task</th><th>Metric</th><th>Baselines</th><th>Reported on</th></tr></thead>
+  <tbody>
+    <tr><td>T2 subsystem</td><td>Macro-F1, accuracy, confusion matrix</td><td>Majority class · logistic regression / gradient boosting on window statistics (mean, std, slope, min, max per channel) · text-only LLM given the same statistics as text · OpenTSLM zero-shot (no fine-tune)</td><td>Val · Test A (unseen years) · Test B (unseen farm)</td></tr>
+    <tr><td>T3 triage</td><td>F1 on <code>fault</code>, precision at the operating point an engineer would accept</td><td>Same as T2</td><td>Val · A · B</td></tr>
+    <tr><td>T4 precursor</td><td>AUROC, recall at 10 % false-alarm rate, per subsystem</td><td>GBM on statistics · "always none"</td><td>Val · A · B</td></tr>
+    <tr><td>T1 explanation</td><td>Label accuracy of the final Answer + factual-consistency score of EVIDENCE lines (checked against the rule facts) + small human rating of 30 samples</td><td>Text-only LLM with statistics</td><td>Test A, B (qualitative in demo)</td></tr>
+    <tr><td>T5 localisation</td><td>IoU of predicted vs true stop interval</td><td>Rule: power ≈ 0 while wind &gt; cut-in · TimeRLM zero-shot</td><td>Test A</td></tr>
+  </tbody>
+</table></div>
+<p>The two headline numbers for the pitch: <b>macro-F1 on unseen farm (Test B)</b> for T2, and <b>recall at 10 % false alarms</b> for T4. The cross-farm number is the honest one — it tells the operator whether this works on the next site.</p>
+
+<h2 id="scope">10 · Not in scope, and limitations we will state</h2>
+<ul>
+  <li><b>No remaining-useful-life or long-horizon forecasting.</b> 10-minute data over 6 years is not enough run-to-failure history per component. (TimesFM-3 can appear as an optional power-forecast baseline, nothing more.)</li>
+  <li><b>Ground truth is the alarm log, not a technician's diagnosis.</b> The subsystem label is what the controller reported; the true root cause may differ. We say so.</li>
+  <li><b>Many alarms have no precursor at 10-minute resolution</b> (grid loss, comms). T4 will work for thermal and hydraulic classes and not for others; we report per class rather than hide it in an average.</li>
+  <li><b>Generated explanations</b> are rule-derived text paraphrased by an LLM. They are faithful to the window by construction, but they are not expert-written.</li>
+  <li><b>One manufacturer.</b> Both farms are Senvion; generalisation to Vestas / Siemens is untested.</li>
+</ul>
+
+<h2 id="decisions">11 · Decisions for the team</h2>
+<ul class="qs">
+  <li><b>Split direction</b> — proposal: train on Penmanshiel (bigger), test on Kelmarsh. Confirm once the connector shows both farms populate the same channels and message vocabulary.</li>
+  <li><b>Window length</b> — 24 h is the proposal (144 steps). 12 h halves the compute; 48 h helps thermal drifts. Decide with the model person.</li>
+  <li><b>Channel set</b> — the 16 in section 2 or a smaller 8 (wind, power, rotor rpm, pitch A, gen bearing rear, stator, gear oil temp, gear oil pressure)? Fewer channels = faster SoftPrompt; Flamingo does not care much.</li>
+  <li><b>T4 horizon</b> — 6 h ahead is the proposal. Longer is more useful and harder.</li>
+  <li><b>Which of T5/T6 to attempt</b> — only if T1–T3 are training by hour 12.</li>
+  <li><b>Explanation generation</b> — which LLM paraphrases the rule output, and who owns the 5 % human check.</li>
+</ul>
+
+<footer>Problem statement v1 · 12 Sep 2026 · all signal names, message texts and the worked example are taken from the Kelmarsh 2016 export; counts are from turbine 1 unless stated. Companion to the <em>Temporal AI Track Team Brief</em>.</footer>
+</div>
