@@ -39,6 +39,9 @@ DEFAULTS: dict[str, Any] = {
     "init_checkpoint": None,  # HF repo (OpenTSLM/<base>-<stage>-flamingo|sp, file model_checkpoint.pt) or a local .pt
     "lora": False,  # OpenTSLMSP only
     "gradient_checkpointing": False,
+    "model_dtype": "float32",  # Flamingo: transformers>=5 loads the LLM in its config dtype (bf16) while the OpenTSLM
+    # encoder/perceiver/cross-attention are fp32 -> cast the whole model to one dtype (checkpoints were trained fp32)
+    "autocast_bf16": False,  # bf16 autocast around forward passes (speed); parameters stay in model_dtype
     "epochs": 3,
     "batch_size": 4,
     "eval_batch_size": 8,
@@ -119,6 +122,8 @@ def build_model(cfg: dict[str, Any]):
     else:
         raise SystemExit(f"unknown model_type {cfg['model_type']}")
     model.to(device)
+    if cfg["model_type"] == "OpenTSLMFlamingo":
+        model.to(getattr(torch, cfg["model_dtype"]))
 
     init = cfg["init_checkpoint"]
     if init:
@@ -130,6 +135,14 @@ def build_model(cfg: dict[str, Any]):
         print(f"[init] loading {path}")
         model.load_from_file(str(path))  # upstream format, strict=False
     return model
+
+
+def autocast(cfg: dict[str, Any]):
+    return torch.autocast(
+        "cuda",
+        dtype=torch.bfloat16,
+        enabled=bool(cfg["autocast_bf16"]) and cfg["device"] == "cuda",
+    )
 
 
 def tokenizer_of(model):
@@ -219,11 +232,12 @@ def make_loaders(cfg: dict[str, Any], eos: str):
 
 
 @torch.no_grad()
-def mean_loss(model, loader) -> float:
+def mean_loss(cfg: dict[str, Any], model, loader) -> float:
     model.eval()
     tot, n = 0.0, 0
     for batch in loader:
-        tot += model.compute_loss(batch).item()
+        with autocast(cfg):
+            tot += model.compute_loss(batch).item()
         n += 1
     return tot / max(n, 1)
 
@@ -262,7 +276,8 @@ def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
         running, n_run = 0.0, 0
         for batch in train_loader:
             opt.zero_grad(set_to_none=True)
-            loss = model.compute_loss(batch)
+            with autocast(cfg):
+                loss = model.compute_loss(batch)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(
                 [p for p in model.parameters() if p.requires_grad], cfg["grad_clip"]
@@ -290,7 +305,7 @@ def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
                 save_checkpoint(
                     model, last_path, step=step, epoch=epoch, best_val=best_val
                 )
-        val = mean_loss(model, val_loader)
+        val = mean_loss(cfg, model, val_loader)
         log(
             {
                 "step": step,
@@ -325,12 +340,16 @@ def train(cfg: dict[str, Any], model, train_loader, val_loader, log) -> Path:
 
 
 @torch.no_grad()
-def answer_loglik(model, sample: dict[str, Any], answer: str, collate) -> float:
+def answer_loglik(
+    cfg: dict[str, Any], model, sample: dict[str, Any], answer: str, collate
+) -> float:
     """Sum log-likelihood of ``answer`` given the prompt (compute_loss is the mean over answer tokens)."""
     s = dict(sample)
     s["answer"] = answer
     n_tok = len(tokenizer_of(model)(answer, add_special_tokens=False).input_ids)
-    return -model.compute_loss(collate([s])).item() * n_tok
+    with autocast(cfg):
+        loss = model.compute_loss(collate([s])).item()
+    return -loss * n_tok
 
 
 @torch.no_grad()
@@ -347,7 +366,10 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
     with open(out_path, "w", encoding="utf-8") as fh:
         for i in range(0, len(samples), bs):
             chunk = samples[i : i + bs]
-            texts = model.generate(collate(chunk), max_new_tokens=cfg["max_new_tokens"])
+            with autocast(cfg):
+                texts = model.generate(
+                    collate(chunk), max_new_tokens=cfg["max_new_tokens"]
+                )
             for s, text in zip(chunk, texts, strict=True):
                 rec = {
                     "window_id": s["window_id"],
@@ -358,8 +380,8 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                     "label": scoring.parse_answer(text),
                 }
                 if cfg["score_method"] == "loglik":
-                    ll_yes = answer_loglik(model, s, "Answer: yes", collate)
-                    ll_no = answer_loglik(model, s, "Answer: no", collate)
+                    ll_yes = answer_loglik(cfg, model, s, "Answer: yes", collate)
+                    ll_no = answer_loglik(cfg, model, s, "Answer: no", collate)
                     rec["score"] = 1 / (1 + math.exp(-(ll_yes - ll_no)))
                     rec["loglik"] = {"yes": ll_yes, "no": ll_no}
                 fh.write(json.dumps(rec) + "\n")
