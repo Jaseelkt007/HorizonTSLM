@@ -81,9 +81,9 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
 
 <div class="wrap">
 <header>
-  <div class="eyebrow">Temporal AI Challenge · Problem statement · v1 for team review</div>
+  <div class="eyebrow">Temporal AI Challenge · Problem statement · v2 · early-warning framing</div>
   <h1>Turbine Alarm Explainer</h1>
-  <p class="lede">Reasoning over wind-turbine signals: a Time-Series Language Model that reads a turbine's SCADA channels and tells the operations engineer what happened, which subsystem is involved, what it cost, and whether trouble is coming.</p>
+  <p class="lede">A Time-Series Language Model that reads the last 24 hours of a turbine's SCADA channels and tells the operations engineer, hours before the controller trips: is a fault stop coming, in which subsystem, and why.</p>
   <div class="meta">
     <span>Data <b>Penmanshiel (14 × Senvion MM82, train) + Kelmarsh (6 × Senvion MM92, held-out site), 2017–21</b></span>
     <span>Licence <b>CC-BY-4.0, Cubico Sustainable Investments</b></span>
@@ -92,7 +92,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
   <nav class="toc" aria-label="Sections">
     <a href="#user">1 · Target user</a>
     <a href="#signals">2 · Signals we have</a>
-    <a href="#problems">3 · Problems we solve</a>
+    <a href="#problems">3 · Impact, in the farm's numbers</a>
     <a href="#workflow">4 · Workflow &amp; worked example</a>
     <a href="#tasks">5 · Task definitions (I/O)</a>
     <a href="#input">6 · Input specification</a>
@@ -143,14 +143,29 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
   <p>2016 is incomplete (Kelmarsh temperatures / RPM / pitch only from May 2016) → we use 2017 → 2021 for both farms. 649 of 2,122 status rows in one turbine-year have an open end ("-") → treat as point events. "Battery test" and "Manual stop" dominate the log → excluded from the fault classes, kept as context. After filtering (2017–21): 10,410 fault-type Stop/Warning events at Penmanshiel (2,503 IEC "Forced outage") and 3,387 at Kelmarsh (694); 122 and 87 distinct messages.</p>
 </div>
 
-<h2 id="problems">3 · Problems we solve</h2>
+<h2 id="problems">3 · Problems we solve, with the farm's own numbers</h2>
+<p>The log is written at second precision <em>when the fault has already happened</em>. Many fault stops are preceded by hours of visible drift in the signals; today nobody watches 300 channels × 14 turbines for it. The value of the system is <b>lead time</b>: a warning while the turbine is still producing, with the subsystem and the evidence, so the operator can de-rate or schedule instead of taking a forced stop. Penmanshiel, 14 turbines, 2017–2021, from the status log and the lost-production columns:</p>
+<div class="tablewrap"><table>
+  <thead><tr><th>Subsystem class</th><th>Events</th><th>Forced outages</th><th>Median dur.</th><th>Lost energy (5 yr)</th><th>Precursor in 10-min SCADA?</th></tr></thead>
+  <tbody>
+    <tr><td>pitch_system</td><td class="num">1,255</td><td class="num">169</td><td class="num">0.5 h</td><td class="num">2,848 MWh</td><td>partly — battery / charging degrade over days</td></tr>
+    <tr><td>converter_grid</td><td class="num">575</td><td class="num">505</td><td class="num">0.0 h</td><td class="num">1,195 MWh</td><td>mostly no — grid-side</td></tr>
+    <tr><td>generator_cooling</td><td class="num">530</td><td class="num">444</td><td class="num">1.0 h</td><td class="num">541 MWh</td><td><b>yes</b> — thermal ramp over hours</td></tr>
+    <tr><td>structural_overspeed</td><td class="num">457</td><td class="num">399</td><td class="num">0.2 h</td><td class="num">284 MWh</td><td>partly — tower acceleration trend</td></tr>
+    <tr><td>gearbox_lubrication</td><td class="num">166</td><td class="num">145</td><td class="num">0.1 h</td><td class="num">183 MWh</td><td><b>yes</b> — oil temperature / pressure drift</td></tr>
+    <tr><td>brake_hydraulics</td><td class="num">1,519</td><td class="num">7</td><td class="num">0.2 h</td><td class="num">616 MWh</td><td>partly</td></tr>
+    <tr><td>sensor_comms, yaw_cable</td><td class="num">2,655</td><td class="num">0</td><td class="num">~0</td><td class="num">647 MWh</td><td>no — not real faults</td></tr>
+    <tr><td>environmental / curtailment / manual</td><td class="num">8,245</td><td class="num">—</td><td class="num">—</td><td class="num">~10,000 MWh</td><td>not a fault — excluded</td></tr>
+  </tbody>
+</table></div>
+<p>≈ <b>1,260 MWh per year lost to fault-class stops on this one farm</b> (≈ £60–100k/yr at UK wind prices, before call-out costs); ~39 forced outages per turbine per year. Losses are a long tail — the median fault stop is 12 min, the top 5 % last over 6 h — and those long stops are where lead time turns a forced outage into a planned intervention.</p>
 <ul>
-  <li><b>Separate real faults from operational noise.</b> Thousands of events; the engineer needs the ones that indicate a component problem, with the evidence in the signals.</li>
-  <li><b>Explain, not just flag.</b> An alarm code says <em>what tripped</em>; it does not say what the temperatures, power and pitch were doing in the hours before. The model narrates that.</li>
-  <li><b>Price the event.</b> Lost production in kWh, whether the turbine is still down, whether wind is available — the engineer's basis for prioritising a site visit.</li>
-  <li><b>Anticipate.</b> Given a quiet window, is a forced outage likely in the next hours, and in which subsystem?</li>
-  <li><b>Generalise across machines.</b> Train on Penmanshiel (MM82), still read Kelmarsh (MM92) — a different site and turbine model, which is what the operator's fleet looks like.</li>
+  <li><b>Early warning.</b> "Fault stop likely on turbine 7 within 6 h" while it is still producing — the log cannot give this.</li>
+  <li><b>Which subsystem and why</b>, from the signals, so the warning is actionable: de-rate, inspect fan, schedule an oil check.</li>
+  <li><b>Knowing when to stay quiet.</b> Most windows are normal; a system that cries wolf gets switched off. False-alarm rate is a first-class metric.</li>
+  <li><b>Working on the next site.</b> Trained on Penmanshiel (MM82), tested on Kelmarsh (MM92) with no re-engineering.</li>
 </ul>
+<div class="callout warn"><span class="eyebrow">Honest scope</span><p>Lead time is expected for the thermal / lubrication / structural / pitch classes and essentially none for grid loss, comms or manual stops. Results are reported per class, never averaged over the unpredictable ones.</p></div>
 
 <h2 id="workflow">4 · Workflow, in Aionic's four stages</h2>
 <div class="stages">
@@ -160,7 +175,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
   <div class="stage"><h4>System implications</h4><p>The finding carries the price: lost production so far (kWh), whether wind is available now, and whether the same message recurred on this turbine recently — the inputs to a prioritised work list across the farm.</p></div>
 </div>
 
-<h3>Worked example — a real event from the data</h3>
+<h3>Worked example — a real event, post-hoc view</h3>
 <p>Kelmarsh turbine 1, 9 June 2016. Alarm in the log: <em>Overload generator fan 1</em> (Warning, code 2550, IEC "Forced outage", 12:34–14:14, 1 h 40 min). Hourly means of the six hours before, straight from the SCADA file:</p>
 <div class="tablewrap"><table>
   <thead><tr><th>Hour</th><th>Wind m/s</th><th>Power kW</th><th>Rotor rpm</th><th>Gen. bearing rear °C</th><th>Stator °C</th><th>Ambient °C</th><th>Pitch A °</th></tr></thead>
@@ -172,7 +187,7 @@ footer{margin-top:64px;padding-top:20px;border-top:1px solid var(--line);font-si
     <tr><td class="num">12:00</td><td class="num">2.6</td><td class="num">−2.0</td><td class="num">0.0</td><td class="num">40.6</td><td class="num">50.4</td><td class="num">20.2</td><td class="num">91.3</td></tr>
   </tbody>
 </table></div>
-<p>What the model should say about it:</p>
+<p>What the model should say about it when asked <em>after the fact</em> (task T3):</p>
 <pre><code>FINDING   Generator cooling warning while the turbine was idle.
 EVIDENCE  Wind 2–3 m/s, below cut-in, for the whole 6 h; power ≈ 0 and rotor
           stopped except a brief 15 kW run-up at 09:00. Generator rear bearing
@@ -187,71 +202,92 @@ IMPACT    0 kWh lost so far — no wind available. Risk moves to the next windy
 ACTION    Reset and inspect generator fan 1 / its contactor before wind returns;
           check whether fans 2 and 3 have shown the same message recently.
 Answer: generator_cooling</code></pre>
-<p>Every sentence above is derivable from the window plus the log row. That is the standard for the training targets: <b>no claims the data cannot support</b>.</p>
+<p>Every sentence above is derivable from the window plus the log row. That is the standard for the training targets: <b>no claims the data cannot support</b>. For the early-warning task (T1) the same event is used with the window ending 1, 3 and 6 h <em>earlier</em>, and the answer is <code>Answer: yes, generator_cooling</code>.</p>
 
 <h2 id="tasks">5 · Task definitions — inputs and outputs</h2>
-<p>All tasks share the same input object (section 6) and are stored as TimeNet tasks on the same records. Priority tags say what must exist for the demo versus what is a stretch.</p>
-
+<p>Every record is a 24 h window <b>anchored at a time <code>t</code></b>. Labels describe what the log says <em>after</em> <code>t</code>; nothing after <code>t</code> enters the input.</p>
 <div class="tablewrap"><table>
-  <thead><tr><th>#</th><th>Task</th><th>Prompt (abridged)</th><th>Output</th><th>Label source</th><th>TimeNet type</th><th>Priority</th></tr></thead>
+  <thead><tr><th>#</th><th>Task</th><th>Anchor t</th><th>Prompt (abridged)</th><th>Answer</th><th>Label source</th><th>Priority</th></tr></thead>
   <tbody>
-    <tr><td class="num">T1</td><td><b>Event explanation</b> — the headline task</td><td>"This is turbine K1 (MM92, 2.05 MW). The window ends at the start of a status event. Describe what happened in the signals, name the most likely subsystem, state the impact and recommend an action."</td><td>Structured text (FINDING / EVIDENCE / CAUSE / IMPACT / ACTION) ending in <code>Answer: &lt;subsystem&gt;</code></td><td>Alarm message + category (subsystem via taxonomy); evidence sentences generated from the window by rules; kWh from Lost Production columns</td><td><code>AnswerTask</code> with <code>rationale</code></td><td><span class="pill must">Must</span></td></tr>
-    <tr><td class="num">T2</td><td><b>Subsystem classification</b> — the measurable core of T1</td><td>Same window. "Which subsystem does this event belong to?" (list of classes given)</td><td>One of 11 classes (section 8)</td><td>Alarm message → taxonomy</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
-    <tr><td class="num">T3</td><td><b>Fault-vs-benign triage</b></td><td>Same window. "Is this a component fault, an environmental / operational stop, or normal operation?"</td><td><code>fault</code> / <code>benign_stop</code> / <code>normal</code></td><td>IEC category + message; <em>normal</em> = windows with no event</td><td><code>ClassificationTask</code></td><td><span class="pill must">Must</span></td></tr>
-    <tr><td class="num">T4</td><td><b>Precursor detection</b> — "anticipate"</td><td>A 12 h window that contains <em>no</em> event. "Will a forced outage start within the next 6 h? If so, which subsystem?"</td><td><code>none</code> or a subsystem</td><td>Next event in the log after the window; negatives sampled from quiet periods</td><td><code>ClassificationTask</code></td><td><span class="pill should">Should</span></td></tr>
-    <tr><td class="num">T5</td><td><b>Outage localisation</b></td><td>A 48 h window containing one stop. "When did the turbine stop producing although wind was available?"</td><td>Time interval (start, end)</td><td>Event start/end from the log</td><td><code>TemporalLocalizationTask</code></td><td><span class="pill">Stretch</span> (TimeRLM comparison)</td></tr>
-    <tr><td class="num">T6</td><td><b>Impact estimate</b></td><td>"How much production was lost during this event?"</td><td>kWh</td><td>Sum of Lost Production Total over the event span</td><td><code>ScalarPredictionTask</code></td><td><span class="pill">Stretch</span> (also folded into T1's IMPACT line)</td></tr>
+    <tr><td class="num">T1</td><td><b>Early warning — will a fault stop begin?</b> (headline)</td><td><code>t = alarm − H</code>, H ∈ {1, 3, 6} h; plus negatives</td><td>"Turbine producing now. Will a fault-related stop begin within the next H hours? If yes, name the subsystem."</td><td><code>Answer: no</code> · <code>Answer: yes, &lt;subsystem&gt;</code>, optionally preceded by evidence text</td><td>First fault-class Forced outage in (t, t+H] from the log; <code>no</code> if none</td><td><span class="pill must">Must</span></td></tr>
+    <tr><td class="num">T2</td><td><b>Warning escalation</b></td><td>t = start of a Warning row</td><td>"A warning has just been raised. Will it escalate to a forced outage within 24 h?"</td><td><code>Answer: yes / no</code></td><td>Next Stop in (t, t+24h]</td><td><span class="pill should">Should</span></td></tr>
+    <tr><td class="num">T3</td><td><b>Post-hoc explanation</b> (morning report)</td><td><code>t = alarm − 30 min</code> — excludes the controller's reaction</td><td>"A status event began 30 min after this window. Describe what happened and name the subsystem."</td><td>FINDING / EVIDENCE / CAUSE / IMPACT / ACTION + <code>Answer: &lt;subsystem&gt;</code></td><td>Message → taxonomy; kWh and duration from log + SCADA</td><td><span class="pill should">Should</span></td></tr>
+    <tr><td class="num">T4</td><td>Impact estimate</td><td>as T3</td><td>"How much production will this stop cost?"</td><td>kWh</td><td>Lost Production Total over the event</td><td><span class="pill">Stretch</span></td></tr>
+    <tr><td class="num">T5</td><td>Outage localisation</td><td>48 h window containing one stop</td><td>"When did the turbine stop although wind was available?"</td><td>(start, end)</td><td>Event span</td><td><span class="pill">Stretch</span> (TimeRLM comparison)</td></tr>
   </tbody>
 </table></div>
-
 <div class="callout key">
   <span class="eyebrow">In one sentence</span>
-  <p><b>Input:</b> 24 h of ~16 SCADA channels for one turbine + a text context + a question. <b>Output:</b> a short plain-language finding with evidence, subsystem, impact and action, ending in a label we can score. T2/T3 give the numbers, T1 gives the demo, T4 gives the "sense of time".</p>
+  <p><b>T1 is what we sell and what we score first.</b> Its binary form (<code>yes</code>/<code>no</code>) is the MVP and the number on the slide; the subsystem and the evidence text are the language layer added on top of the same records once the binary works. Input = 24 h of 17 SCADA channels ending now + turbine context + the question; output = whether a fault stop is coming in the next H hours, which subsystem, and the evidence.</p>
 </div>
 
 <h2 id="input">6 · Input specification</h2>
+<pre><code>      |&lt;──────── input: 24 h, 144 steps @ 10 min ────────&gt;|&lt;── H ──&gt;|
+  ────┼───────────────────────────────────────────────────┼─────────┼──────
+   t-24h                                                  t        alarm
+                                                          ^ anchor: nothing after this is seen</code></pre>
 <div class="io">
   <div>
     <h4>Time-series part</h4>
     <ul>
-      <li><b>Window:</b> 24 h = 144 steps at 10 min, ending at the event start (T1–T3) or 6 h before it (T4). 48 h for T5.</li>
-      <li><b>Channels:</b> the ~16 base signals in section 2, fixed order, one <code>TimeSeries</code> each.</li>
-      <li><b>Normalisation:</b> per-channel z-score inside the window; original mean / std / unit written into the channel's text description (OpenTSLM convention) so absolute values are not lost.</li>
-      <li><b>Missing values:</b> forward-fill up to 3 steps, else 0 after z-scoring; windows with &gt;20 % missing in any core channel are dropped.</li>
+      <li><b>Window:</b> 24 h = 144 steps at 10 min, ending at the anchor <code>t</code>. 12 h is the fallback, 48 h a later experiment; the connector takes the length as a parameter.</li>
+      <li><b>Channels:</b> the 17 base signals in section 2, fixed order, one <code>TimeSeries</code> each.</li>
+      <li><b>Normalisation:</b> per-channel z-score inside the window; original mean / std / unit written into the channel's text description (OpenTSLM convention).</li>
+      <li><b>Missing values:</b> forward-fill up to 3 steps, else 0 after z-scoring; windows with &gt; 20 % missing in any core channel are dropped.</li>
     </ul>
   </div>
   <div>
     <h4>Text part</h4>
     <ul>
-      <li><b>Context:</b> turbine id and type, rated power, month, ambient at window end, number of events of the same message on this turbine in the previous 30 days.</li>
-      <li><b>Per-channel description:</b> "Generator bearing rear temperature, °C, 10-min, mean 39.4, std 1.1".</li>
-      <li><b>Question:</b> one of the T1–T6 prompts, with the class list for T2–T4.</li>
-      <li><b>Not given:</b> the alarm message, code or category — those are the answer.</li>
+      <li><b>Context:</b> turbine id and type, rated power, month, state at <code>t</code> (producing / idle), the horizon H, and the number of fault-class events on this turbine in the previous 30 days.</li>
+      <li><b>Per-channel description:</b> "generator bearing rear temperature in °C, 10-minute means over 24 h, mean 45.0 std 3.6:".</li>
+      <li><b>Question:</b> the T1–T5 prompt, with the subsystem list for T1 / T3.</li>
+      <li><b>Never given:</b> anything from after <code>t</code> — no alarm message, code or category.</li>
     </ul>
   </div>
 </div>
 
-<h3>Sampling and splits</h3>
+<h3>Anchors and sampling (T1)</h3>
 <ul>
-  <li><b>Positive windows:</b> one per Stop / Warning event that maps to a fault or benign-stop class (dedup events that start within 10 min of each other on the same turbine → keep the highest-severity message).</li>
-  <li><b>Normal windows:</b> random 24 h windows with no Stop/Warning inside and none in the following 6 h, sampled to match positives 1:1.</li>
+  <li><b>Positives:</b> for every fault-class Forced outage (repeats of the same message within 2 h deduped to the first), three records with <code>t = alarm − 1 h, − 3 h, − 6 h</code>. Drop a record if the turbine is not producing at <code>t</code> (already stopped → trivial) or if a manual / maintenance stop overlaps the window.</li>
+  <li><b>Negatives:</b> random anchors where the turbine is producing at <code>t</code>, no fault-class event starts in (t, t + 6 h], and none is ongoing. Sampled 2:1 against positives.</li>
+  <li><b>Labels stored as annotations:</b> <code>fault_within_1h</code>, <code>fault_within_3h</code>, <code>fault_within_6h</code> (class or <code>none</code>), <code>lead_time_min</code>, <code>next_event_message</code>, <code>next_event_duration_h</code>, <code>next_event_lost_kwh</code>, <code>state_at_anchor</code>.</li>
   <li><b>Split (no leakage) — train on the larger farm, hold out the smaller one:</b> train = Penmanshiel turbines 1–12 (no #3 exists), 2017 → 2019; validation = Penmanshiel turbines 13–15, same years (unseen turbines); test A = Penmanshiel, all 14 turbines, 2020 → 2021 (unseen <em>time</em>); test B = Kelmarsh, all 6 turbines, 2017 → 2021 (unseen <em>site and turbine model</em>, MM82 → MM92). Penmanshiel has ~2× the data — 10,410 fault-type events vs 3,387 — so it trains. 73 messages occur on both farms; the 14 Kelmarsh-only ones are rare (≤ 4 each), so the taxonomy is built from the union.</li>
 </ul>
 
 <h2 id="output">7 · Output specification</h2>
-<p>The model always answers in the same five-line template followed by the scored label. This is what the demo shows and what T1 is trained on:</p>
-<pre><code>FINDING   one sentence: what kind of event, turbine state
-EVIDENCE  2–4 sentences: which channels moved, by how much, over what time, relative to wind/load
-CAUSE     most plausible subsystem-level cause, hedged when the evidence is weak
-IMPACT    kWh lost in the event span; wind available or not; turbine still down or not
-ACTION    one recommendation, or "no action — <reason>"
-Answer: &lt;subsystem class&gt;</code></pre>
-<p><b>How targets are produced for training</b> (there are no technician reports in the data, so the text is derived):</p>
+<p>The prompt is fixed text (input tokens, no loss); the <b>answer</b> is what the model learns (loss only there). Template for T1:</p>
+<pre><code>pre_prompt:
+  You are monitoring wind turbine {turbine_id} ({turbine_type}, {rated_kw} kW) in {month}.
+  Below are the last 24 hours of 10-minute SCADA signals, ending now. The turbine is
+  currently {state}. Analyse the signals and decide whether a fault-related stop
+  (forced outage) is likely to begin within the next {H} hours. If yes, name the
+  subsystem from: generator_cooling, gearbox_lubrication, pitch_system, brake_hydraulics,
+  converter_grid, structural_overspeed, sensor_comms.
+  Do not state a decision until the final line. End with "Answer: ".
+
+time_series_text[i]:  "{channel} in {unit}, 10-minute means over 24 h, mean {m} std {s}:"  + 144 values
+post_prompt:          Assessment:</code></pre>
+<p>Answer, MVP (label only — day 1):</p>
+<pre><code>Answer: no
+Answer: yes, generator_cooling</code></pre>
+<p>Answer, full (evidence first, then label — day 2):</p>
+<pre><code>Wind rose from 4 to 8 m/s over the last 6 hours and power ramped from 200 kW to 1.1 MW.
+Generator rear bearing temperature climbed 7 °C in 4 hours and is at its 24 h maximum,
+while the front bearing stayed flat at 41 °C — the rear side is not being cooled as load
+increases. Gear oil and pitch behave normally. This pattern precedes a generator cooling
+stop. Recommended: limit power to 1 MW and check generator fan 1.
+Answer: yes, generator_cooling</code></pre>
+<pre><code>Production is steady at 6–7 m/s, all temperatures track load, pressures and grid values
+are stable. No sign of a developing fault.
+Answer: no</code></pre>
+<p>The text after <code>Answer:</code> must be exactly parseable — that is what gets scored. The evidence comes <b>before</b> <code>Answer:</code> so the model reasons first (OpenTSLM shows this improves label accuracy). T3 (post-hoc) keeps the five-line FINDING / EVIDENCE / CAUSE / IMPACT / ACTION template of the worked example, followed by <code>Answer: &lt;subsystem&gt;</code>.</p>
+<p><b>How training targets are produced</b> (there are no technician reports in the data):</p>
 <ol>
-  <li>Label lines (CAUSE class, IMPACT numbers, Answer) come directly from the log row and the Lost Production columns.</li>
-  <li>EVIDENCE sentences are generated by rules over the window: largest z-score excursions, temperature deltas vs ambient, power-vs-wind residual (using the farm's own power curve), pitch state, RPM state, step changes in grid channels. Only facts the rules verified go in.</li>
-  <li>A frontier LLM paraphrases the rule output into fluent text (same recipe as OpenTSLM's HAR-CoT / Sleep-CoT), with the instruction not to add facts. A random 5 % sample is human-checked by us.</li>
-  <li>Benign classes get short targets ("Low-wind standby, no fault. No action.").</li>
+  <li>The <code>Answer:</code> line, kWh, duration and lead time come directly from the log and the Lost Production columns.</li>
+  <li>Evidence sentences are generated by rules over the window: largest z-score excursions, temperature deltas over the last 3–6 h and vs ambient, front-vs-rear bearing asymmetry, power-vs-wind residual (farm's own power curve), pitch / RPM state, pressure drift, grid steps. Only rule-verified facts go in; nothing from after <code>t</code>.</li>
+  <li>A frontier LLM paraphrases the rule output into fluent text (OpenTSLM's HAR-CoT recipe), instructed not to add facts. A random 5 % sample is human-checked.</li>
+  <li>Negatives get short fixed answers.</li>
 </ol>
 
 <h2 id="taxonomy">8 · Subsystem taxonomy (the label space)</h2>
@@ -277,14 +313,23 @@ Answer: &lt;subsystem class&gt;</code></pre>
 <div class="tablewrap"><table>
   <thead><tr><th>Task</th><th>Metric</th><th>Baselines</th><th>Reported on</th></tr></thead>
   <tbody>
-    <tr><td>T2 subsystem</td><td>Macro-F1, accuracy, confusion matrix</td><td>Majority class · logistic regression / gradient boosting on window statistics (mean, std, slope, min, max per channel) · text-only LLM given the same statistics as text · OpenTSLM zero-shot (no fine-tune)</td><td>Val · Test A (unseen years) · Test B (unseen farm)</td></tr>
-    <tr><td>T3 triage</td><td>F1 on <code>fault</code>, precision at the operating point an engineer would accept</td><td>Same as T2</td><td>Val · A · B</td></tr>
-    <tr><td>T4 precursor</td><td>AUROC, recall at 10 % false-alarm rate, per subsystem</td><td>GBM on statistics · "always none"</td><td>Val · A · B</td></tr>
-    <tr><td>T1 explanation</td><td>Label accuracy of the final Answer + factual-consistency score of EVIDENCE lines (checked against the rule facts) + small human rating of 30 samples</td><td>Text-only LLM with statistics</td><td>Test A, B (qualitative in demo)</td></tr>
-    <tr><td>T5 localisation</td><td>IoU of predicted vs true stop interval</td><td>Rule: power ≈ 0 while wind &gt; cut-in · TimeRLM zero-shot</td><td>Test A</td></tr>
+    <tr><td><b>T1 binary</b> (fault stop within H)</td><td>AUROC; <b>recall at 10 % false-alarm rate</b>, per H ∈ {1, 3, 6} h; per subsystem class</td><td>"always no" · gradient boosting on window statistics (slopes, deltas, power-curve residual) · text-only LLM given the same statistics · OpenTSLM zero-shot</td><td>Val · Test A (unseen years) · <b>Test B (unseen farm)</b></td></tr>
+    <tr><td>T1 subsystem</td><td>Macro-F1 over positives, confusion matrix</td><td>GBM on statistics</td><td>Val · A · B</td></tr>
+    <tr><td>T1 evidence text</td><td>Factual consistency of evidence sentences vs rule facts; human rating of 30 samples</td><td>GBM + LLM-afterwards (fluent but never saw the signal)</td><td>Test A, B (qualitative in demo)</td></tr>
+    <tr><td>T2 escalation</td><td>AUROC, recall at 10 % FAR</td><td>GBM</td><td>Val · A · B</td></tr>
+    <tr><td>T3 post-hoc</td><td>Subsystem accuracy / macro-F1</td><td>GBM · text-only LLM</td><td>Val · A · B</td></tr>
+    <tr><td>T5 localisation</td><td>IoU of predicted vs true stop interval</td><td>rule (power ≈ 0 while wind &gt; cut-in) · TimeRLM zero-shot</td><td>Test A</td></tr>
   </tbody>
 </table></div>
-<p>The two headline numbers for the pitch: <b>macro-F1 on unseen farm (Test B)</b> for T2, and <b>recall at 10 % false alarms</b> for T4. The cross-farm number is the honest one — it tells the operator whether this works on the next site.</p>
+<div class="tablewrap"><table>
+  <thead><tr><th></th><th>Binary "fault stop in 6 h"</th><th>Explanation</th></tr></thead>
+  <tbody>
+    <tr><td>GBM on features</td><td>strong — the number to beat</td><td>none</td></tr>
+    <tr><td>GBM + LLM afterwards</td><td>same number</td><td>fluent but never saw the signal</td></tr>
+    <tr><td><b>TSLM (ours)</b></td><td>must be ≥ GBM, or we say why not</td><td>grounded in the raw signal, one model, no per-site features</td></tr>
+  </tbody>
+</table></div>
+<p>Headline numbers: <b>recall at 10 % false alarms at 3 h and 6 h lead, on the unseen farm</b>, per class. Cooling and lubrication are expected to score; grid and comms are not, and we say so.</p>
 
 <h2 id="scope">10 · Not in scope, and limitations we will state</h2>
 <ul>
@@ -292,6 +337,7 @@ Answer: &lt;subsystem class&gt;</code></pre>
   <li><b>Ground truth is the alarm log, not a technician's diagnosis.</b> The subsystem label is what the controller reported; the true root cause may differ. We say so.</li>
   <li><b>Many alarms have no precursor at 10-minute resolution</b> (grid loss, comms). T4 will work for thermal and hydraulic classes and not for others; we report per class rather than hide it in an average.</li>
   <li><b>Generated explanations</b> are rule-derived text paraphrased by an LLM. They are faithful to the window by construction, but they are not expert-written.</li>
+  <li><b>Not every fault has a precursor.</b> Grid loss, comms and manual stops are unpredictable from turbine signals by construction; the headline metric is reported per class, not averaged over them.</li>
   <li><b>One manufacturer.</b> Both farms are Senvion; generalisation to Vestas / Siemens is untested.</li>
 </ul>
 
@@ -300,10 +346,11 @@ Answer: &lt;subsystem class&gt;</code></pre>
   <li><b>Split direction — decided:</b> train on Penmanshiel (larger), hold out Kelmarsh. Verified in the raw files: both farms populate the same core channels and share 73 alarm messages; Kelmarsh-only messages are rare.</li>
   <li><b>Window length</b> — 24 h is the proposal (144 steps). 12 h halves the compute; 48 h helps thermal drifts. Decide with the model person.</li>
   <li><b>Channel set</b> — the 16 in section 2 or a smaller 8 (wind, power, rotor rpm, pitch A, gen bearing rear, stator, gear oil temp, gear oil pressure)? Fewer channels = faster SoftPrompt; Flamingo does not care much.</li>
-  <li><b>T4 horizon</b> — 6 h ahead is the proposal. Longer is more useful and harder.</li>
-  <li><b>Which of T5/T6 to attempt</b> — only if T1–T3 are training by hour 12.</li>
+  <li><b>Lead times</b> — 1 / 3 / 6 h proposed (three records per alarm); 12 h is the ambitious add-on.</li>
+  <li><b>Negative sampling ratio</b> — 2:1 proposed.</li>
+  <li><b>T2 / T4 / T5</b> — only if T1 is training by hour 12.</li>
   <li><b>Explanation generation</b> — which LLM paraphrases the rule output, and who owns the 5 % human check.</li>
 </ul>
 
-<footer>Problem statement v1 · 12 Sep 2026 · all signal names, message texts and the worked example are taken from the Kelmarsh 2016 export; counts are from turbine 1 unless stated. Companion to the <em>Temporal AI Track Team Brief</em>.</footer>
+<footer>Problem statement v2 (early-warning framing) · 12 Sep 2026 · all signal names, message texts and the worked example are taken from the Kelmarsh 2016 export; counts are from turbine 1 unless stated. Companion to the <em>Temporal AI Track Team Brief</em>.</footer>
 </div>
