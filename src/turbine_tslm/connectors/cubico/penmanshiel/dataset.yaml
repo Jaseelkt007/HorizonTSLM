@@ -1,0 +1,18 @@
+# yaml-language-server: $schema=https://docs.timenet.ai/schemas/dataset-card-v1.schema.json
+yaml_schema_version: 1
+dataset_id: cubico/penmanshiel
+dataset_version: 0.1.0
+name: Penmanshiel wind farm — early-warning windows
+description: >-
+  24 h windows (144 x 10-min steps, 19 SCADA channels) from 14 Senvion MM82 turbines at Penmanshiel, UK,
+  2017-2021, anchored 1/3/6 h before fault-class forced outages plus producing-state negatives. Labels come
+  from the operator's status log after the window. Training farm of the Turbine Alarm Explainer.
+license: CC-BY-4.0
+source_url: https://zenodo.org/records/5946808
+domains:
+  - energy
+tags:
+  - wind
+  - scada
+  - predictive-maintenance
+  - early-warning

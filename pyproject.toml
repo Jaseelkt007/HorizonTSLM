@@ -6,6 +6,7 @@ readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
     "pandas>=3.0.5",
+    "pyyaml>=6.0",
     "timenet[cli,torch]>=0.1.0",
 ]
 
