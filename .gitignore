@@ -42,4 +42,10 @@ venv/
 Thumbs.db
 Desktop.ini
 
+# Data files
+*.csv
+*.parquet
+*.json
+data/
+
 # Keep uv.lock and .python-version tracked for reproducible environments.
