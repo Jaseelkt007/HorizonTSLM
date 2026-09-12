@@ -1,1 +1,0 @@
-This is a dummy text document for testing a Git push.
