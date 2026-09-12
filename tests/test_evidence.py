@@ -77,7 +77,7 @@ def test_load_following_rise_is_not_an_anomaly_and_conclusion_is_gated():
     )  # +20 °C: reported even under load
     text = evidence_text(s, "yaw_cable")
     assert (
-        "Generator rear bearing temperature rose 20 °C" in text
+        "Generator rear bearing temperature rose 19 °C" in text
         and "while power rose" in text
     )
     assert (

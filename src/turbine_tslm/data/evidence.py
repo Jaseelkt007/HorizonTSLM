@@ -212,10 +212,7 @@ def evidence_sentences(f: dict[str, Any]) -> list[tuple[str, str]]:
                 f"Tower acceleration X is {_fmt(f['tower_acc_last1h'])} mm/s² in the last hour, {_fmt(f['tower_acc_ratio'], 1)}× its 24 h median.",
             )
         )
-    if f["producing"] and (
-        f["wind_last1h"] >= HIGH_WIND
-        or f["rotor_rpm_last1h"] >= f["rotor_rpm_max"] - 0.3
-    ):
+    if f["producing"] and f["wind_last1h"] >= HIGH_WIND:
         out.append(
             (
                 "rotor",
