@@ -4,8 +4,12 @@
         --out webapp/demo_data.json --n 160
 
 Picks Kelmarsh (unseen farm) and 2020-21 Penmanshiel (unseen years) windows: correct positives with well-verified
-claims, correct negatives, and a few honest misses; attaches per-claim verdicts (verified / wrong spans), facts,
-the gold outcome (message, lead time) and the raw 24 h channels (rounded).
+claims, correct negatives, and a few honest misses; attaches per-claim verdicts (verified / wrong spans) for the
+early-warning text and the post-hoc (T3) text, facts, the gold outcome (message, lead time) and the raw 24 h
+channels (rounded).
+
+Also writes webapp/results_summary.json (every run under docs/results/ + the XGBoost table in docs/benchmark.md),
+so nothing on the Results tab is hand-typed.
 """
 
 from __future__ import annotations
@@ -14,6 +18,7 @@ import argparse
 import gzip
 import json
 import random
+import re
 from pathlib import Path
 
 import numpy as np
@@ -23,6 +28,21 @@ from turbine_tslm.data.channels import CHANNEL_NAMES, CHANNELS
 from turbine_tslm.data.evidence import extract_facts
 from turbine_tslm.eval.faithfulness import _RULES
 from turbine_tslm.eval.score import DEFAULT_WINDOWS
+
+# human labels for the Results tab (naming only; every number comes from the run's results.json)
+RUN_LABELS = {
+    "t1_flamingo_llama1b": "Flamingo, label only",
+    "t1_sp_llama1b": "SP + LoRA, label only",
+    "t1_flamingo_llama1b_evidence": "Flamingo, reason-first",
+    "t1_flamingo_llama1b_evidence_fixed": "Flamingo, reason-first, left-padded generation",
+    "t1_flamingo_llama1b_evidence_rich": "Flamingo, reason-first + rich channel text",
+}
+HEADLINE_RUN = "t1_flamingo_llama1b_evidence_rich"
+BASELINE_ROWS = {  # row name in docs/benchmark.md -> label
+    "context-only proxy": "XGBoost, context only (proxy)",
+    "XGBoost sensors-only": "XGBoost, sensor statistics",
+    "XGBoost combined": "XGBoost, sensors + context",
+}
 
 META = [
     "window_id",
@@ -53,12 +73,164 @@ def claim_spans(text: str, facts: dict) -> list[dict]:
     return out
 
 
+def _split_summary(block: dict) -> dict:
+    hard = block.get("hard") or {}
+    return {
+        "n": block.get("n"),
+        "n_pos": block.get("n_pos"),
+        "auroc": block.get("auroc"),
+        "ap": block.get("ap"),
+        "recall_at_10far": block.get("recall_at_10far"),
+        "recall_at_5far": block.get("recall_at_5far"),
+        "hard_precision": hard.get("precision"),
+        "hard_recall": hard.get("recall"),
+        "hard_f1": hard.get("f1"),
+        "hard_far": hard.get("far"),
+        "subsystem_acc": (block.get("subsystem") or {}).get("accuracy_over_positives"),
+        "subsystem_macro_f1": (block.get("subsystem") or {}).get(
+            "macro_f1_over_positives"
+        ),
+        "per_class": {
+            c: {
+                "n": v.get("n"),
+                "recall_at_10far": v.get("recall_at_10far"),
+                "hard_recall": v.get("hard_recall"),
+                "subsystem_acc": v.get("subsystem_acc"),
+            }
+            for c, v in (block.get("per_class") or {}).items()
+        },
+        "confusion": block.get("confusion"),
+    }
+
+
+def build_results_summary(results_dir: Path, benchmark_md: Path) -> dict:
+    """Results tab data: every run with a results.json under docs/results/, plus the XGBoost rows of
+    docs/benchmark.md ('First reproducible XGBoost run' table)."""
+    runs = []
+    order = list(
+        RUN_LABELS
+    )  # table order: RUN_LABELS first, unknown runs after, alphabetically
+    dirs = sorted(
+        results_dir.iterdir(),
+        key=lambda d: (order.index(d.name) if d.name in order else len(order), d.name),
+    )
+    for d in dirs:
+        rj = d / "results.json"
+        if not rj.is_file():
+            continue
+        res = json.loads(rj.read_text(encoding="utf-8"))["results"]
+        splits = {}
+        for split in ("val", "test_a", "test_b"):
+            if split not in res:
+                continue
+            block = res[split]
+            summary = _split_summary(block["all"])
+            summary["horizons"] = {
+                h: {
+                    k: block[h].get(k)
+                    for k in (
+                        "n",
+                        "n_pos",
+                        "auroc",
+                        "recall_at_10far",
+                        "recall_at_5far",
+                    )
+                }
+                | {"hard_f1": (block[h].get("hard") or {}).get("f1")}
+                for h in ("1", "3", "6")
+                if h in block
+            }
+            t3 = res.get(f"t3/{split}")
+            if t3:
+                summary["t3"] = {
+                    "n": t3["all"].get("n"),
+                    "subsystem_acc": (t3["all"].get("subsystem") or {}).get(
+                        "accuracy_over_positives"
+                    ),
+                    "per_class": {
+                        c: {"n": v.get("n"), "subsystem_acc": v.get("subsystem_acc")}
+                        for c, v in (t3["all"].get("per_class") or {}).items()
+                    },
+                }
+            splits[split] = summary
+        run = {
+            "run": d.name,
+            "label": RUN_LABELS.get(d.name, d.name),
+            "headline": d.name == HEADLINE_RUN,
+            "splits": splits,
+        }
+        fj = d / "faithfulness.json"
+        if fj.is_file():
+            fs = json.loads(fj.read_text(encoding="utf-8"))["summary"]
+            run["faithfulness"] = {
+                k: fs.get(k)
+                for k in (
+                    "n_texts",
+                    "claims",
+                    "claim_precision",
+                    "texts_with_wrong_claim",
+                    "claims_per_text",
+                    "conclusion_consistent",
+                )
+            } | {
+                "per_split": {
+                    s: {
+                        k: v.get(k)
+                        for k in ("claim_precision", "texts_with_wrong_claim", "n")
+                    }
+                    for s, v in (fs.get("per_split") or {}).items()
+                }
+            }
+        runs.append(run)
+
+    baselines = []
+    text = benchmark_md.read_text(encoding="utf-8") if benchmark_md.is_file() else ""
+    for name, label in BASELINE_ROWS.items():
+        m = re.search(
+            rf"^\|\s*{re.escape(name)}\s*\|([^\n]*)$", text, flags=re.MULTILINE
+        )
+        if not m:
+            continue
+        cells = [c.strip() for c in m.group(1).strip().strip("|").split("|")]
+        if len(cells) < 6:
+            continue
+        a_auroc, a_rec, a_f1, b_auroc, b_rec, b_f1 = (float(c) for c in cells[:6])
+        baselines.append(
+            {
+                "label": label,
+                "source": str(benchmark_md),
+                "test_a": {
+                    "auroc": a_auroc,
+                    "recall_at_10far": a_rec,
+                    "macro_f1": a_f1,
+                },
+                "test_b": {
+                    "auroc": b_auroc,
+                    "recall_at_10far": b_rec,
+                    "macro_f1": b_f1,
+                },
+            }
+        )
+    return {
+        "runs": runs,
+        "floor": {
+            "label": "always \u201cno\u201d",
+            "auroc": 0.5,
+            "recall_at_10far": 0.0,
+        },
+        "baselines": baselines,
+    }
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("predictions")
     ap.add_argument("--out", default="webapp/demo_data.json")
     ap.add_argument("--n", type=int, default=160)
     ap.add_argument("--windows", nargs="+", default=list(DEFAULT_WINDOWS))
+    ap.add_argument("--results-dir", default="docs/results")
+    ap.add_argument("--benchmark", default="docs/benchmark.md")
+    ap.add_argument("--results-out", default="webapp/results_summary.json")
     a = ap.parse_args()
     opener = gzip.open if a.predictions.endswith(".gz") else open
     with opener(a.predictions, "rt", encoding="utf-8") as fh:
@@ -79,7 +251,7 @@ def main() -> int:
         r = df.loc[wid]
         series = {c: np.asarray(r[c], dtype=np.float32) for c in CHANNEL_NAMES}
         facts = extract_facts(series)
-        spans = claim_spans(p["text"], facts)
+        spans = claim_spans(p["text"].strip(), facts)  # offsets into the stripped text below
         n_ok = sum(s["ok"] for s in spans)
         rows.append((wid, p, r, series, facts, spans, n_ok, len(spans)))
     rng = random.Random(0)
@@ -131,6 +303,9 @@ def main() -> int:
                 "text": p["text"].strip(),
                 "claims": spans,
                 "t3_text": (t3[wid]["text"].strip() if wid in t3 else None),
+                "t3_claims": (
+                    claim_spans(t3[wid]["text"].strip(), facts) if wid in t3 else None
+                ),
                 "outcome": {
                     "message": None
                     if pd.isna(r["next_event_message"])
@@ -171,6 +346,11 @@ def main() -> int:
     )
     print(
         f"wrote {a.out}: {len(out)} windows, {Path(a.out).stat().st_size / 1e6:.1f} MB"
+    )
+    summary = build_results_summary(Path(a.results_dir), Path(a.benchmark))
+    Path(a.results_out).write_text(json.dumps(summary, indent=1), encoding="utf-8")
+    print(
+        f"wrote {a.results_out}: {len(summary['runs'])} runs, {len(summary['baselines'])} baselines"
     )
     return 0
 
