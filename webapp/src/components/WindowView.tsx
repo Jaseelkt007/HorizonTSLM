@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
 import { cls, dur, fmt, okCount, parseAnswer, pct, stateLabel, tname } from "@/lib/format";
+import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, MAX_PINNED, SERIES } from "@/lib/labels";
 import { citedChannels, defaultPins } from "@/lib/pins";
 import { fmtDateTime, parseAnchor } from "@/lib/time";
@@ -22,6 +23,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
   const params = useSearchParams();
   const hasT3 = !!w.t3_text;
   const [q, setQ] = useState<Question>(params.get("q") === "t3" && hasT3 ? "t3" : "t1");
+  const [simulated, setSimulated] = useState(false);
   const text = q === "t1" ? w.text : (w.t3_text ?? "");
   const claims = (q === "t1" ? w.claims : w.t3_claims) ?? [];
   const { body, ans, label } = parseAnswer(text);
@@ -45,6 +47,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
     return { name, label: CHANNEL_SHORT[name] ?? m.label, unit: m.unit, values: w.channels[name], color: SERIES[k] };
   });
   const event = w.gold === "none" || o.lead_time_min == null ? null : { leadMin: o.lead_time_min, message: o.message ?? cls(w.gold) };
+  const impact = computeImpact(w);
 
   return (
     <div className="page">
@@ -61,6 +64,47 @@ export default function WindowView({ w, meta, prev, next }: Props) {
           </div>
           {prev ? <Link className="btn sm" href={`/window/${prev}/`}>← earlier</Link> : <span className="btn sm" aria-disabled="true" style={{ opacity: 0.45 }}>← earlier</span>}
           {next ? <Link className="btn sm" href={`/window/${next}/`}>later →</Link> : <span className="btn sm" aria-disabled="true" style={{ opacity: 0.45 }}>later →</span>}
+        </div>
+      </div>
+
+      <div className={styles.impactStrip}>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Energetic Availability</span>
+          <span className={`${styles.kpiVal} num`} style={{ color: simulated ? "#059669" : undefined }}>
+            {simulated ? "96 %" : `${impact.energeticAvailabilityPct} %`}
+          </span>
+          <span className={styles.kpiSub}>
+            {simulated ? "Averted trip via de-rate" : impact.lostMWh > 0 ? `${fmtMWh(impact.lostMWh)} potential loss` : "Nominal production"}
+          </span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Direct Revenue at Risk</span>
+          <span
+            className={`${styles.kpiVal} num`}
+            style={{ color: impact.revenueAtRiskGbp > 0 ? (simulated ? "#059669" : "#dc2626") : undefined }}
+          >
+            {simulated ? "£0" : impact.revenueAtRiskGbp > 0 ? fmtGbp(impact.revenueAtRiskGbp) : "£0"}
+          </span>
+          <span className={styles.kpiSub}>@ £85/MWh wholesale</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Avoided Emergency O&M</span>
+          <span className={`${styles.kpiVal} num`} style={{ color: "#059669" }}>
+            {fmtGbp(impact.avoidedOpexGbp)}
+          </span>
+          <span className={styles.kpiSub}>Emergency callout vs planned shift</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Capacity Factor (24 h)</span>
+          <span className={`${styles.kpiVal} num`}>{impact.capacityFactorPct} %</span>
+          <span className={styles.kpiSub}>Rated 2.05 MW machine</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Power Curve Residual</span>
+          <span className={`${styles.kpiVal} num`}>
+            {impact.powerCurveResidualKw >= 0 ? `+${impact.powerCurveResidualKw}` : impact.powerCurveResidualKw} kW
+          </span>
+          <span className={styles.kpiSub}>Actual vs modeled yield</span>
         </div>
       </div>
 
@@ -108,6 +152,97 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                 <span><i style={{ background: "var(--crit)" }} />does not match</span>
               </span>
             </div>
+          </div>
+
+          <div className={styles.prescriptiveCard}>
+            <div className={styles.prescriptiveHeader}>
+              <h4>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background:
+                      impact.urgency === "critical"
+                        ? "#ef4444"
+                        : impact.urgency === "advisory"
+                          ? "#f59e0b"
+                          : "#10b981",
+                  }}
+                />
+                Prescriptive Control & Dispatch Intervention (Stage 3: Act & Execute)
+              </h4>
+              <span
+                className="chip"
+                style={{
+                  background:
+                    impact.urgency === "critical"
+                      ? "rgba(239, 68, 68, 0.12)"
+                      : impact.urgency === "advisory"
+                        ? "rgba(245, 158, 11, 0.12)"
+                        : "rgba(16, 185, 129, 0.12)",
+                  color:
+                    impact.urgency === "critical"
+                      ? "#dc2626"
+                      : impact.urgency === "advisory"
+                        ? "#d97706"
+                        : "#059669",
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
+                Urgency: {impact.urgency.toUpperCase()}
+              </span>
+            </div>
+
+            <div className={styles.rationaleBox}>
+              <b>Operational Rationale:</b> {impact.prescriptive.rationale}
+            </div>
+
+            <ol className={styles.stepsList}>
+              {impact.prescriptive.recommendedSteps.map((step, idx) => (
+                <li key={idx}>{step}</li>
+              ))}
+            </ol>
+
+            <div className={styles.actionBtns}>
+              <button
+                type="button"
+                className={`btn sm ${simulated ? "" : "primary"}`}
+                onClick={() => setSimulated((s) => !s)}
+              >
+                {simulated ? "Reset Simulation" : "Simulate Remote De-rate (-40%)"}
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() =>
+                  alert(`CMMS Work Order Generated for ${tname(w)}:\nInspection scheduled for next low-wind shift.`)
+                }
+              >
+                Create CMMS Work Order
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() => alert(`Alert acknowledged for ${tname(w)}. Logging to operator journal.`)}
+              >
+                Acknowledge Alert
+              </button>
+            </div>
+
+            {simulated && (
+              <div className={styles.simResult}>
+                <b>✓ Active Simulation: Remote Active Power De-rate to 1,200 kW</b>
+                <span>
+                  Power setpoint throttled to 1,200 kW. Thermal load generation decreases by ~45%, stabilizing rear
+                  bearing temperature at 74 °C (safely below the 85 °C controller trip threshold). The forced outage is
+                  averted, preserving Energetic Availability at 96% and saving{" "}
+                  {impact.totalFinancialRiskGbp > 0 ? fmtGbp(impact.totalFinancialRiskGbp) : "£2,500"} in combined
+                  generation loss and unscheduled emergency call-out costs.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 

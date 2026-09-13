@@ -5,13 +5,14 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { useMemo, useState } from "react";
 
 import { cls, dur, isRight, pct, tname, turbineKey, verifyScore } from "@/lib/format";
+import { computeImpact, fmtMWh } from "@/lib/impact";
 import { CLASS_SHORT, FARM } from "@/lib/labels";
 import type { WindowSummary } from "@/lib/types";
 
 import { VerdictChip } from "./Icons";
 import styles from "./WindowsTable.module.css";
 
-type Sort = "recent" | "verified" | "risk";
+type Sort = "recent" | "verified" | "risk" | "mwh";
 interface Filters { farm: string; turbine: string; gold: string; verdict: string; cls: string }
 const EMPTY: Filters = { farm: "", turbine: "", gold: "", verdict: "", cls: "" };
 
@@ -38,6 +39,7 @@ export default function WindowsTable({ summaries }: { summaries: WindowSummary[]
     );
     const byDate = (a: WindowSummary, b: WindowSummary) => b.anchor.localeCompare(a.anchor);
     if (sort === "risk") out.sort((a, b) => b.score - a.score || byDate(a, b));
+    else if (sort === "mwh") out.sort((a, b) => computeImpact(b).lostMWh - computeImpact(a).lostMWh || byDate(a, b));
     else if (sort === "verified") out.sort((a, b) => verifyScore(b) - verifyScore(a) || byDate(a, b));
     else out.sort(byDate);
     return out;
@@ -85,8 +87,9 @@ export default function WindowsTable({ summaries }: { summaries: WindowSummary[]
         <label className="f">Sort
           <select value={sort} onChange={(e) => setSort(e.target.value as Sort)}>
             <option value="recent">most recent</option>
-            <option value="verified">best-verified explanation</option>
             <option value="risk">highest risk</option>
+            <option value="mwh">highest MWh at risk</option>
+            <option value="verified">best-verified explanation</option>
           </select>
         </label>
         <div className={styles.count}>
@@ -98,22 +101,26 @@ export default function WindowsTable({ summaries }: { summaries: WindowSummary[]
         <table className="data">
           <thead>
             <tr>
-              <th>Turbine</th><th>Window ending</th><th>Asked</th><th>Model answered</th><th className="r">P(fault)</th><th>What followed</th><th>Numbers verified</th><th>Verdict</th>
+              <th>Turbine</th><th>Window ending</th><th>Asked</th><th>Model answered</th><th className="r">P(fault)</th><th className="r">MWh at Risk</th><th>What followed</th><th>Numbers verified</th><th>Verdict</th>
             </tr>
           </thead>
           <tbody>
-            {rows.map((w) => (
-              <tr key={w.id} className="link" onClick={() => router.push(`/window/${w.id}/`)}>
-                <td><Link className={styles.t} href={`/window/${w.id}/`} onClick={(e) => e.stopPropagation()}>{tname(w)}</Link><div className={styles.sub}>{FARM[w.farm].tag}</div></td>
-                <td className="num">{w.anchor}</td>
-                <td>{w.horizon_h} h ahead</td>
-                <td>{w.pred === "none" ? <span className="chip neutral">no fault stop</span> : <span className="chip class" title={cls(w.pred)}>{CLASS_SHORT[w.pred] ?? w.pred}</span>}</td>
-                <td className="r num">{pct(w.score)}</td>
-                <td>{w.gold === "none" ? <span className="muted">no fault stop in {w.horizon_h} h</span> : <><span className="mono">{w.outcome.message ?? cls(w.gold)}</span> <span className="muted">+{dur(w.outcome.lead_time_min)}</span></>}</td>
-                <td><span className={styles.ver}><span className={styles.track}><i style={{ width: `${w.n_claims ? Math.round((w.n_ok / w.n_claims) * 100) : 0}%` }} /></span><span className="num">{w.n_ok} / {w.n_claims}</span></span></td>
-                <td><VerdictChip right={isRight(w)} /></td>
-              </tr>
-            ))}
+            {rows.map((w) => {
+              const impact = computeImpact(w);
+              return (
+                <tr key={w.id} className="link" onClick={() => router.push(`/window/${w.id}/`)}>
+                  <td><Link className={styles.t} href={`/window/${w.id}/`} onClick={(e) => e.stopPropagation()}>{tname(w)}</Link><div className={styles.sub}>{FARM[w.farm].tag}</div></td>
+                  <td className="num">{w.anchor}</td>
+                  <td>{w.horizon_h} h ahead</td>
+                  <td>{w.pred === "none" ? <span className="chip neutral">no fault stop</span> : <span className="chip class" title={cls(w.pred)}>{CLASS_SHORT[w.pred] ?? w.pred}</span>}</td>
+                  <td className="r num">{pct(w.score)}</td>
+                  <td className="r num">{impact.lostMWh > 0 ? fmtMWh(impact.lostMWh) : "–"}</td>
+                  <td>{w.gold === "none" ? <span className="muted">no fault stop in {w.horizon_h} h</span> : <><span className="mono">{w.outcome.message ?? cls(w.gold)}</span> <span className="muted">+{dur(w.outcome.lead_time_min)}</span></>}</td>
+                  <td><span className={styles.ver}><span className={styles.track}><i style={{ width: `${w.n_claims ? Math.round((w.n_ok / w.n_claims) * 100) : 0}%` }} /></span><span className="num">{w.n_ok} / {w.n_claims}</span></span></td>
+                  <td><VerdictChip right={isRight(w)} /></td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

@@ -22,6 +22,30 @@ export interface ChannelMeta {
   unit: string;
 }
 
+export type UrgencyLevel = "critical" | "advisory" | "nominal";
+
+export interface PrescriptiveAction {
+  title: string;
+  rationale: string;
+  recommendedSteps: string[];
+  urgency: UrgencyLevel;
+  potentialAvoidedDowntimeH: number;
+}
+
+export interface ImpactAssessment {
+  lostMWh: number;
+  revenueAtRiskGbp: number;
+  avoidedOpexGbp: number;
+  totalFinancialRiskGbp: number;
+  energeticAvailabilityPct: number;
+  capacityFactorPct: number;
+  powerCurveResidualKw: number;
+  urgency: UrgencyLevel;
+  leadTimeHours: number | null;
+  downtimeHours: number;
+  prescriptive: PrescriptiveAction;
+}
+
 export interface WindowRecord {
   id: string;
   farm: Farm;

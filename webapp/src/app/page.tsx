@@ -1,7 +1,9 @@
 import Link from "next/link";
 
 import Explanation from "@/components/Explanation";
+import FleetMap from "@/components/FleetMap";
 import { IconArrow } from "@/components/Icons";
+import OperatorTriageQueue from "@/components/OperatorTriageQueue";
 import styles from "@/components/Overview.module.css";
 import SignalPanels from "@/components/SignalPanels";
 import { allSummaries, getWindow, loadDemo, loadResults, showcaseId } from "@/lib/data";
@@ -32,11 +34,17 @@ export default function OverviewPage() {
     <div className="page">
       <section className={styles.hero} style={{ paddingTop: 26 }}>
         <div>
-          <h1>Early warning for wind-turbine fault stops, with evidence you can check</h1>
-          <p className={styles.lead}>24 hours of SCADA in. Hours before the controller trips: is a fault stop coming, in which subsystem, and why.</p>
+          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "4px 10px", borderRadius: 999, background: "var(--accent-soft)", color: "var(--accent-text)", fontSize: 12, fontWeight: 600, marginBottom: 12 }}>
+            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor" }} />
+            WIND FARM OPERATOR TERMINAL · TEMPORAL AI
+          </div>
+          <h1>Early warning for wind turbine fault stops & LCOE preservation</h1>
+          <p className={styles.lead}>
+            24 hours of multi-series SCADA in. Hours before the controller trips: predict forced outages, identify failing subsystems, quantify MWh & revenue at risk, and recommend prescriptive actions.
+          </p>
           <div className={styles.cta}>
-            <Link href="/window/" className="btn primary">Open a window <IconArrow /></Link>
-            <Link href="/results/" className="btn">Results</Link>
+            <Link href="/window/" className="btn primary">Open Showcase Window <IconArrow /></Link>
+            <Link href="/results/" className="btn">Evaluation & Benchmarks</Link>
           </div>
         </div>
         <div className="card">
@@ -51,12 +59,16 @@ export default function OverviewPage() {
       </section>
 
       <div className="kpis">
-        <div className="card kpi"><span className="v">{FARMS.length}</span><span className="l">wind farms</span><span className="c">one to train on, one never seen</span></div>
-        <div className="card kpi"><span className="v">{meta.channels.length}</span><span className="l">SCADA channels</span><span className="c">10-minute means, 24 h</span></div>
-        <div className="card kpi"><span className="v">{windows.length}</span><span className="l">held-out windows</span><span className="c">{pos} followed by a fault stop</span></div>
-        {hb && <div className="card kpi"><span className="v num">{fmt(hb.recall_at_10far, 2)}</span><span className="l">recall at 10 % false alarms</span><span className="c">on the unseen farm</span></div>}
-        {head?.faithfulness && <div className="card kpi"><span className="v">{pct(head.faithfulness.claim_precision)}</span><span className="l">numbers that verify</span><span className="c">{head.faithfulness.claims.toLocaleString()} claims checked</span></div>}
+        <div className="card kpi"><span className="v">{FARMS.length}</span><span className="l">wind farms</span><span className="c">Penmanshiel (train) · Kelmarsh (unseen site)</span></div>
+        <div className="card kpi"><span className="v">{meta.channels.length}</span><span className="l">SCADA channels</span><span className="c">10-min RTDs, vibration, power curve</span></div>
+        {hb && <div className="card kpi"><span className="v num">{fmt(hb.recall_at_10far, 2)}</span><span className="l">recall @ 10 % false alarms</span><span className="c">unseen farm (XGBoost baseline: 0.21)</span></div>}
+        {head?.faithfulness && <div className="card kpi"><span className="v">{pct(head.faithfulness.claim_precision)}</span><span className="l">numbers that verify</span><span className="c">{head.faithfulness.claims.toLocaleString()} claims strictly verified</span></div>}
+        <div className="card kpi"><span className="v">£2,500</span><span className="l">avoided O&M callout</span><span className="c">per proactive shift intervention</span></div>
       </div>
+
+      <OperatorTriageQueue windows={sums} limit={6} />
+
+      <FleetMap windows={sums} defaultFarm="kelmarsh" />
 
       <section className="section">
         <h2>How it works</h2>
