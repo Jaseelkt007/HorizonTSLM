@@ -123,6 +123,9 @@ class TurbineQADataset(QADataset):
     answer_mode: str = "label"  # label: "Answer: ..." only (MVP); evidence: rule-based reasoning first (stage 2)
     evidence_sentences: int = 3
     series_stats: str = "basic"  # basic: mean/std in the channel text; rich: + first 6 h, 6 h before the end, last hour
+    answer_overrides: dict[str, str] | None = (
+        None  # {window_id: answer text} — RFT stage 2 uses the kept samples
+    )
     registry = None
     _rows: list[dict[str, Any]] | None = None
 
@@ -160,6 +163,8 @@ class TurbineQADataset(QADataset):
         return POST_PROMPT
 
     def _get_answer(self, row) -> str:
+        if self.answer_overrides and row["window_id"] in self.answer_overrides:
+            return self.answer_overrides[row["window_id"]]
         if self.answer_mode == "evidence":
             return evidence_text(
                 row["series"], row["label"], self.evidence_sentences, task=row["task"]
