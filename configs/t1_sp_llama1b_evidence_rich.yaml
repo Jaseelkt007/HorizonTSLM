@@ -11,7 +11,7 @@ answer_mode: evidence
 evidence_sentences: 3
 tasks: [t1, t3]
 epochs: 5
-batch_size: 4
+batch_size: 2   # SP: 19x36 series tokens + rich channel text; batch 4 OOMs on 96 GB
 eval_batch_size: 8
 score_batch_size: 16
 lr: 1.0e-4
