@@ -189,20 +189,24 @@ All numbers from `docs/results/<run>/results.json` and `faithfulness.json`; the 
 | Flamingo, label only | 0.747 · 0.53 | 0.698 · 0.25 · 0.35 · 0.19 | 0.613 · 0.24 · 0.24 · 0.08 |
 | SP + LoRA, label only | 0.787 · 0.55 | 0.707 · 0.40 · 0.55 · 0.48 | 0.623 · 0.24 · 0.34 · 0.16 |
 | Flamingo, reason-first (basic text) | 0.634 · 0.35 | 0.650 · 0.22 · 0.53 · 0.42 | 0.565 · 0.23 · 0.37 · 0.17 |
-| **Flamingo, reason-first + rich text (headline)** | 0.720 · 0.49 | 0.672 · 0.35 · 0.54 · 0.48 | 0.589 · **0.27** · **0.42** · **0.25** |
-| headline + 1 epoch RFT | 0.706 · 0.51 | 0.708 · 0.39 · 0.62 · 0.48 | 0.601 · 0.28 · 0.37 · 0.17 |
+| **Flamingo, reason-first + rich text (headline)**, graded score | **0.770 · 0.49** | **0.721 · 0.39** · 0.54 · 0.48 | 0.595 · **0.26** · **0.42** · **0.25** |
+| headline, generate-mode (near-binary) score | 0.720 · 0.49 | 0.672 · 0.35 · 0.54 · 0.48 | 0.589 · 0.27 · 0.42 · 0.25 |
+| headline + 1 epoch RFT, generate-mode score | 0.706 · 0.51 | 0.708 · 0.39 · 0.62 · 0.48 | 0.601 · 0.28 · 0.37 · 0.17 |
 
-AUROC for the two reason-first rows is the near-binary generate-mode score (see § 7); the loglik re-score is
-recorded in the hand-off when available. Per horizon, headline model, recall at 10 % FAR: 1 h 0.45 / 0.30,
+"Graded score" = `predict_mode: rescore` (§ 7): conclusion candidates scored conditioned on the model's own evidence
+sentences; the plain teacher-forced loglik after the prompt gives AUROC ≈ 0.5 for reason-first models (off-
+distribution) and is not used. The basic-text reason-first row is the generate-mode score. Per horizon, headline model, recall at 10 % FAR: 1 h 0.45 / 0.30,
 3 h 0.32 / 0.27, 6 h 0.27 / 0.23 (test_a / test_b).
 
-**Confidence intervals (Kelmarsh, paired bootstrap, 2,000 resamples, `scripts/bootstrap_ci.py`,
-`docs/results/bootstrap/test_b.json`).** Recall at 10 % FAR: headline 0.268 [0.238, 0.297]; XGBoost sensors-only
-0.206 [0.173, 0.238], paired difference vs headline −0.062 [−0.097, −0.027], P(XGBoost better) = 0.00; XGBoost +
-context 0.223, difference −0.040 [−0.076, −0.006]; label-only Flamingo 0.241 and SP 0.244, differences within noise
-(P ≈ 0.11–0.15); reason-first with basic text 0.230, difference −0.035 [−0.066, −0.003] (the rich channel text helps
-the label, not only the text). AUROC intervals are ±0.023 for every model; the headline's generate-mode AUROC
-0.589 [0.565, 0.612] is below XGBoost's 0.596–0.614 because the score is near-binary (§ 7).
+**Confidence intervals (paired bootstrap, 2,000 resamples, `scripts/bootstrap_ci.py`, `docs/results/bootstrap/`).**
+Kelmarsh, graded headline score: recall at 10 % FAR 0.258 [0.226, 0.288] vs XGBoost sensors-only 0.206 [0.173,
+0.238], paired difference −0.052 [−0.087, −0.015] (P(XGBoost better) = 0.00); vs XGBoost + context 0.223, difference
+−0.030 [−0.069, +0.007] (P = 0.06, marginal); label-only Flamingo 0.241 and SP 0.244 within noise (P ≈ 0.25–0.29).
+AUROC on Kelmarsh: headline 0.595 [0.571, 0.620], XGBoost 0.596–0.614, label-only TSLMs 0.613–0.623 — all
+overlapping. Unseen years (test_a): XGBoost 0.508 recall vs headline 0.385, difference +0.113 [+0.060, +0.165]
+(XGBoost significantly better); headline vs label-only Flamingo 0.250, difference −0.141 [−0.208, −0.074]
+(reason-first significantly better). The rich channel text also helps the label: basic-text reason-first 0.230 vs
+headline 0.268 (generate-mode scores), difference −0.035 [−0.066, −0.003].
 
 **Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b;
 after RFT 0.56 / 0.61 / 0.48.
