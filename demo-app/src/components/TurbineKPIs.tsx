@@ -25,14 +25,14 @@ export function TurbineKPIs({ turbine }: TurbineKPIsProps) {
             Active Power Output
           </span>
           <div className="text-2xl font-bold text-white mt-1 tracking-tight">
-            {turbine.activePower.toLocaleString()} <span className="text-xs font-normal text-slate-400">kW</span>
+            {turbine.activePower.toLocaleString("en-GB")} <span className="text-xs font-normal text-slate-400">kW</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1 text-xs">
             <span className={isDerated ? "text-rose-400 font-medium flex items-center" : "text-emerald-400 font-medium flex items-center"}>
               {isDerated ? <ArrowDownRight className="w-3.5 h-3.5 mr-0.5" /> : <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />}
               {powerDeltaPct}%
             </span>
-            <span className="text-slate-400">vs {turbine.expectedPower.toLocaleString()} kW</span>
+            <span className="text-slate-400">vs {turbine.expectedPower.toLocaleString("en-GB")} kW</span>
           </div>
         </div>
         <div className="w-10 h-10 rounded-full bg-blue-600/15 flex items-center justify-center text-blue-400">

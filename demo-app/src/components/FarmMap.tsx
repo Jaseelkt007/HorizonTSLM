@@ -40,6 +40,13 @@ const TURBINE_COORDINATES: Record<string, Record<string, readonly [number, numbe
   },
 };
 
+// Offsets are written exactly the way the browser serialises a style value (one decimal, "calc(50% - 16.2px)"
+// rather than "+ -16.2px"); otherwise React sees a different string during hydration and reports a mismatch.
+const offset = (v: number) => {
+  const r = Math.round(v * 10) / 10;
+  return `calc(50% ${r < 0 ? "-" : "+"} ${Math.abs(r)}px)`;
+};
+
 function project(lat: number, lon: number) {
   const scale = TILE_SIZE * 2 ** MAP_ZOOM;
   const safeLat = Math.max(-85.05112878, Math.min(85.05112878, lat));
@@ -102,7 +109,7 @@ export function FarmMap() {
           {TILE_RANGE.flatMap((row) => TILE_RANGE.map((column) => {
             const tileX = Math.floor(center.x / TILE_SIZE) + column;
             const tileY = Math.floor(center.y / TILE_SIZE) + row;
-            return <img alt="" className="absolute max-w-none" draggable={false} height={TILE_SIZE} key={`${tileX}-${tileY}`} src={`https://tile.openstreetmap.org/${MAP_ZOOM}/${tileX}/${tileY}.png`} style={{ width: TILE_SIZE, height: TILE_SIZE, left: `calc(50% + ${tileX * TILE_SIZE - center.x}px)`, top: `calc(50% + ${tileY * TILE_SIZE - center.y}px)` }} width={TILE_SIZE} />;
+            return <img alt="" className="absolute max-w-none" draggable={false} height={TILE_SIZE} key={`${tileX}-${tileY}`} src={`https://tile.openstreetmap.org/${MAP_ZOOM}/${tileX}/${tileY}.png`} style={{ width: TILE_SIZE, height: TILE_SIZE, left: offset(tileX * TILE_SIZE - center.x), top: offset(tileY * TILE_SIZE - center.y) }} width={TILE_SIZE} />;
           }))}
         </div>
         <div className="absolute inset-0 pointer-events-none bg-slate-950/25" />
@@ -116,7 +123,7 @@ export function FarmMap() {
         {mappedTurbines.map(({ turbine, point }) => {
           const isSelected = turbine.id === selectedTurbineId;
           return (
-            <div className="absolute z-20" key={turbine.id} onMouseEnter={() => setHoveredTurbine(turbine)} onMouseLeave={() => setHoveredTurbine(null)} style={{ left: `calc(50% + ${point.x - center.x}px)`, top: `calc(50% + ${point.y - center.y}px)` }}>
+            <div className="absolute z-20" key={turbine.id} onMouseEnter={() => setHoveredTurbine(turbine)} onMouseLeave={() => setHoveredTurbine(null)} style={{ left: offset(point.x - center.x), top: offset(point.y - center.y) }}>
               <button aria-label={`Show ${turbine.id} details`} className={`group relative -translate-x-1/2 -translate-y-1/2 h-12 w-12 rounded-full border-2 bg-slate-950/90 shadow-lg transition-transform hover:scale-110 focus:outline-none focus:ring-2 focus:ring-sky-300 ${statusClass(turbine.status)} ${isSelected ? "ring-2 ring-sky-300 ring-offset-2 ring-offset-slate-900" : ""}`} onClick={() => navigateToTurbine(turbine.id)} type="button">
                 {turbine.status !== "normal" && <span className="absolute -inset-2 rounded-full border border-current opacity-60 animate-ping" />}
                 <span className="turbine-rotor absolute inset-1.5 rounded-full border border-white/30" style={{ animationDuration: `${Math.max(1.4, 7 - turbine.windSpeed / 2)}s` }}><i /><i /><i /></span>
