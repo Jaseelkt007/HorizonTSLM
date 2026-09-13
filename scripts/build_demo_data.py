@@ -36,8 +36,20 @@ RUN_LABELS = {
     "t1_flamingo_llama1b_evidence": "Flamingo, reason-first",
     "t1_flamingo_llama1b_evidence_fixed": "Flamingo, reason-first, left-padded generation",
     "t1_flamingo_llama1b_evidence_rich": "Flamingo, reason-first + rich channel text",
+    "t1_flamingo_llama1b_evidence_rich_rft": "Flamingo, reason-first + rich text + RFT",
+    "xgboost_sensors_only": "XGBoost, 24 h sensor statistics",
+    "xgboost_combined": "XGBoost, sensor statistics + context",
 }
 HEADLINE_RUN = "t1_flamingo_llama1b_evidence_rich"
+# docs/results/bootstrap/test_b.json model keys -> run folder
+BOOTSTRAP_KEYS = {
+    "headline": "t1_flamingo_llama1b_evidence_rich",
+    "xgb_sensors": "xgboost_sensors_only",
+    "xgb_combined": "xgboost_combined",
+    "flamingo_label": "t1_flamingo_llama1b",
+    "sp_label": "t1_sp_llama1b",
+    "evidence_basic": "t1_flamingo_llama1b_evidence_fixed",
+}
 BASELINE_ROWS = {  # row name in docs/benchmark.md -> label
     "context-only proxy": "XGBoost, context only (proxy)",
     "XGBoost sensors-only": "XGBoost, sensor statistics",
@@ -156,6 +168,7 @@ def build_results_summary(results_dir: Path, benchmark_md: Path) -> dict:
         run = {
             "run": d.name,
             "label": RUN_LABELS.get(d.name, d.name),
+            "kind": "xgboost" if d.name.startswith("xgboost") else "tslm",
             "headline": d.name == HEADLINE_RUN,
             "splits": splits,
         }
@@ -211,8 +224,22 @@ def build_results_summary(results_dir: Path, benchmark_md: Path) -> dict:
                 },
             }
         )
+    bootstrap = None
+    bj = results_dir / "bootstrap" / "test_b.json"
+    if bj.is_file():
+        raw = json.loads(bj.read_text(encoding="utf-8"))
+        bootstrap = {
+            "split": raw.get("split"),
+            "n_windows": raw.get("n_windows"),
+            "n_pos": raw.get("n_pos"),
+            "B": raw.get("B"),
+            "models": {
+                BOOTSTRAP_KEYS.get(k, k): v for k, v in raw.get("models", {}).items()
+            },
+        }
     return {
         "runs": runs,
+        "bootstrap": bootstrap,
         "floor": {
             "label": "always \u201cno\u201d",
             "auroc": 0.5,
