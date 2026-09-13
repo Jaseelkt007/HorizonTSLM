@@ -175,15 +175,17 @@ becomes near-binary; ranking metrics for those models are therefore taken from a
 
 ## 8. Results
 
-All numbers from `docs/results/<run>/results.json` and `faithfulness.json` (TSLMs) and `docs/benchmark.md` (XGBoost).
+All numbers from `docs/results/<run>/results.json` and `faithfulness.json`; the XGBoost rows are the teammate's
+`v1` predictions re-scored with the same harness (`docs/results/xgboost_*/`), which is why they differ slightly from
+`docs/benchmark.md`.
 
 **Early warning (T1), pooled over horizons.**
 
 | model | val AUROC · R@10 % | test_a (unseen years) AUROC · R@10 % · F1 · subsys | test_b (Kelmarsh) AUROC · R@10 % · F1 · subsys |
 |---|---|---|---|
 | always no | 0.500 · 0.00 | 0.500 · 0.00 · – · – | 0.500 · 0.00 · – · – |
-| XGBoost, sensor statistics | – | 0.774 · 0.50 · – · – | 0.609 · 0.23 · – · – |
-| XGBoost, sensors + context | – | 0.767 · 0.52 · – · – | 0.615 · 0.23 · – · – |
+| XGBoost, sensor statistics | – | 0.780 · 0.51 · 0.64 · 0.51 | 0.596 · 0.21 · 0.20 · 0.09 |
+| XGBoost, sensors + context | – | 0.779 · 0.52 · 0.64 · 0.50 | 0.614 · 0.22 · 0.19 · 0.09 |
 | Flamingo, label only | 0.747 · 0.53 | 0.698 · 0.25 · 0.35 · 0.19 | 0.613 · 0.24 · 0.24 · 0.08 |
 | SP + LoRA, label only | 0.787 · 0.55 | 0.707 · 0.40 · 0.55 · 0.48 | 0.623 · 0.24 · 0.34 · 0.16 |
 | Flamingo, reason-first (basic text) | 0.634 · 0.35 | 0.650 · 0.22 · 0.53 · 0.42 | 0.565 · 0.23 · 0.37 · 0.17 |
@@ -195,9 +197,11 @@ recorded in the hand-off when available. Per horizon, headline model, recall at 
 
 **Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b.
 
-**Per class, Kelmarsh, recall at 10 % FAR (headline model):** structural_overspeed 0.59, yaw_cable 0.35,
-generator_cooling 0.13, pitch_system 0.09, converter_grid 0.09, brake_hydraulics 0.00 (gearbox_lubrication has no
-Kelmarsh positives). Subsystem accuracy when correct: overspeed 0.55 (0.81 on test_a), cooling 0.11 (0.60 post-hoc).
+**Per class, Kelmarsh, recall at 10 % FAR (headline model / XGBoost sensors-only):** structural_overspeed 0.59 / 0.40,
+yaw_cable 0.35 / 0.14, generator_cooling 0.13 / 0.17, pitch_system 0.09 / 0.09, converter_grid 0.09 / 0.11,
+brake_hydraulics 0.00 / 0.07 (gearbox_lubrication has no Kelmarsh positives). Subsystem accuracy when the model
+writes a class: overspeed 0.55 vs 0.28 (0.81 on test_a), cooling 0.11 (0.60 on the post-hoc question). Per horizon on
+Kelmarsh at 1 h: 0.30 vs 0.28.
 
 **Is the explanation true?**
 
@@ -223,8 +227,10 @@ regularises. Curves: W&B project `turbine-tslm`, `docs/results/*/train_log.jsonl
 4. **Batched generation needs left padding.** 19–77 % of OpenTSLM's generations were mid-sentence garbage before
    the fix. Any evaluation of a TSLM's text should check the share of well-formed outputs first.
 5. **Cross-site generalisation is the honest test, and it is hard.** Everything drops from val to Kelmarsh; SP +
-   LoRA drops fastest. On Kelmarsh the TSLM matches the gradient-boosting baseline's number and adds the explanation;
-   on unseen years the baseline is clearly stronger.
+   LoRA drops fastest. On Kelmarsh the TSLM's ranking number is at the gradient-boosting baseline's level (recall
+   0.27 vs 0.21–0.22 at 10 % FAR, AUROC 0.59 vs 0.60–0.61 on a near-binary score), its written decisions are far more
+   useful (hard recall 0.46 vs 0.11, subsystem accuracy 0.25 vs 0.09), and it is the only model with an explanation;
+   on unseen years the baseline is clearly stronger (AUROC 0.78 vs 0.67).
 6. **Not every fault has a precursor.** Overspeed is learnable from 10-minute data; thermal classes only partly
    (83 and 54 training positives); grid, yaw, brake are at chance; warning escalation is not learnable at all here.
 
