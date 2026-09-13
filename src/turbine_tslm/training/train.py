@@ -55,6 +55,7 @@ DEFAULTS: dict[str, Any] = {
     "answer_mode": "label",  # label (MVP) | evidence (rule-based reasoning before the Answer line)
     "evidence_sentences": 3,
     "series_stats": "basic",  # rich: first-6h / 6h-before-end / last-hour values in every channel text
+    "answers_from": None,  # jsonl of {window_id, answer}: per-record answer override (RFT stage 2)
     "max_samples": None,  # per split, stratified (smoke runs)
     "horizons": None,  # e.g. [6]
     "dataset_ids": ["cubico/penmanshiel", "cubico/kelmarsh"],
@@ -149,7 +150,11 @@ def build_model(cfg: dict[str, Any]):
 
             path = Path(hf_hub_download(repo_id=init, filename="model_checkpoint.pt"))
         print(f"[init] loading {path}")
-        model.load_from_file(str(path))  # upstream format, strict=False
+        ck = torch.load(path, map_location="cpu", weights_only=False)
+        if "trainable" in ck:  # one of our own checkpoints (trainable parameters only)
+            load_checkpoint(model, path)
+        else:
+            model.load_from_file(str(path))  # upstream format, strict=False
     return model
 
 
@@ -207,6 +212,17 @@ def make_optimizer(model, cfg: dict[str, Any]) -> torch.optim.Optimizer:
 # --------------------------------------------------------------------------------------------- data
 
 
+def load_answer_overrides(path: str | None) -> dict[str, str] | None:
+    if not path:
+        return None
+    rows = [
+        json.loads(line)
+        for line in Path(path).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return {r["window_id"]: r["answer"] for r in rows}
+
+
 def make_loaders(cfg: dict[str, Any], eos: str):
     from opentslm.model_config import PATCH_SIZE
     from opentslm.time_series_datasets.util import (
@@ -225,6 +241,7 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         evidence_sentences=cfg["evidence_sentences"],
         tasks=tuple(cfg["tasks"]),
         series_stats=cfg["series_stats"],
+        answer_overrides=load_answer_overrides(cfg["answers_from"]),
     )
     sets = {s: DS(s, EOS_TOKEN=eos) for s in ("train", "validation", "test")}
     for s, d in sets.items():
@@ -431,7 +448,7 @@ def answer_loglik(
 
 @torch.no_grad()
 def generate_texts(
-    model, batch: list[dict[str, Any]], max_new_tokens: int
+    model, batch: list[dict[str, Any]], max_new_tokens: int, **gen_kwargs
 ) -> list[str]:
     """Batched generation with LEFT padding.
 
@@ -445,7 +462,7 @@ def generate_texts(
         side = tok.padding_side
         tok.padding_side = "left"
         try:
-            return model.generate(batch, max_new_tokens=max_new_tokens)
+            return model.generate(batch, max_new_tokens=max_new_tokens, **gen_kwargs)
         finally:
             tok.padding_side = side
     inputs_embeds, attention_mask = model.pad_and_apply_batch(batch)
@@ -462,6 +479,7 @@ def generate_texts(
         attention_mask=left_mask,
         max_new_tokens=max_new_tokens,
         pad_token_id=model.tokenizer.pad_token_id,
+        **gen_kwargs,
     )
     return model.tokenizer.batch_decode(gen_ids, skip_special_tokens=True)
 
