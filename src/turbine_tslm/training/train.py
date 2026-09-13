@@ -580,7 +580,7 @@ def rescore(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                     flush=True,
                 )
         # t3 and any records without text pass through unchanged
-        for wid, r in prev.items():
+        for r in prev.values():
             if r.get("task") == "t3":
                 fh.write(json.dumps(r) + "\n")
 
