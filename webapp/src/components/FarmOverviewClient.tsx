@@ -1,15 +1,13 @@
 "use client";
 
-import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
+import { computeImpact, fmtGbp } from "@/lib/impact";
 import { FARM, FARMS } from "@/lib/labels";
 import type { Farm, WindowSummary } from "@/lib/types";
 
 import AlarmLogTable from "./AlarmLogTable";
 import FleetPerformanceCharts from "./FleetPerformanceCharts";
-import { IconArrow } from "./Icons";
 import PlantMap3D from "./PlantMap3D";
 import UpcomingMaintenance from "./UpcomingMaintenance";
 import WeatherWidget from "./WeatherWidget";
@@ -20,6 +18,7 @@ interface Props {
 
 export default function FarmOverviewClient({ windows }: Props) {
   const [selectedFarm, setSelectedFarm] = useState<Farm>("kelmarsh");
+  const [consoleTab, setConsoleTab] = useState<"performance" | "maintenance" | "alarms">("performance");
 
   const farmWindows = useMemo(
     () => windows.filter((w) => w.farm === selectedFarm),
@@ -63,115 +62,122 @@ export default function FarmOverviewClient({ windows }: Props) {
   const f = FARM[selectedFarm];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* 1. Header & Farm Selector */}
-      <div className="pagehead" style={{ marginBottom: 0 }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* 1. Sleek Minimalist Header */}
+      <div className="pagehead" style={{ paddingBlock: "12px 0", marginBottom: 0 }}>
         <div>
-          <div style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "3px 10px", borderRadius: 999, background: "var(--accent-soft)", color: "var(--accent-text)", fontSize: 11, fontWeight: 700, marginBottom: 8, textTransform: "uppercase" }}>
-            <span style={{ width: 6, height: 6, borderRadius: "50%", background: "currentColor" }} />
-            Control Room Wind Farm Command Center
+          <div style={{ display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>{f.name}</h1>
+            <div className="seg" role="group" aria-label="Farm Switcher">
+              {FARMS.map((fm) => (
+                <button
+                  key={fm}
+                  type="button"
+                  aria-pressed={selectedFarm === fm}
+                  onClick={() => setSelectedFarm(fm)}
+                >
+                  {FARM[fm].name}
+                </button>
+              ))}
+            </div>
           </div>
-          <h1 style={{ margin: "2px 0 6px" }}>
-            {f.name} <span className="muted" style={{ fontWeight: 500 }}>· {f.type}</span>
-          </h1>
-          <p className="sub" style={{ margin: 0 }}>
+          <p className="sub" style={{ margin: "4px 0 0", fontSize: 13 }}>
             {selectedFarm === "kelmarsh"
-              ? "Held-out unseen test site (6 turbines, Senvion MM92 - 2.05 MW). Zero model training leakage."
-              : "Training & validation site (14 turbines, Senvion MM82 - 2.05 MW). 2017–2021 SCADA telemetry."}
+              ? "Held-out unseen test site (6 turbines, Senvion MM92 - 2.05 MW) · Zero training leakage"
+              : "Training & validation site (14 turbines, Senvion MM82 - 2.05 MW)"}
           </p>
         </div>
 
-        <div className="actions" style={{ alignItems: "center" }}>
-          <div className="seg" role="group" aria-label="Farm Switcher">
-            {FARMS.map((fm) => (
-              <button
-                key={fm}
-                type="button"
-                aria-pressed={selectedFarm === fm}
-                onClick={() => setSelectedFarm(fm)}
-                style={
-                  selectedFarm === fm
-                    ? { background: "var(--accent-soft)", borderColor: "var(--accent-line)", fontWeight: 700 }
-                    : undefined
-                }
-              >
-                {FARM[fm].name}
-              </button>
-            ))}
+        {/* Minimalist Inline Vitals */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span
+            className="chip"
+            style={{
+              background: fleetMetrics.criticalCount > 0 ? "rgba(239, 68, 68, 0.12)" : "rgba(16, 185, 129, 0.12)",
+              color: fleetMetrics.criticalCount > 0 ? "#dc2626" : "#059669",
+              fontWeight: 600,
+            }}
+          >
+            ● {fleetMetrics.healthScore}% Health
+          </span>
+          <span className="chip neutral">
+            ⚡ {selectedFarm === "kelmarsh" ? "8.9 / 12.3 MW" : "21.4 / 28.7 MW"} Active
+          </span>
+          <span className="chip neutral">
+            💨 {selectedFarm === "kelmarsh" ? "9.8 m/s · 235° SW" : "11.2 m/s · 220° SW"}
+          </span>
+          {fleetMetrics.totalRevenueRisk > 0 && (
+            <span
+              className="chip"
+              style={{
+                background: "rgba(239, 68, 68, 0.08)",
+                color: "#dc2626",
+                fontWeight: 600,
+              }}
+            >
+              ⚠️ {fmtGbp(fleetMetrics.totalRevenueRisk)} at Risk
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* 2. Centerpiece: Interactive 3D Plant Map */}
+      <PlantMap3D farm={selectedFarm} windows={windows} />
+
+      {/* 3. Consolidated Minimalist Operations Console */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+          <div className="seg" role="group" aria-label="Operations Console Tabs">
+            <button
+              type="button"
+              aria-pressed={consoleTab === "performance"}
+              onClick={() => setConsoleTab("performance")}
+            >
+              Fleet Performance &amp; Grid
+            </button>
+            <button
+              type="button"
+              aria-pressed={consoleTab === "maintenance"}
+              onClick={() => setConsoleTab("maintenance")}
+            >
+              Upcoming Maintenance {fleetMetrics.criticalCount > 0 ? `(1 Urgent)` : ""}
+            </button>
+            <button
+              type="button"
+              aria-pressed={consoleTab === "alarms"}
+              onClick={() => setConsoleTab("alarms")}
+            >
+              SCADA Alarms &amp; Weather
+            </button>
           </div>
-          <Link href="/results/" className="btn sm">
-            Evaluation Benchmarks <IconArrow />
-          </Link>
+          <span className="hint" style={{ fontSize: 12 }}>
+            {consoleTab === "performance" && "Actual Power vs. Expected Aerodynamic Curve & Capacity Factor"}
+            {consoleTab === "maintenance" && "CMMS Work Orders, Downtime & Avoided Mobilization Costs"}
+            {consoleTab === "alarms" && "Real-Time SCADA Alarms & On-Site Meteorological Feed"}
+          </span>
         </div>
+
+        {consoleTab === "performance" && (
+          <FleetPerformanceCharts farm={selectedFarm} windows={windows} />
+        )}
+
+        {consoleTab === "maintenance" && (
+          <div className="card" style={{ padding: "16px 20px" }}>
+            <UpcomingMaintenance farm={selectedFarm} />
+          </div>
+        )}
+
+        {consoleTab === "alarms" && (
+          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
+            <WeatherWidget
+              windSpeedMs={selectedFarm === "kelmarsh" ? 13.8 : 11.2}
+              windDirDeg={selectedFarm === "kelmarsh" ? 235 : 220}
+              ambientTempC={selectedFarm === "kelmarsh" ? 8.4 : 7.2}
+            />
+            <AlarmLogTable windows={farmWindows} limit={5} />
+          </div>
+        )}
       </div>
-
-      {/* 2. Fleet Health & Core Operator KPIs */}
-      <div className="kpis">
-        <div className="card kpi">
-          <span className="l">Wind Farm Health Index</span>
-          <span className="v num" style={{ color: fleetMetrics.criticalCount > 0 ? "#ef4444" : "#10b981" }}>
-            {fleetMetrics.healthScore} %
-          </span>
-          <span className="c">
-            {fleetMetrics.criticalCount > 0
-              ? `${fleetMetrics.criticalCount} turbine critical alert`
-              : "All units nominal"}
-          </span>
-        </div>
-
-        <div className="card kpi">
-          <span className="l">Fleet Active Capacity</span>
-          <span className="v num">{selectedFarm === "kelmarsh" ? "12.3 MW" : "28.7 MW"}</span>
-          <span className="c">{fleetMetrics.turbinesCount} turbines active</span>
-        </div>
-
-        <div className="card kpi">
-          <span className="l">Projected Generation Loss</span>
-          <span className="v num">{fmtMWh(fleetMetrics.totalLostMWh)}</span>
-          <span className="c">Unscheduled downtime risk</span>
-        </div>
-
-        <div className="card kpi">
-          <span className="l">Direct Revenue at Risk</span>
-          <span className="v num" style={{ color: fleetMetrics.totalRevenueRisk > 0 ? "#dc2626" : undefined }}>
-            {fmtGbp(fleetMetrics.totalRevenueRisk)}
-          </span>
-          <span className="c">@ £85/MWh wholesale benchmark</span>
-        </div>
-
-        <div className="card kpi">
-          <span className="l">Avoided Emergency O&M</span>
-          <span className="v num" style={{ color: "#059669" }}>
-            {fmtGbp(fleetMetrics.totalAvoidedOpex)}
-          </span>
-          <span className="c">Avoided crane / mobilization cost</span>
-        </div>
-      </div>
-
-      {/* 3. Interactive 3D Plant Map with Wind Vector Simulation */}
-      <PlantMap3D
-        farm={selectedFarm}
-        windows={windows}
-      />
-
-      {/* 4. Power Output vs. Expected & Capacity Factor (over time) */}
-      <FleetPerformanceCharts
-        farm={selectedFarm}
-        windows={windows}
-      />
-
-      {/* 5. Meteorological Conditions & Wind Forecast */}
-      <WeatherWidget
-        windSpeedMs={selectedFarm === "kelmarsh" ? 13.8 : 11.2}
-        windDirDeg={selectedFarm === "kelmarsh" ? 235 : 220}
-        ambientTempC={selectedFarm === "kelmarsh" ? 8.4 : 7.2}
-      />
-
-      {/* 6. Upcoming Maintenance & Expected Losses */}
-      <UpcomingMaintenance farm={selectedFarm} />
-
-      {/* 7. Live SCADA Alarm & Event Log */}
-      <AlarmLogTable windows={farmWindows} limit={6} />
     </div>
   );
 }

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useState } from "react";
 
 import { cls, stateLabel, tcode, tname } from "@/lib/format";
-import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
+import { computeImpact, fmtGbp } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, SERIES } from "@/lib/labels";
 import { fmtDateTime, parseAnchor } from "@/lib/time";
 import type { ChannelMeta, Farm, WindowRecord, WindowSummary } from "@/lib/types";
@@ -70,6 +70,7 @@ export default function TurbineDetailView({
   nextTurbine,
 }: Props) {
   const [activeGroup, setActiveGroup] = useState<string>("thermal");
+  const [rightTab, setRightTab] = useState<"telemetry" | "benchmark" | "channels">("telemetry");
   const [pinned, setPinned] = useState<string[]>([
     "power",
     "gen_bearing_rear_temperature",
@@ -116,19 +117,19 @@ export default function TurbineDetailView({
   };
 
   return (
-    <div className="page" style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-      {/* Top Header */}
-      <div className="pagehead">
+    <div className="page" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+      {/* 1. Sleek Minimalist Header */}
+      <div className="pagehead" style={{ paddingBlock: "12px 0", marginBottom: 0 }}>
         <div>
-          <div className="crumbs">
-            <Link href="/">Command Center</Link>
+          <div className="crumbs" style={{ marginBottom: 4 }}>
+            <Link href="/">← Wind Farm Overview</Link>
             <span>/</span>
-            <Link href={`/farms/${farm}/`}>{FARM[farm].name}</Link>
-            <span>/</span>
-            <span>{tcode({ turbine })}</span>
+            <span>{FARM[farm].name}</span>
           </div>
-          <h1 style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 4 }}>
-            {tname({ farm, turbine })}
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <h1 style={{ margin: 0, fontSize: 22, fontWeight: 600 }}>
+              {tname({ farm, turbine })}
+            </h1>
             <span
               className="chip"
               style={{
@@ -144,148 +145,140 @@ export default function TurbineDetailView({
                     : impact.urgency === "advisory"
                       ? "#d97706"
                       : "#059669",
-                fontSize: 13,
-                fontWeight: 700,
+                fontSize: 12,
+                fontWeight: 600,
               }}
             >
-              {impact.urgency.toUpperCase()}
+              ● {impact.urgency.toUpperCase()}
             </span>
-          </h1>
-          <p className="sub">
+          </div>
+          <p className="sub" style={{ margin: "4px 0 0", fontSize: 13 }}>
             {FARM[farm].type} · 2.05 MW Nameplate · {stateLabel(w.state)} · Window ending {fmtDateTime(parseAnchor(w.anchor))}
           </p>
         </div>
 
-        <div className="actions">
-          {prevTurbine && (
-            <Link className="btn sm" href={`/turbines/${farm}/${prevTurbine}`}>
-              ← {tcode({ turbine: prevTurbine })}
-            </Link>
+        {/* Minimalist Inline Vitals & Navigation */}
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
+          <span className="chip neutral">
+            ⚡ {typeof w.facts?.power_last1h === "number" ? Math.round(w.facts.power_last1h) : 2040} kW Active
+          </span>
+          <span className="chip neutral">
+            📈 {impact.energeticAvailabilityPct}% Availability
+          </span>
+          {impact.totalFinancialRiskGbp > 0 && (
+            <span
+              className="chip"
+              style={{ background: "rgba(239, 68, 68, 0.08)", color: "#dc2626", fontWeight: 600 }}
+            >
+              ⚠️ {fmtGbp(impact.totalFinancialRiskGbp)} Risk
+            </span>
           )}
-          {nextTurbine && (
-            <Link className="btn sm" href={`/turbines/${farm}/${nextTurbine}`}>
-              {tcode({ turbine: nextTurbine })} →
-            </Link>
-          )}
-          <Link className="btn sm" href="/">
-            Overview Map
-          </Link>
+
+          <div style={{ display: "inline-flex", gap: 4, marginLeft: 6 }}>
+            {prevTurbine && (
+              <Link className="btn sm" href={`/turbines/${farm}/${prevTurbine}`}>
+                ← {tcode({ turbine: prevTurbine })}
+              </Link>
+            )}
+            {nextTurbine && (
+              <Link className="btn sm" href={`/turbines/${farm}/${nextTurbine}`}>
+                {tcode({ turbine: nextTurbine })} →
+              </Link>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Turbine Executive Metrics Strip */}
-      <div className="kpis">
-        <div className="card kpi">
-          <span className="l">Operating Active Power</span>
-          <span className="v num">
-            {typeof w.facts?.power_last1h === "number" ? Math.round(w.facts.power_last1h) : 2040} kW
-          </span>
-          <span className="c">Rated 2.05 MW capacity</span>
-        </div>
-        <div className="card kpi">
-          <span className="l">Energetic Availability</span>
-          <span className="v num">{impact.energeticAvailabilityPct} %</span>
-          <span className="c">
-            {impact.lostMWh > 0 ? `${fmtMWh(impact.lostMWh)} potential loss` : "Nominal yield"}
-          </span>
-        </div>
-        <div className="card kpi">
-          <span className="l">Financial Exposure at Risk</span>
-          <span
-            className="v num"
-            style={{ color: impact.totalFinancialRiskGbp > 0 ? "#dc2626" : undefined }}
-          >
-            {impact.totalFinancialRiskGbp > 0 ? fmtGbp(impact.totalFinancialRiskGbp) : "£0"}
-          </span>
-          <span className="c">Generation loss + emergency O&M</span>
-        </div>
-        <div className="card kpi">
-          <span className="l">Power Curve Residual</span>
-          <span className="v num">
-            {impact.powerCurveResidualKw >= 0
-              ? `+${impact.powerCurveResidualKw}`
-              : impact.powerCurveResidualKw}{" "}
-            kW
-          </span>
-          <span className="c">Aerodynamic drag vs. farm model</span>
-        </div>
-      </div>
+      {/* 2. Side-by-Side Cockpit: AI Copilot (Left) & Telemetry / Benchmark Deck (Right) */}
+      <div style={{ display: "grid", gridTemplateColumns: "1.08fr 0.92fr", gap: 16, alignItems: "start" }}>
+        {/* Left Column: AI Sensor Copilot */}
+        <SensorCopilot
+          turbine={turbine}
+          farm={farm}
+          currentRecord={currentRecord}
+          turbineRecords={turbineRecords}
+        />
 
-      {/* 1. SCADA Diagnostic Copilot & Pre-filled Model Inference */}
-      <SensorCopilot
-        turbine={turbine}
-        farm={farm}
-        currentRecord={currentRecord}
-        turbineRecords={turbineRecords}
-      />
-
-      {/* 2. Detailed Multi-Channel Telemetry Workspace */}
-      <div className="card" style={{ padding: "18px 20px" }}>
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexWrap: "wrap",
-            gap: 12,
-            marginBottom: 14,
-          }}
-        >
-          <div>
-            <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>
-              Detailed Sensor Telemetry (10-Minute SCADA Channels)
-            </h3>
-            <span className="hint">
-              Synchronized 24-hour time series ending at anchor &ldquo;now&rdquo;. Nothing after anchor is seen by model.
+        {/* Right Column: Telemetry & Benchmark Cockpit */}
+        <div className="card" style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 14 }}>
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+            <div className="seg" role="group" aria-label="Turbine Diagnostics Tabs">
+              <button
+                type="button"
+                aria-pressed={rightTab === "telemetry"}
+                onClick={() => setRightTab("telemetry")}
+              >
+                Telemetry Signals
+              </button>
+              <button
+                type="button"
+                aria-pressed={rightTab === "benchmark"}
+                onClick={() => setRightTab("benchmark")}
+              >
+                Fleet Benchmark
+              </button>
+              <button
+                type="button"
+                aria-pressed={rightTab === "channels"}
+                onClick={() => setRightTab("channels")}
+              >
+                All 19 Channels
+              </button>
+            </div>
+            <span className="hint" style={{ fontSize: 11.5 }}>
+              {rightTab === "telemetry" && "10-Min SCADA Streams"}
+              {rightTab === "benchmark" && "Peer Comparison Across Farm"}
+              {rightTab === "channels" && "Raw SCADA Channel Inventory"}
             </span>
           </div>
 
-          <div className="seg" role="group" aria-label="Subsystem Groups">
-            {SUBSYSTEM_GROUPS.map((g) => (
-              <button
-                key={g.id}
-                type="button"
-                aria-pressed={activeGroup === g.id}
-                onClick={() => selectGroupChannels(g.id)}
-              >
-                {g.label}
-              </button>
-            ))}
-          </div>
-        </div>
+          {rightTab === "telemetry" && (
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              <div style={{ display: "flex", gap: 6, flexWrap: "wrap" }}>
+                {SUBSYSTEM_GROUPS.map((g) => (
+                  <button
+                    key={g.id}
+                    type="button"
+                    className={`btn sm ${activeGroup === g.id ? "primary" : ""}`}
+                    style={{ fontSize: 11.5, padding: "4px 8px" }}
+                    onClick={() => selectGroupChannels(g.id)}
+                  >
+                    {g.label}
+                  </button>
+                ))}
+              </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 240px", gap: 16 }}>
-          <div style={{ padding: "8px 0" }}>
-            <SignalPanels
-              anchor={w.anchor}
-              series={series}
-              horizonH={w.horizon_h}
-              event={event}
-              panelHeight={120}
-            />
-          </div>
-
-          <div style={{ borderLeft: "1px solid var(--line)", paddingLeft: 14 }}>
-            <div style={{ fontSize: 11, fontWeight: 600, color: "var(--ink-3)", textTransform: "uppercase", marginBottom: 8 }}>
-              Click to Pin Channel (Max 3)
+              <SignalPanels
+                anchor={w.anchor}
+                series={series}
+                horizonH={w.horizon_h}
+                event={event}
+                panelHeight={110}
+              />
             </div>
-            <ChannelList
-              meta={meta}
-              channels={w.channels}
-              cited={new Set(["power", "gen_bearing_rear_temperature", "tower_acceleration_x"])}
-              pinned={pinned}
-              onToggle={toggle}
+          )}
+
+          {rightTab === "benchmark" && (
+            <TurbineBenchmark
+              currentTurbine={turbine}
+              farmWindows={farmWindows}
+              currentRecord={currentRecord}
             />
-          </div>
+          )}
+
+          {rightTab === "channels" && (
+            <div style={{ maxHeight: 380, overflowY: "auto" }}>
+              <ChannelList
+                meta={meta}
+                channels={w.channels}
+                cited={new Set(["power", "gen_bearing_rear_temperature", "tower_acceleration_x"])}
+                pinned={pinned}
+                onToggle={toggle}
+              />
+            </div>
+          )}
         </div>
       </div>
-
-      {/* 3. Fleet Benchmarking */}
-      <TurbineBenchmark
-        currentTurbine={turbine}
-        farmWindows={farmWindows}
-        currentRecord={currentRecord}
-      />
     </div>
   );
 }
