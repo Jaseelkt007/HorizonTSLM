@@ -191,32 +191,37 @@ details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;fo
 .mono{font:400 11px/1.45 var(--fm);color:var(--ink-2);white-space:pre-wrap;word-break:break-word;background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;max-height:160px;overflow:auto}
 .mono b{color:var(--accent-ink);font-weight:500}
 .wait{color:var(--ink-3);font-size:13px;display:flex;flex-direction:column;gap:6px}
-.verdict{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:14px;border-radius:10px;border:1px solid var(--line)}
-.verdict.yes{background:var(--crit-soft);border-color:transparent}
-.verdict.no{background:var(--good-soft);border-color:transparent}
-.verdict .ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff}
-.verdict.yes .ico{background:var(--crit)} .verdict.no .ico{background:var(--good)}
-.verdict .ico svg{width:15px;height:15px}
-.verdict b{font:700 17px/1.25 var(--fu);letter-spacing:-.01em}
-.verdict small{display:block;font:400 12px var(--fu);color:var(--ink-2);margin-top:2px}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:12px 14px;border-radius:10px;border:1px solid var(--line);border-left-width:4px;background:var(--card-2)}
+.verdict.yes{border-left-color:var(--crit)}
+.verdict.no{border-left-color:var(--good)}
+.verdict .ico{width:28px;height:28px;border-radius:8px;display:grid;place-items:center;background:var(--card);border:1px solid var(--line)}
+.verdict.yes .ico{color:var(--crit)} .verdict.no .ico{color:var(--good)}
+.verdict .ico svg{width:14px;height:14px}
+.verdict b{font:600 15.5px/1.3 var(--fu);letter-spacing:-.01em}
+.verdict small{display:block;font:400 12px var(--fu);color:var(--ink-3);margin-top:2px}
 .conf{margin-top:12px}
 .conf .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2)}
 .conf .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
 .conf .track{position:relative;height:9px;border-radius:5px;background:var(--line);margin-top:5px;overflow:visible}
+.conf .track{height:7px}
 .conf .track i{display:block;height:100%;width:0;border-radius:5px;background:var(--accent);transition:width .8s cubic-bezier(.4,0,.2,1)}
-.conf .track i.hi{background:var(--crit)} .conf .track i.mid{background:var(--warn)}
-.conf .track em{position:absolute;top:-4px;left:80%;width:2px;height:17px;background:var(--crit);border-radius:1px}
+.conf .track em{position:absolute;top:-4px;left:80%;width:1.5px;height:15px;background:var(--ink-3);border-radius:1px}
+.conf .lab .sev{margin-left:8px}
 .conf .foot{font-size:11px;color:var(--ink-3);margin-top:4px}
 .kev{margin-top:14px}
 .kev h3{font:600 13px var(--fu);display:flex;align-items:center;gap:7px;margin-bottom:8px}
-.ev{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:9px 10px;border-radius:9px;background:var(--card-2);border:1px solid var(--line);margin-bottom:6px;opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s}
+.ev{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 12px;align-items:start;padding:9px 11px;border-radius:9px;background:var(--card);border:1px solid var(--line);margin-bottom:6px;opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s}
 .ev.show{opacity:1;transform:none}
-.ev .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-style:normal;font-size:11px;font-weight:700}
-.ev .ic.ok{background:var(--good)} .ev .ic.bad{background:var(--crit)} .ev .ic.nil{background:var(--line-2);color:var(--ink-2)}
-.ev .t{font:500 13px/1.45 var(--fu)}
-.ev .s{font:400 11.5px var(--fu);color:var(--ink-3);margin-top:2px}
-.ev mark{background:var(--good-soft);color:inherit;padding:1px 2px 0;border-radius:3px;text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
-.ev mark.bad{background:var(--crit-soft);text-decoration-style:wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
+.ev .st{display:inline-flex;align-items:center;gap:5px;font:500 11px/1 var(--fu);padding:4px 7px;border-radius:6px;border:1px solid var(--line);color:var(--ink-3);white-space:nowrap;margin-top:1px}
+.ev .st i{width:6px;height:6px;border-radius:50%;background:var(--ink-4)}
+.ev .st.ok{color:var(--good);border-color:var(--good-soft)} .ev .st.ok i{background:var(--good)}
+.ev .st.bad{color:var(--crit);border-color:var(--crit-soft)} .ev .st.bad i{background:var(--crit)}
+.ev .t{font:400 13px/1.5 var(--fu);color:var(--ink)}
+.ev .s{grid-column:1/-1;font:400 11.5px var(--fu);color:var(--ink-3);margin-top:-2px}
+.ev mark,.full mark{background:transparent;color:inherit;padding:0;text-decoration:underline dotted;text-decoration-color:var(--good);text-decoration-thickness:1.5px;text-underline-offset:3px}
+.ev mark.bad,.full mark.bad{text-decoration:underline wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
+.kev h3{font:600 13px var(--fu);display:flex;align-items:baseline;gap:8px;margin-bottom:8px;flex-wrap:wrap}
+.kev h3 small{font:400 11.5px var(--fu);color:var(--ink-3)}
 .ansline{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
 .ansline code{font:500 12px var(--fm);background:var(--card-2);border:1px solid var(--line);padding:5px 8px;border-radius:7px}
 .chip{display:inline-flex;align-items:center;gap:5px;font:500 11.5px/1 var(--fu);padding:4px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
@@ -224,8 +229,6 @@ details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;fo
 .acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
 .acts .btn{justify-content:center}
 .full{margin-top:10px;font:400 13px/1.55 var(--fu);border-top:1px solid var(--line);padding-top:10px}
-.full mark{background:var(--good-soft);color:inherit;padding:1px 2px 0;border-radius:3px;text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
-.full mark.bad{background:var(--crit-soft);text-decoration-style:wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
 .chk{display:flex;flex-direction:column;gap:10px}
 .cb{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--card-2);display:flex;flex-direction:column;gap:4px}
 .cb h4{margin:0;font:600 12.5px var(--fu);display:flex;align-items:center;gap:6px}
@@ -471,17 +474,18 @@ async function renderAnswer(s,a,tok){
   $("#a-hint").textContent=`generated · ${words} words`;
   const ev=sents.map((t,i)=>{const sg=sliceSegs(segs,offs[i][0],offs[i][1]);const claims=sg.filter(x=>x.ok!==undefined);const nOk=claims.filter(x=>x.ok).length;
     const kind=claims.length===0?"nil":nOk===claims.length?"ok":"bad";const sub=claims.length===0?(i===sents.length-1?"conclusion":"no numeric claim"):nOk===claims.length?`${nOk} ${nOk===1?"number":"numbers"} verified against the window`:`${claims.length-nOk} of ${claims.length} numbers do not match the window`;
-    return `<div class="ev"><i class="ic ${kind}">${kind==="ok"?"✓":kind==="bad"?"✗":"–"}</i><div><div class="t">${segsHTML(sg)}</div><div class="s">${sub}</div></div></div>`}).join("");
+    const st=kind==="ok"?`<span class="st ok"><i></i>verified</span>`:kind==="bad"?`<span class="st bad"><i></i>mismatch</span>`:`<span class="st"><i></i>${i===sents.length-1?"conclusion":"context"}</span>`;
+    return `<div class="ev"><div class="t">${segsHTML(sg)}</div>${st}<div class="s">${sub}</div></div>`}).join("");
   $("#abody").innerHTML=`
-    <div class="verdict ${yes?"yes":"no"}"><span class="ico">${yes?`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2.5v4M6 9h.01"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg>`}</span><div><b>${yes?`Yes — ${esc(cls(a.label))} stop likely within ${h} h`:`No fault stop expected within ${h} h`}</b><small>${yes?"the model names the subsystem and its evidence below":"the model sees no developing fault"}</small></div></div>
-    <div class="conf"><div class="lab"><span>P(fault stop within ${h} h)</span><b id="pv">0.00</b></div><div class="track"><i id="pb"></i><em title="alarm line at 0.80"></em></div><div class="foot">alarm line at ${fmt(ALARM,2)} · yes-versus-no likelihood after the model&rsquo;s own reasoning</div></div>
-    <div class="kev"><h3>Key evidence <span class="muted" style="font-weight:400">· the model&rsquo;s own sentences, numbers checked</span></h3>${ev}</div>
+    <div class="verdict ${yes?"yes":"no"}"><span class="ico">${yes?`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2.5v4M6 9h.01"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg>`}</span><div><b>${yes?`Yes — ${esc(cls(a.label))} stop likely within ${h} h`:`No fault stop expected within ${h} h`}</b><small>${yes?"subsystem named by the model · evidence below":"the model sees no developing fault"}</small></div></div>
+    <div class="conf"><div class="lab"><span>P(fault stop within ${h} h)</span><span><b id="pv">0.00</b>${a.p_fault>=ALARM?`<span class="chip bad sev">above the alarm line</span>`:a.p_fault>=WARM?`<span class="chip class sev">elevated</span>`:""}</span></div><div class="track"><i id="pb"></i><em title="alarm line at 0.80"></em></div><div class="foot">alarm line at ${fmt(ALARM,2)} · yes-versus-no likelihood after the model&rsquo;s own reasoning</div></div>
+    <div class="kev"><h3>Key evidence <small>the model&rsquo;s own sentences · dotted = number verified, wavy = does not match</small></h3>${ev}</div>
     <div class="ansline"><code>${esc(ans)}</code><span class="chip ${yes?"class":"neutral"}">${esc(cls(a.label))}</span></div>
     <div class="acts"><button class="btn soft" type="button" id="b-full">Full text + prompt</button><button class="btn" type="button" id="b-check">Check against the log</button></div>
     <div class="full" id="full" hidden><div class="label" style="margin-bottom:4px">Generated text</div>${segsHTML(segs)} <code style="font:500 12px var(--fm)">${esc(ans)}</code><details class="prompt"><summary>Prompt</summary><div class="mono">${promptFor(s,anchorOf(state.step))}</div></details></div>`;
   $("#b-full").addEventListener("click",()=>{const f=$("#full");f.hidden=!f.hidden});
   $("#b-check").addEventListener("click",()=>{if(skipResolve)skipResolve();else if(state.stage<5){state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false}});
-  await sleep(40);const pb=$("#pb");pb.style.width=`${Math.round(a.p_fault*100)}%`;pb.className=a.p_fault>=ALARM?"hi":a.p_fault>=WARM?"mid":"";
+  await sleep(40);const pb=$("#pb");pb.style.width=`${Math.round(a.p_fault*100)}%`;
   const pv=$("#pv");const t0=performance.now(),durMs=800;const tick=()=>{const t=Math.min(1,(performance.now()-t0)/durMs);pv.textContent=fmt(a.p_fault*t,2);if(t<1&&tok===state.token)requestAnimationFrame(tick)};tick();
   const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(180*state.pace);evs[i].classList.add("show")}
 }
