@@ -1,0 +1,29 @@
+# Dependencies
+node_modules/
+.pnp/
+.pnp.js
+
+# Next.js build output and static exports
+.next/
+out/
+
+# Local build, test, and coverage artifacts
+dist/
+build/
+coverage/
+*.tsbuildinfo
+
+# Local environment configuration (keep shareable templates)
+.env*
+!.env.example
+
+# Package-manager and debug logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Deployment and editor/OS-local files
+.vercel/
+.DS_Store
+*.pem
