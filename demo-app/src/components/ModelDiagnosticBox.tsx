@@ -3,16 +3,9 @@
 import React, { FormEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Bot, Send, User } from "lucide-react";
 import { TurbineInfo } from "../lib/types";
+import { useSavedWindow, type Claim } from "../lib/useSavedWindow";
 
 type ChatMessage = { id: string; role: "assistant" | "user"; content: string };
-type Claim = { start: number; end: number; ok: boolean };
-type SavedWindow = {
-  id: string; anchor: string; horizon_h: number; state: string; model: string;
-  prePrompt: string; channels: { text: string; n: number }[]; postPrompt: string;
-  text: string; claims: Claim[]; pred: string; gold: string; score: number;
-  outcome: { message: string | null; lead_time_min: number | null; duration_h: number | null };
-};
-
 const CLASS_LABEL: Record<string, string> = { generator_cooling: "generator cooling", gearbox_lubrication: "gearbox lubrication", pitch_system: "pitch system", structural_overspeed: "structural / overspeed", converter_grid: "converter / grid", brake_hydraulics: "brake / hydraulics", yaw_cable: "yaw / cable", sensor_comms: "sensor / comms", none: "no fault stop" };
 const dur = (min: number) => { const h = Math.floor(min / 60), r = min % 60; return h ? `${h} h${r ? " " + String(r).padStart(2, "0") + " min" : ""}` : `${r} min`; };
 
@@ -42,19 +35,13 @@ export function ModelDiagnosticBox({ turbine }: { turbine: TurbineInfo }) {
   const question = useMemo(() => `What upcoming fault is anticipated on turbine ${turbine.id}, and what is the root cause?`, [turbine.id]);
   const [input, setInput] = useState(question);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
-  const [saved, setSaved] = useState<SavedWindow | null>(null);
+  const saved = useSavedWindow(turbine.sourceWindowId);
   const [showPrompt, setShowPrompt] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const bottom = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    let cancelled = false;
-    setMessages([]); setSaved(null); setShowPrompt(false); setInput(question);
-    fetch(`/api/window?id=${encodeURIComponent(turbine.sourceWindowId)}`)
-      .then((r) => (r.ok ? r.json() : null))
-      .then((w: SavedWindow | null) => { if (!cancelled) setSaved(w); })
-      .catch(() => { if (!cancelled) setSaved(null); });
-    return () => { cancelled = true; };
+    setMessages([]); setShowPrompt(false); setInput(question);
   }, [question, turbine.sourceWindowId]);
   useEffect(() => {
     // Block body on purpose: an arrow that returns scrollIntoView's result makes React treat it as a
@@ -89,7 +76,8 @@ export function ModelDiagnosticBox({ turbine }: { turbine: TurbineInfo }) {
     <section className="minimal-card p-5" aria-label="Diagnostic assistant">
       <div className="mb-4"><h3 className="text-base font-bold text-white">Diagnostic Assistant</h3><p className="mt-0.5 text-xs text-slate-400">OpenTSLM-Flamingo{saved ? ` · ${saved.model}` : ""} · saved window {turbine.sourceWindowId}{saved ? ` · 24 h ending ${saved.anchor} · asked ${saved.horizon_h} h ahead` : ""}</p></div>
       <div className="mb-4 max-h-[520px] min-h-[190px] space-y-3 overflow-y-auto pr-1 text-xs">
-        {!saved && <p className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-slate-400">Loading the saved window…</p>}
+        {saved === undefined && <p className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-slate-400">Loading the saved window…</p>}
+        {saved === null && <p className="rounded-2xl border border-white/[0.06] bg-white/[0.03] p-3 text-slate-400">No saved window for this turbine.</p>}
         {saved && <>
           <div className="ml-auto max-w-[92%]">
             <div className="mb-1 flex items-center justify-end gap-1.5 text-[11px] text-slate-400"><span>Input prompt · exactly what the model receives</span><User className="h-3 w-3" /></div>

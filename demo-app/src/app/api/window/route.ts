@@ -56,5 +56,6 @@ export async function GET(request: NextRequest) {
     model: DATA.meta.model,
     prePrompt: prePrompt(w), channels: channelLines(w), postPrompt: "Assessment:",
     text: w.text, claims: w.claims, pred: w.pred, gold: w.gold, score: w.score, outcome: w.outcome,
+    series: DATA.meta.channels.map((c) => ({ name: c.name, label: c.label, unit: c.unit, values: w.channels[c.name] })),
   });
 }

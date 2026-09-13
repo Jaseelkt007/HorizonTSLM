@@ -112,9 +112,7 @@ export function TurbineDetailView() {
         {/* Right Column (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           <TurbineKPIs turbine={selectedTurbine} />
-          <div className="h-[460px]">
-            <TurbineTelemetryChart turbine={selectedTurbine} />
-          </div>
+          <TurbineTelemetryChart turbine={selectedTurbine} />
           <ModelDiagnosticBox turbine={selectedTurbine} />
         </div>
       </div>
