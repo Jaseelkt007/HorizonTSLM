@@ -7,7 +7,7 @@ checked against the data. Built in 24 h for the Temporal AI Challenge (Aionic La
 
 - **Method and results**: [`docs/method.md`](docs/method.md) — the complete write-up.
 - **Spec**: [`docs/problem-statement.md`](docs/problem-statement.md) · [`docs/team-brief.html`](docs/team-brief.html) (challenge, OpenTSLM, TimeNet). **Chronological log**: [`docs/session-handoff.md`](docs/session-handoff.md). **Pitch outline**: [`docs/pitch.md`](docs/pitch.md).
-- **Every scored run**: [`docs/results/<run>/`](docs/results/) (report, metrics, faithfulness, predictions). **Baselines**: [`docs/benchmark.md`](docs/benchmark.md).
+- **Final benchmark table (all models, all splits, faithfulness, judge)**: [`docs/results/FINAL_TABLE.md`](docs/results/FINAL_TABLE.md). **Every scored run**: [`docs/results/<run>/`](docs/results/). **Baselines**: [`docs/benchmark.md`](docs/benchmark.md).
 - **Demo**: [`webapp/`](webapp/). **Conventions for contributors**: [`CLAUDE.md`](CLAUDE.md).
 
 ## Headline (Kelmarsh, a farm and turbine model the model never saw)

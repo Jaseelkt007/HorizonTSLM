@@ -175,6 +175,8 @@ becomes near-binary; ranking metrics for those models are therefore taken from a
 
 ## 8. Results
 
+**One-table summary of every model, generated from the result files: [`docs/results/FINAL_TABLE.md`](results/FINAL_TABLE.md).**
+
 All numbers from `docs/results/<run>/results.json` and `faithfulness.json`; the XGBoost rows are the teammate's
 `v1` predictions re-scored with the same harness (`docs/results/xgboost_*/`), which is why they differ slightly from
 `docs/benchmark.md`.
