@@ -1,0 +1,33 @@
+.farmbar { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px 28px; }
+.farmbar :global(.seg) button { padding: 8px 14px; }
+.farmbar small { display: block; font: 400 12px var(--fu); color: var(--ink-3); margin-top: 1px; }
+.stats { display: flex; flex-wrap: wrap; gap: 8px 28px; margin-left: auto; }
+.stat { display: flex; flex-direction: column; gap: 1px; }
+.stat b { font: 600 22px/1.1 var(--fu); letter-spacing: -0.01em; }
+.stat span { font: 400 12.5px var(--fu); color: var(--ink-3); }
+@media (max-width: 760px) { .stats { margin-left: 0; gap: 8px 20px; } .stat b { font-size: 19px; } }
+.board { overflow: hidden; }
+.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table th { font: 600 12.5px var(--fc); letter-spacing: 0.01em; color: var(--ink-3); text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--line); white-space: nowrap; }
+.table td { padding: 11px 12px; border-bottom: 1px solid var(--line); vertical-align: middle; }
+.table tr:last-child td { border-bottom: 0; }
+.row { cursor: pointer; }
+.row:hover td { background: var(--surface-2); }
+.tname { color: inherit; text-decoration: none; font: 600 15px var(--fu); }
+.tname small { display: block; font: 400 12.5px var(--fu); color: var(--ink-3); margin-top: 1px; }
+.risk { display: grid; grid-template-columns: 1fr 44px; align-items: center; gap: 8px; min-width: 120px; }
+.risk b { font: 600 14px var(--fu); text-align: right; }
+.hist svg { display: block; width: 100%; height: 36px; max-width: 260px; }
+.cap { font: 400 12px var(--fu); color: var(--ink-3); margin-top: 3px; }
+.bar { cursor: pointer; }
+.bar:hover { opacity: 0.7; }
+@media (max-width: 760px) {
+  .table thead { display: none; }
+  .table, .table tbody, .table tr, .table td { display: block; }
+  .table tr { padding: 10px 4px; border-bottom: 1px solid var(--line); }
+  .table tr:last-child { border-bottom: 0; }
+  .table td { padding: 4px 8px; border: 0; }
+  .table td[data-l]::before { content: attr(data-l); display: block; font: 500 11.5px var(--fu); color: var(--ink-3); margin-bottom: 2px; }
+  .hist svg { max-width: 100%; }
+}
+@media (prefers-reduced-motion: no-preference) { .table td { transition: background 0.15s; } }

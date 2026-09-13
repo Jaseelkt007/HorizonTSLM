@@ -1,0 +1,87 @@
+/* Design tokens. Light is the default; dark follows the OS unless data-theme is stamped on <html>. */
+:root {
+  color-scheme: light;
+  --ground: #eef1f0; --surface: #ffffff; --surface-2: #e4e9e7; --surface-3: #d9dfdd;
+  --line: #d2d9d6; --line-strong: #b6bfbc;
+  --ink: #152029; --ink-2: #4a5762; --ink-3: #74818b;
+  --accent: #1f5eae; --accent-ink: #174a8a; --accent-soft: #dce7f5; --accent-line: #8fb2e0;
+  --series: #3d4b58;
+  --good: #1f7a4d; --good-soft: #dbeee2; --warn: #a5680e; --warn-soft: #f5e8cd; --crit: #b7342c; --crit-soft: #f7dedc;
+  --risk: #c2453c; --risk-track: #f0dad8;
+  --band: rgba(212, 140, 30, 0.17);
+  --shadow: 0 1px 2px rgba(21, 32, 41, 0.06);
+  --fu: var(--font-ui), system-ui, -apple-system, "Segoe UI", sans-serif;
+  --fc: var(--font-condensed), var(--font-ui), system-ui, sans-serif;
+  --fs: var(--font-serif), Georgia, "Times New Roman", serif;
+  --fm: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0f1416; --surface: #171d20; --surface-2: #212a2e; --surface-3: #2a343a;
+    --line: #2c363b; --line-strong: #3e4a51;
+    --ink: #e8edef; --ink-2: #b0bbc2; --ink-3: #86939c;
+    --accent: #5d96df; --accent-ink: #9cc1f2; --accent-soft: #1b3350; --accent-line: #3f6ea8;
+    --series: #c2ccd3;
+    --good: #67c692; --good-soft: #17372a; --warn: #e3b155; --warn-soft: #3d2f12; --crit: #f0857c; --crit-soft: #4a211e;
+    --risk: #e4675e; --risk-track: #3a2523;
+    --band: rgba(227, 177, 85, 0.16);
+    --shadow: none;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0f1416; --surface: #171d20; --surface-2: #212a2e; --surface-3: #2a343a;
+  --line: #2c363b; --line-strong: #3e4a51;
+  --ink: #e8edef; --ink-2: #b0bbc2; --ink-3: #86939c;
+  --accent: #5d96df; --accent-ink: #9cc1f2; --accent-soft: #1b3350; --accent-line: #3f6ea8;
+  --series: #c2ccd3;
+  --good: #67c692; --good-soft: #17372a; --warn: #e3b155; --warn-soft: #3d2f12; --crit: #f0857c; --crit-soft: #4a211e;
+  --risk: #e4675e; --risk-track: #3a2523;
+  --band: rgba(227, 177, 85, 0.16);
+  --shadow: none;
+}
+
+*, *::before, *::after { box-sizing: border-box; }
+html { background: var(--ground); }
+body {
+  margin: 0; background: var(--ground); color: var(--ink);
+  font: 15px/1.5 var(--fu); padding: 0 20px; padding-block: 0 40px; -webkit-font-smoothing: antialiased;
+}
+@media (max-width: 600px) { body { padding: 0 16px; padding-block: 0 32px; } }
+a { color: var(--accent-ink); }
+button { font: inherit; color: inherit; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+h1, h2, h3, h4 { margin: 0; text-wrap: balance; }
+p { margin: 0; }
+[hidden] { display: none !important; }
+.wrap { max-width: 1360px; margin: 0 auto; }
+.view { padding-top: 20px; display: flex; flex-direction: column; gap: 18px; }
+
+/* Shared primitives */
+.chip { display: inline-flex; align-items: center; gap: 5px; font: 500 12px/1 var(--fu); padding: 5px 8px; border-radius: 5px; white-space: nowrap; vertical-align: middle; }
+.chip.neutral { background: var(--surface-2); color: var(--ink-2); }
+.chip.class { background: var(--warn-soft); color: var(--warn); }
+.chip.good { background: var(--good-soft); color: var(--good); }
+.chip.bad { background: var(--crit-soft); color: var(--crit); }
+.chip.accent { background: var(--accent-soft); color: var(--accent-ink); }
+.chip svg { width: 11px; height: 11px; }
+.eyebrow { font: 600 12.5px/1.2 var(--fu); color: var(--ink-3); margin-bottom: 8px; }
+.muted { color: var(--ink-3); }
+.mono { font-family: var(--fm); font-size: 0.92em; }
+.num { font-variant-numeric: tabular-nums; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; }
+.seg { display: inline-flex; background: var(--surface-2); padding: 3px; border-radius: 8px; gap: 2px; max-width: 100%; }
+.seg button { border: 0; background: transparent; color: var(--ink-2); font: 500 13.5px var(--fu); padding: 6px 12px; border-radius: 6px; cursor: pointer; white-space: nowrap; }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+.seg button:disabled { opacity: 0.45; cursor: not-allowed; }
+.lede { color: var(--ink-2); max-width: 72ch; }
+.meter { position: relative; height: 8px; border-radius: 4px; background: var(--risk-track); overflow: hidden; min-width: 60px; }
+.meter i { position: absolute; inset: 0 auto 0 0; background: var(--risk); border-radius: 4px; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; font-size: 12.5px; color: var(--ink-2); margin: 0; }
+.legend i { display: inline-block; width: 10px; height: 10px; border-radius: 2px; vertical-align: -1px; margin-right: 5px; }
+.legend i.dot { border-radius: 50%; width: 8px; height: 8px; }
+select { font: 14px var(--fu); color: var(--ink); background: var(--surface); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+label.f { display: flex; flex-direction: column; gap: 4px; font: 500 12px var(--fu); color: var(--ink-3); min-width: 0; }
+.err { padding: 16px 20px; color: var(--crit); }
+@media (prefers-reduced-motion: no-preference) { .meter i { transition: width 0.3s; } }

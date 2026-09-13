@@ -1,0 +1,26 @@
+{
+  "name": "turbine-alarm-explainer",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Static product demo for the Turbine Alarm Explainer (Temporal AI Challenge, Sep 2026)",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "preview": "python3 -m http.server 8000 --directory out",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "next": "16.3.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "16.3.5",
+    "typescript": "^5"
+  }
+}
