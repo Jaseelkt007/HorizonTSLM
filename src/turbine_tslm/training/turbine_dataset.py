@@ -228,6 +228,7 @@ def make_dataset_class(name: str, **config) -> type[TurbineQADataset]:
         "evidence_sentences",
         "tasks",
         "series_stats",
+        "answer_overrides",
     }
     if bad:
         raise TypeError(f"unknown dataset options {sorted(bad)}")
