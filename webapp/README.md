@@ -29,8 +29,9 @@ An app shell (sidebar navigation, light theme by default, dark follows the OS or
   ones the explanation cites are flagged); then the model's answer with every number marked verified / wrong, the
   `Answer:` line, P(fault), subsystem probabilities and what actually happened. `?q=t3` shows the same window asked
   the post-hoc question (1 h positives only); earlier / later step through the turbine's sampled windows.
-- `/results/` — **Results**: every run under `docs/results/` and the XGBoost baselines on the same splits (pooled or
-  per horizon), recall per subsystem with class counts, faithfulness per split, and the Kelmarsh confusion matrix.
+- `/results/` — **Results**: every run under `docs/results/` (incl. the harness-scored XGBoost baselines and the RFT
+  run) by split and horizon, the paired-bootstrap confidence intervals on Kelmarsh, recall per subsystem versus
+  XGBoost, faithfulness per split, and the Kelmarsh confusion matrix.
 
 ## Layout
 
@@ -55,9 +56,10 @@ writes both files the site reads (run from the repository root):
 - `data/demo_data.json` — 160 curated held-out windows: raw 24 h × 19 channels, the headline model's explanation with
   per-claim verified/wrong spans, score, class probabilities, the post-hoc (T3) text with its own spans, and the gold
   outcome (message, lead time, duration).
-- `data/results_summary.json` — every `docs/results/<run>/results.json` (+ `faithfulness.json`) and the XGBoost table
-  parsed from `docs/benchmark.md`. Nothing on the Results page is hand-typed; rerun the script and rebuild when new
-  runs land.
+- `data/results_summary.json` — every `docs/results/<run>/results.json` (+ `faithfulness.json`), the paired bootstrap
+  in `docs/results/bootstrap/test_b.json`, and the original XGBoost table parsed from `docs/benchmark.md`. Nothing on
+  the Results page is hand-typed; rerun the script and rebuild when new runs land (new folders need a label in
+  `RUN_LABELS` in the script, otherwise the folder name is shown).
 
 The previous single-file version of this demo is published as a private artifact at
 https://claude.ai/code/artifact/c460f528-0736-4b79-a9b8-aa0a02d43fab (frozen at that version).

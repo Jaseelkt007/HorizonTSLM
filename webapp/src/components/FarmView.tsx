@@ -23,7 +23,7 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
       <div className="pagehead">
         <div>
           <h1>{f.name} <span className="muted" style={{ fontWeight: 500 }}>· {f.type}</span></h1>
-          <p className="sub">{f.why[0].toUpperCase() + f.why.slice(1)}. One card per turbine: the model&apos;s call on its most recent sampled window, what the alarm log says followed, and every sampled window in time order.</p>
+          <p className="sub">{f.why[0].toUpperCase() + f.why.slice(1)}. One card per turbine, latest sampled window first.</p>
         </div>
         <div className="actions">
           <div className="seg" role="group" aria-label="Farm">
@@ -38,17 +38,17 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
         <div className="card kpi"><span className="v">{ws.length}</span><span className="l">held-out windows</span></div>
         <div className="card kpi"><span className="v">{pos}</span><span className="l">followed by a fault stop</span></div>
         <div className="card kpi"><span className="v">{alarms}</span><span className="l">alarms the model raised</span></div>
-        <div className="card kpi"><span className="v">{ok} <span className="muted" style={{ fontSize: 16, fontWeight: 500 }}>/ {ws.length}</span></span><span className="l">answer lines matching the log</span></div>
+        <div className="card kpi"><span className="v">{ok} <span className="muted" style={{ fontSize: 16, fontWeight: 500 }}>/ {ws.length}</span></span><span className="l">answers matching the log</span></div>
       </div>
       <div className={styles.grid}>
         {rows.map(({ t, list, latest: w }) => (
           <div key={t} className={`card ${styles.card}`}>
             <div className={styles.head}><b>{tcode(w)}</b><span>{f.type}</span></div>
-            <div className={styles.when}>Latest sampled window · <span className="num">{w.anchor}</span> · asked {w.horizon_h} h ahead · {stateLabel(w.state)}</div>
+            <div className={styles.when}><span className="num">{w.anchor}</span> · asked {w.horizon_h} h ahead · {stateLabel(w.state)}</div>
             <div className={styles.risk}>
               <span className={`${styles.v} num`}>{pct(w.score)}</span>
               <div className="meter" role="img" aria-label={`P(fault stop) ${pct(w.score)}`}><i style={{ width: `${Math.round(w.score * 100)}%` }} /></div>
-              <span className={styles.l}>P(fault stop within {w.horizon_h} h) · named {w.pred === "none" ? "no fault stop" : <b>{cls(w.pred)}</b>}</span>
+              <span className={styles.l}>P(fault stop) · {w.pred === "none" ? "no fault stop expected" : <b>{cls(w.pred)}</b>}</span>
             </div>
             <div className={styles.line}>
               <span className="label" style={{ marginRight: 4 }}>Followed</span>
@@ -57,15 +57,15 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
             </div>
             <div className={styles.hist}>
               <HistoryStrip list={list} />
-              <div className={styles.cap}><span>{list.length} sampled windows, {list[0].anchor.slice(0, 7)} → {w.anchor.slice(0, 7)}</span><Link href={`/windows/?turbine=${encodeURIComponent(turbineKey(w))}`}>list <IconArrow /></Link></div>
+              <div className={styles.cap}><span>{list.length} windows · {list[0].anchor.slice(0, 7)} → {w.anchor.slice(0, 7)}</span><Link href={`/windows/?turbine=${encodeURIComponent(turbineKey(w))}`}>list <IconArrow /></Link></div>
             </div>
           </div>
         ))}
       </div>
       <p className="legend">
-        <span><i style={{ background: "var(--risk)" }} />bar height = P(fault stop) the model gave that window</span>
-        <span><i className="dot" style={{ background: "var(--ink)" }} />a fault stop did follow</span>
-        <span className="muted">Click a bar to open that window.</span>
+        <span><i style={{ background: "var(--risk)" }} />P(fault stop) per sampled window</span>
+        <span><i className="dot" style={{ background: "var(--ink)" }} />a fault stop followed</span>
+        <span className="muted">Click a bar to open it.</span>
       </p>
     </div>
   );

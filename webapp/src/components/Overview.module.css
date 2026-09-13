@@ -1,7 +1,7 @@
 .hero { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 24px; align-items: center; }
 @media (max-width: 1000px) { .hero { grid-template-columns: 1fr; } }
 .hero h1 { font: 600 30px/1.15 var(--fu); letter-spacing: -0.02em; max-width: 22ch; }
-.hero .lead { font-size: 15.5px; color: var(--ink-2); max-width: 60ch; margin-top: 12px; line-height: 1.6; }
+.hero .lead { font-size: 16px; color: var(--ink-2); max-width: 48ch; margin-top: 12px; line-height: 1.55; }
 .hero .cta { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 20px; }
 .steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; }
 @media (max-width: 1100px) { .steps { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
@@ -9,8 +9,8 @@
 .step { padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .step .n { font: 600 11.5px var(--fu); color: var(--accent-ink); letter-spacing: 0.04em; text-transform: uppercase; }
 .step h3 { font: 600 15px/1.3 var(--fu); }
-.step p { color: var(--ink-2); font-size: 13.5px; }
-.step .ex { border-top: 1px solid var(--line); padding-top: 10px; font-size: 13px; color: var(--ink-2); line-height: 1.55; }
+.step p { color: var(--ink-2); font-size: 13.5px; line-height: 1.5; }
+.step .ex { font-size: 13px; color: var(--ink-2); line-height: 1.6; }
 .step .ex code { font: 500 12px var(--fm); background: var(--card-2); border: 1px solid var(--line); padding: 2px 6px; border-radius: 5px; }
 .two { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 @media (max-width: 800px) { .two { grid-template-columns: 1fr; } }

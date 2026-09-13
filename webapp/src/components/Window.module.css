@@ -22,4 +22,5 @@
 .msg { font: 500 12.5px var(--fm); background: var(--card-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
 .kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
 .kv dt { color: var(--ink-3); }
-.kv dd { margin: 0; font-weight: 500; }
+.kv dd { margin: 0; font-weight: 500; min-width: 0; }
+.kv dd .msg { white-space: normal; }

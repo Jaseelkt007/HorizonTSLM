@@ -124,6 +124,7 @@ export interface Faithfulness {
 export interface RunSummary {
   run: string;
   label: string;
+  kind: "tslm" | "xgboost";
   headline: boolean;
   splits: Partial<Record<Split, SplitMetrics>>;
   faithfulness?: Faithfulness;
@@ -136,8 +137,24 @@ export interface Baseline {
   test_b: { auroc: number; recall_at_10far: number; macro_f1: number };
 }
 
+export interface CI {
+  point: number;
+  ci95: [number, number];
+  diff_vs_headline?: { mean: number; ci95: [number, number]; p_better: number };
+}
+
+/** Paired bootstrap on Kelmarsh (docs/results/bootstrap/test_b.json), keyed by run folder. */
+export interface Bootstrap {
+  split: string;
+  n_windows: number;
+  n_pos: number;
+  B: number;
+  models: Record<string, { auroc: CI; r10: CI }>;
+}
+
 export interface ResultsSummary {
   runs: RunSummary[];
+  bootstrap: Bootstrap | null;
   floor: { label: string; auroc: number; recall_at_10far: number };
   baselines: Baseline[];
 }

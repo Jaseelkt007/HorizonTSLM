@@ -67,7 +67,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
       <div className={`${styles.grid} ${styles.stretch}`}>
         <div className="card">
           <div className="card-h">
-            <div><h3>What the model saw</h3><span className="hint">144 ten-minute samples × 19 channels, ending at &ldquo;now&rdquo;. Nothing to the right of it is an input.</span></div>
+            <div><h3>What the model saw</h3><span className="hint">24 h · 10-minute means · nothing after &ldquo;now&rdquo; is an input</span></div>
             <p className="legend">
               <span><i style={{ background: "var(--band)" }} />last hour</span>
               <span><i style={{ background: "var(--future)", border: "1px solid var(--accent-line)" }} />asked horizon</span>
@@ -79,7 +79,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
           </div>
         </div>
         <div className={`card ${styles.chanCard}`}>
-          <div className="card-h"><h3>Channels</h3><span className="hint">10-minute means · click to chart</span></div>
+          <div className="card-h"><h3>Channels</h3><span className="hint">click to chart</span></div>
           <ChannelList meta={meta} channels={w.channels} cited={cited} pinned={pinned} onToggle={toggle} />
         </div>
       </div>
@@ -89,9 +89,9 @@ export default function WindowView({ w, meta, prev, next }: Props) {
           <div className="card-h"><h3>The model&apos;s answer</h3><span className="hint">{q === "t1" ? "asked before the stop" : "asked after the stop"}</span></div>
           <p className={styles.q}>
             {q === "t1" ? (
-              <><b>Question.</b> The turbine is currently {w.state === "producing" ? "producing" : "idle in low wind"}. Will a fault-related stop begin within the next <b>{w.horizon_h} hours</b>, and if so in which subsystem?</>
+              <><b>Asked:</b> will a fault stop begin within the next <b>{w.horizon_h} h</b>? Which subsystem?</>
             ) : (
-              <><b>Question.</b> A status event began about one hour after the end of this window and stopped the turbine. What do the signals show, and which subsystem was it?</>
+              <><b>Asked:</b> a stop began about one hour after this window. What do the signals show? Which subsystem?</>
             )}
           </p>
           <div className="card-b">
@@ -102,7 +102,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
               <VerdictChip right={right} long />
             </div>
             <div className={styles.tally}>
-              <span><b>{nOk} of {claims.length}</b> numbers verified against the window</span>
+              <span><b>{nOk} of {claims.length}</b> numbers verified</span>
               <span className="legend">
                 <span><i style={{ background: "var(--good)" }} />verified</span>
                 <span><i style={{ background: "var(--crit)" }} />does not match</span>
@@ -118,7 +118,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                 <div className="label">P(fault stop within {w.horizon_h} h)</div>
                 <div className={`${styles.big} num`} style={{ marginTop: 6 }}>{fmt(w.score, 2)}</div>
                 <div className="meter" style={{ marginTop: 10 }} role="img" aria-label={pct(w.score)}><i style={{ width: `${Math.round(w.score * 100)}%` }} /></div>
-                <p className={styles.note} style={{ marginTop: 6 }}>Yes-versus-no likelihood after the model&apos;s own reasoning; near-binary by construction.</p>
+
               </div>
               <div>
                 <div className="label" style={{ marginBottom: 8 }}>Subsystem probabilities</div>
@@ -127,31 +127,34 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                     <Row key={c} name={cls(c)} gold={c === w.gold} p={p} />
                   ))}
                 </div>
-                {w.gold !== "none" && <p className={styles.note} style={{ marginTop: 6 }}>Bold: the subsystem that actually stopped.</p>}
+                {w.gold !== "none" && <p className={styles.note} style={{ marginTop: 6 }}>Bold = what actually stopped.</p>}
               </div>
             </>
           ) : (
-            <dl className={styles.kv}>
-              <dt>Model&apos;s subsystem</dt><dd>{cls(label || "?")}</dd>
-              <dt>Alarm log</dt><dd>{cls(w.gold)}</dd>
-              <dt>Message</dt><dd className="mono">{o.message ?? "–"}</dd>
-            </dl>
+            <div>
+              <div className="label">Subsystem named</div>
+              <div className={styles.big} style={{ marginTop: 6, fontSize: 22 }}>{cls(label || "?")}</div>
+            </div>
           )}
           <div>
             <div className="label" style={{ marginBottom: 8 }}>What actually happened</div>
-            <p className={styles.outcome}>
-              {w.gold === "none" ? (
-                <>No fault-class stop began in the next {w.horizon_h} h. The right answer was <span className={styles.msg}>Answer: no</span>.</>
-              ) : (
-                <>
-                  The controller logged <span className={styles.msg}>{o.message ?? ""}</span> <b>{dur(o.lead_time_min)}</b> after the end of this window
-                  {o.duration_h != null && <>, stopping the turbine for {o.duration_h < 1 ? `${Math.round(o.duration_h * 60)} min` : `${fmt(o.duration_h, 1)} h`}</>}.
-                  Subsystem: <b>{cls(w.gold)}</b>.
-                </>
-              )}
-            </p>
+            {w.gold === "none" ? (
+              <dl className={styles.kv}>
+                <dt>Next {w.horizon_h} h</dt><dd>no fault stop</dd>
+                <dt>Right answer</dt><dd><span className={styles.msg}>Answer: no</span></dd>
+              </dl>
+            ) : (
+              <>
+                <div style={{ marginBottom: 8 }}><span className={styles.msg}>{o.message ?? ""}</span></div>
+                <dl className={styles.kv}>
+                  <dt>Began</dt><dd>+{dur(o.lead_time_min)} after the window</dd>
+                  {o.duration_h != null && <><dt>Stopped for</dt><dd>{o.duration_h < 1 ? `${Math.round(o.duration_h * 60)} min` : `${fmt(o.duration_h, 1)} h`}</dd></>}
+                  <dt>Subsystem</dt><dd>{cls(w.gold)}</dd>
+                </dl>
+              </>
+            )}
           </div>
-          <Link href="/results/" className="btn sm" style={{ alignSelf: "flex-start" }}>How often is it right? <IconArrow /></Link>
+          <Link href="/results/" className="btn sm" style={{ alignSelf: "flex-start" }}>Results <IconArrow /></Link>
         </div>
       </div>
     </div>

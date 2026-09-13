@@ -53,8 +53,8 @@ export default function ChannelList({ meta, channels, cited, pinned, onToggle }:
         ))}
       </div>
       <div className={styles.foot}>
-        <span>Click a channel to chart it (up to {MAX_PINNED}).</span>
-        <span><i className={styles.cited} style={{ display: "inline-block", marginRight: 5, verticalAlign: 1 }} />cited in the explanation</span>
+        <span>Up to {MAX_PINNED} in the chart.</span>
+        <span><i className={styles.cited} style={{ display: "inline-block", marginRight: 5, verticalAlign: 1 }} />cited in the answer</span>
       </div>
     </div>
   );

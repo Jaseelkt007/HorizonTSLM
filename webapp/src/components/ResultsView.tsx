@@ -4,31 +4,31 @@ import { useState } from "react";
 
 import { cls, fmt, pct } from "@/lib/format";
 import { SPLITS, SPLIT_NAME } from "@/lib/labels";
-import type { ResultsSummary, RunSummary, Split } from "@/lib/types";
+import type { CI, ResultsSummary, RunSummary, Split } from "@/lib/types";
 
 import styles from "./Results.module.css";
 
 type Horizon = "all" | "1" | "3" | "6";
 const HORIZONS: [Horizon, string][] = [["all", "pooled"], ["1", "1 h ahead"], ["3", "3 h ahead"], ["6", "6 h ahead"]];
 
+const ci = (c: CI | undefined, d = 2) => (c ? `${fmt(c.point, d)} [${fmt(c.ci95[0], d)}, ${fmt(c.ci95[1], d)}]` : "–");
+
 export default function ResultsView({ results }: { results: ResultsSummary }) {
   const runs = results.runs;
   const head = runs.find((r) => r.headline) ?? runs[runs.length - 1];
-  const base = runs.find((r) => r.run === "t1_flamingo_llama1b") ?? runs[0];
+  const xgb = runs.find((r) => r.run === "xgboost_sensors_only") ?? runs.find((r) => r.kind === "xgboost");
+  const base = xgb ?? runs.find((r) => r.run === "t1_flamingo_llama1b") ?? runs[0];
   return (
     <div className="page">
       <div className="pagehead">
         <div>
           <h1>Results</h1>
-          <p className="sub">
-            Every model on the same held-out windows. Val: unseen turbines on the training farm. Test A: the training farm in years the model never saw.
-            Test B: Kelmarsh, a farm and turbine type it never saw. Recall is measured at a 10 % false-alarm rate; subsystem accuracy is over the windows a
-            fault stop actually followed.
-          </p>
+          <p className="sub">Same held-out windows, one scoring harness. Headline metric: recall at 10 % false alarms.</p>
         </div>
       </div>
-      <Tiles head={head} base={base} results={results} />
+      <Tiles head={head} xgb={xgb} results={results} />
       <MainTable results={results} />
+      <Bootstrap results={results} />
       <ClassRecall head={head} base={base} />
       <FaithTable runs={runs} />
       <ConfusionMatrix head={head} />
@@ -36,23 +36,31 @@ export default function ResultsView({ results }: { results: ResultsSummary }) {
   );
 }
 
-function Tiles({ head, base, results }: { head: RunSummary; base: RunSummary; results: ResultsSummary }) {
-  const hb = head.splits.test_b, bb = base.splits.test_b;
-  const xgb = results.baselines.find((b) => /sensor statistics/.test(b.label));
+function Tiles({ head, xgb, results }: { head: RunSummary; xgb?: RunSummary; results: ResultsSummary }) {
+  const hb = head.splits.test_b;
   const f = head.faithfulness;
-  if (!hb || !bb) return null;
+  const bs = results.bootstrap?.models;
+  const hciR = bs?.[head.run]?.r10;
+  const xciR = xgb ? bs?.[xgb.run]?.r10 : undefined;
+  const gain = xciR?.diff_vs_headline ? { mean: -xciR.diff_vs_headline.mean, lo: -xciR.diff_vs_headline.ci95[1], hi: -xciR.diff_vs_headline.ci95[0], p: xciR.diff_vs_headline.p_better } : null;
+  if (!hb) return null;
   return (
     <div className="kpis">
-      <div className="card kpi"><span className="l">Recall at 10 % false alarms · unseen farm</span><span className="v num">{fmt(hb.recall_at_10far, 3)}</span><span className="c">headline model on {hb.n_pos} Kelmarsh stops · label-only Flamingo {fmt(bb.recall_at_10far, 3)}{xgb ? ` · XGBoost sensor statistics ${fmt(xgb.test_b.recall_at_10far, 3)}` : ""}</span></div>
-      <div className="card kpi"><span className="l">Subsystem named correctly · unseen farm</span><span className="v num">{pct(hb.subsystem_acc)}</span><span className="c">over the {hb.n_pos} windows a fault stop followed · label-only Flamingo {pct(bb.subsystem_acc)}{hb.t3 ? ` · asked after the stop ${pct(hb.t3.subsystem_acc)}` : ""}</span></div>
-      <div className="card kpi"><span className="l">Numbers in the explanation that verify</span><span className="v num">{f ? pct(f.claim_precision) : "–"}</span><span className="c">{f ? `${f.claims.toLocaleString()} numeric claims in ${f.n_texts.toLocaleString()} explanations, each recomputed from its window` : ""}</span></div>
-      <div className="card kpi"><span className="l">Explanations with a wrong number</span><span className="v num">{f ? pct(f.texts_with_wrong_claim) : "–"}</span><span className="c">{f ? `conclusion agrees with the answer line in ${pct(f.conclusion_consistent)} of texts` : ""}</span></div>
+      <div className="card kpi"><span className="l">Recall at 10 % false alarms · unseen farm</span><span className="v num">{fmt(hb.recall_at_10far, 2)}</span><span className="c">{hciR ? `95 % CI ${fmt(hciR.ci95[0], 2)}–${fmt(hciR.ci95[1], 2)} · ` : ""}{hb.n_pos} stops</span></div>
+      {xgb && xgb.splits.test_b && (
+        <div className="card kpi"><span className="l">Gain over XGBoost · unseen farm</span><span className="v num">{gain ? `+${fmt(gain.mean, 2)}` : `+${fmt((hb.recall_at_10far ?? 0) - (xgb.splits.test_b.recall_at_10far ?? 0), 2)}`}</span><span className="c">{gain ? `recall, 95 % CI ${fmt(gain.lo, 2)}–${fmt(gain.hi, 2)} · p ${gain.p < 0.001 ? "< 0.001" : "= " + fmt(gain.p, 3)}` : "recall at 10 % false alarms"}</span></div>
+      )}
+      <div className="card kpi"><span className="l">Subsystem named correctly · unseen farm</span><span className="v num">{pct(hb.subsystem_acc)}</span><span className="c">{hb.t3 ? `${pct(hb.t3.subsystem_acc)} when asked after the stop` : ""}</span></div>
+      <div className="card kpi"><span className="l">Numbers in the explanation that verify</span><span className="v num">{f ? pct(f.claim_precision) : "–"}</span><span className="c">{f ? `${f.claims.toLocaleString()} claims · ${pct(f.texts_with_wrong_claim)} of texts have a wrong number` : ""}</span></div>
     </div>
   );
 }
 
 function MainTable({ results }: { results: ResultsSummary }) {
   const [hz, setHz] = useState<Horizon>("all");
+  const [split, setSplit] = useState<Split>("test_b");
+  const any = results.runs.find((r) => r.splits[split])?.splits[split];
+  const nInfo = any ? (hz === "all" ? `${any.n.toLocaleString()} windows · ${any.n_pos.toLocaleString()} stops` : any.horizons?.[hz] ? `${any.horizons[hz].n.toLocaleString()} windows · ${any.horizons[hz].n_pos.toLocaleString()} stops` : "") : "";
   const cellsFor = (r: RunSummary, s: Split) => {
     const sp = r.splits[s];
     if (!sp) return null;
@@ -66,49 +74,65 @@ function MainTable({ results }: { results: ResultsSummary }) {
       <div className="card">
         <div className="card-h">
           <div className={styles.ctl}>
-            <span>Horizon</span>
+            <div className="seg" role="group" aria-label="Split">{SPLITS.map((s) => <button key={s} type="button" aria-pressed={split === s} onClick={() => setSplit(s)}>{SPLIT_NAME[s]}</button>)}</div>
             <div className="seg" role="group" aria-label="Horizon">{HORIZONS.map(([k, l]) => <button key={k} type="button" aria-pressed={hz === k} onClick={() => setHz(k)}>{l}</button>)}</div>
           </div>
-          <span className="hint">{hz === "all" ? "all three horizons pooled" : `windows asked ${hz} h ahead · XGBoost rows and subsystem accuracy are pooled only`}</span>
+          <span className="hint">{nInfo}{hz !== "all" ? " · subsystem accuracy pooled only" : ""}</span>
         </div>
         <div className="table-wrap">
           <table className={`data ${styles.r}`}>
             <thead>
-              <tr className={styles.top}><th>Model</th>{SPLITS.map((s) => <th key={s} colSpan={4} className={styles.gap}>{SPLIT_NAME[s]}</th>)}</tr>
-              <tr><th />{SPLITS.map((s) => <Group key={s}><th className={`${styles.gap} ${styles.rr}`}>AUROC</th><th className={styles.rr}>recall @10 % FAR</th><th className={styles.rr}>hard F1</th><th className={styles.rr}>subsystem acc</th></Group>)}</tr>
+              <tr><th>Model</th><th className={styles.rr}>AUROC</th><th className={styles.rr}>recall @10 % FAR</th><th className={styles.rr}>hard F1</th><th className={styles.rr}>subsystem acc</th><th className={styles.rr}>numbers that verify</th></tr>
             </thead>
             <tbody>
-              {results.runs.map((r) => (
+              {results.runs.map((r) => { const m = cellsFor(r, split); const fp = r.faithfulness?.per_split?.[split]?.claim_precision; return (
                 <tr key={r.run} className={r.headline ? "headline" : undefined}>
-                  <td>{r.label}{r.headline && <span className="chip accent" style={{ marginLeft: 8 }}>headline</span>}</td>
-                  {SPLITS.map((s) => { const m = cellsFor(r, s); return <Group key={s}><td className={`${styles.gap} ${styles.rr}`}>{m ? fmt(m.auroc, 3) : "–"}</td><td className={styles.rr}>{m ? fmt(m.recall, 3) : "–"}</td><td className={styles.rr}>{m ? fmt(m.f1, 3) : "–"}</td><td className={styles.rr}>{m && m.acc != null ? fmt(m.acc, 2) : "–"}</td></Group>; })}
+                  <td>{r.label}{r.headline && <span className="chip accent" style={{ marginLeft: 8 }}>demo model</span>}{r.kind === "xgboost" && <span className="chip neutral" style={{ marginLeft: 8 }}>no explanation</span>}</td>
+                  <td className={styles.rr}>{m ? fmt(m.auroc, 3) : "–"}</td><td className={styles.rr}>{m ? fmt(m.recall, 3) : "–"}</td><td className={styles.rr}>{m ? fmt(m.f1, 3) : "–"}</td><td className={styles.rr}>{m && m.acc != null ? fmt(m.acc, 2) : "–"}</td><td className={styles.rr}>{fp != null ? pct(fp) : "–"}</td>
                 </tr>
-              ))}
-              {results.baselines.map((b) => (
-                <tr key={b.label}>
-                  <td>{b.label}<span className="chip neutral" style={{ marginLeft: 8 }}>no explanation</span></td>
-                  <td className={`${styles.gap} ${styles.rr}`}>–</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td>
-                  {(["test_a", "test_b"] as const).map((s) => <Group key={s}><td className={`${styles.gap} ${styles.rr}`}>{hz === "all" ? fmt(b[s].auroc, 3) : "–"}</td><td className={styles.rr}>{hz === "all" ? fmt(b[s].recall_at_10far, 3) : "–"}</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td></Group>)}
-                </tr>
-              ))}
+              ); })}
               <tr className="floor">
                 <td>{results.floor.label}</td>
-                {SPLITS.map((s) => <Group key={s}><td className={`${styles.gap} ${styles.rr}`}>{fmt(results.floor.auroc, 3)}</td><td className={styles.rr}>{fmt(results.floor.recall_at_10far, 3)}</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td></Group>)}
+                <td className={styles.rr}>{fmt(results.floor.auroc, 3)}</td><td className={styles.rr}>{fmt(results.floor.recall_at_10far, 3)}</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td><td className={styles.rr}>–</td>
               </tr>
             </tbody>
           </table>
         </div>
       </div>
-      <p className={styles.note}>
-        The headline model&apos;s AUROC uses its near-binary generate-mode score (the yes/no likelihood is conditioned on its own written conclusion), so its
-        ranking metrics understate it; read its recall and F1 columns. Hard F1 is the written yes/no against what followed. XGBoost rows are the conventional
-        baseline on 24 h summary statistics.
-      </p>
+      <p className={styles.note}>Text models&apos; AUROC uses a near-binary score — read their recall and F1. Hard F1: the written yes/no against what followed.</p>
     </section>
   );
 }
 
 function Group({ children }: { children: React.ReactNode }) { return <>{children}</>; }
+
+function Bootstrap({ results }: { results: ResultsSummary }) {
+  const b = results.bootstrap;
+  if (!b) return null;
+  const rows = results.runs.filter((r) => b.models[r.run]);
+  return (
+    <section className="section">
+      <h2>Unseen farm, with confidence intervals</h2>
+      <p className="desc">Paired bootstrap over the {b.n_windows.toLocaleString()} Kelmarsh windows ({b.B.toLocaleString()} resamples). Δ = the model minus the demo model.</p>
+      <div className="card table-wrap">
+        <table className={`data ${styles.r}`}>
+          <thead><tr><th>Model</th><th className={styles.rr}>recall @10 % FAR [95 % CI]</th><th className={styles.rr}>AUROC [95 % CI]</th><th className={styles.rr}>Δ recall [95 % CI]</th><th className={styles.rr}>P(better recall)</th></tr></thead>
+          <tbody>
+            {rows.map((r) => { const m = b.models[r.run]; const d = m.r10.diff_vs_headline; return (
+              <tr key={r.run} className={r.headline ? "headline" : undefined}>
+                <td>{r.label}</td>
+                <td className={styles.rr}>{ci(m.r10)}</td>
+                <td className={styles.rr}>{ci(m.auroc)}</td>
+                <td className={styles.rr}>{d ? `${d.mean >= 0 ? "+" : "−"}${fmt(Math.abs(d.mean), 2)} [${fmt(d.ci95[0], 2)}, ${fmt(d.ci95[1], 2)}]` : "—"}</td>
+                <td className={styles.rr}>{d ? (d.p_better < 0.001 ? "< 0.001" : fmt(d.p_better, 3)) : "—"}</td>
+              </tr>
+            ); })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+  );
+}
 
 function ClassRecall({ head, base }: { head: RunSummary; base: RunSummary }) {
   const [split, setSplit] = useState<Split>("test_b");
@@ -118,12 +142,12 @@ function ClassRecall({ head, base }: { head: RunSummary; base: RunSummary }) {
   const SCALE = 80;
   return (
     <section className="section">
-      <h2>Where the signal is: recall per subsystem</h2>
-      <p className="desc">Grid, yaw and brake stops have no precursor at 10-minute resolution, and the model mostly stays quiet on them. Overspeed does; the thermal classes only partly. Bars are recall at 10 % false alarms; the count is how many such stops the split contains.</p>
+      <h2>Recall per subsystem</h2>
+      <p className="desc">Overspeed has a precursor in 10-minute data; grid, yaw and brake stops mostly do not.</p>
       <div className="card">
         <div className="card-h">
-          <div className={styles.ctl}><span>Split</span><div className="seg" role="group" aria-label="Split">{([["test_b", "Test B · Kelmarsh"], ["test_a", "Test A · Penmanshiel 2020–21"], ["val", "Val"]] as [Split, string][]).map(([k, l]) => <button key={k} type="button" aria-pressed={split === k} onClick={() => setSplit(k)}>{l}</button>)}</div></div>
-          <p className="legend"><span><i style={{ background: "var(--line-2)" }} />label-only Flamingo</span><span><i style={{ background: "var(--accent)" }} />headline model</span></p>
+          <div className={styles.ctl}><span>Split</span><div className="seg" role="group" aria-label="Split">{([["test_b", "Kelmarsh"], ["test_a", "Penmanshiel 2020–21"], ["val", "Val"]] as [Split, string][]).map(([k, l]) => <button key={k} type="button" aria-pressed={split === k} onClick={() => setSplit(k)} disabled={!base.splits[k] && !head.splits[k]}>{l}</button>)}</div></div>
+          <p className="legend"><span><i style={{ background: "var(--line-2)" }} />{base.label}</span><span><i style={{ background: "var(--accent)" }} />demo model</span></p>
         </div>
         <div className={styles.cls}>
           <span className={styles.h}>Subsystem</span><span className={styles.h} style={{ textAlign: "right" }}>stops</span><span className={`${styles.h} ${styles.p}`}>recall at 10 % false alarms</span>
@@ -148,10 +172,10 @@ function FaithTable({ runs }: { runs: RunSummary[] }) {
   return (
     <section className="section">
       <h2>Is the explanation true?</h2>
-      <p className="desc">Every number the model writes is recomputed from the window it was given. Claim precision is the share that match; &ldquo;texts with a wrong number&rdquo; is the share of explanations containing at least one that does not; the last column is how often the written conclusion agrees with the model&apos;s own answer line.</p>
+      <p className="desc">Every number in every explanation, recomputed from its window.</p>
       <div className="card table-wrap">
         <table className={`data ${styles.r}`}>
-          <thead><tr><th>Model</th><th className={styles.rr}>texts</th><th className={styles.rr}>claims per text</th><th className={styles.rr}>claim precision</th><th className={styles.rr}>val</th><th className={styles.rr}>test A</th><th className={styles.rr}>test B</th><th className={styles.rr}>texts with a wrong number</th><th className={styles.rr}>conclusion = answer</th></tr></thead>
+          <thead><tr><th>Model</th><th className={styles.rr}>texts</th><th className={styles.rr}>claims / text</th><th className={styles.rr}>numbers that verify</th><th className={styles.rr}>val</th><th className={styles.rr}>test A</th><th className={styles.rr}>test B</th><th className={styles.rr}>texts with a wrong number</th><th className={styles.rr}>conclusion = answer</th></tr></thead>
           <tbody>
             {fr.map((r) => { const f = r.faithfulness!; const ps = f.per_split ?? {}; return (
               <tr key={r.run} className={r.headline ? "headline" : undefined}>
@@ -175,7 +199,7 @@ function ConfusionMatrix({ head }: { head: RunSummary }) {
   return (
     <section className="section">
       <details className={`card ${styles.more}`}>
-        <summary>Confusion matrix of the headline model on Kelmarsh (rows: what followed, columns: what the model answered)</summary>
+        <summary>Confusion matrix · demo model on Kelmarsh (rows: what followed, columns: what it answered)</summary>
         <div className="table-wrap" style={{ padding: "0 18px 16px" }}>
           <table className={styles.cm}>
             <thead><tr><th className={styles.rh}>followed ↓ · answered →</th>{cm.columns.map((c) => <th key={c}>{short(c)}</th>)}<th>n</th></tr></thead>
