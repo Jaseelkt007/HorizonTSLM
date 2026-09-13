@@ -7,8 +7,6 @@ import {
   LayoutDashboard,
   Wind,
   BarChart2,
-  Play,
-  Pause,
   ChevronDown,
   HelpCircle,
 } from "lucide-react";
@@ -22,10 +20,6 @@ export function Sidebar() {
     setSelectedPlant,
     timeframe,
     setTimeframe,
-    isStreaming,
-    toggleStreaming,
-    streamSpeed,
-    setStreamSpeed,
   } = useStream();
 
   const currentPlant = PLANTS.find((p) => p.id === selectedPlant) || PLANTS[0];
@@ -50,8 +44,6 @@ export function Sidebar() {
 
   const timeframes: { id: Timeframe; label: string }[] = [
     { id: "24h", label: "24h" },
-    { id: "7d", label: "7 Days" },
-    { id: "30d", label: "30 Days" },
   ];
 
   return (
@@ -127,11 +119,16 @@ export function Sidebar() {
             <span>Timeframe</span>
             <span className="text-slate-400">Telemetry</span>
           </div>
-          <div className="grid grid-cols-3 gap-1 bg-[#181c26] p-1 rounded-xl border border-white/[0.04]">
+          <div
+            className="grid gap-1 bg-[#181c26] p-1 rounded-xl border border-white/[0.04]"
+            style={{ gridTemplateColumns: `repeat(${timeframes.length}, minmax(0, 1fr))` }}
+          >
             {timeframes.map((tf) => (
               <button
                 key={tf.id}
+                type="button"
                 onClick={() => setTimeframe(tf.id)}
+                aria-pressed={timeframe === tf.id}
                 className={`py-1 text-xs rounded-lg transition-all ${
                   timeframe === tf.id
                     ? "bg-white text-slate-900 font-semibold shadow-xs"

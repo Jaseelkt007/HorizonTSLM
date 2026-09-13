@@ -19,7 +19,7 @@ export function TurbineVectorVisual({ turbine }: TurbineVectorVisualProps) {
   const isGeneratorFault = turbine.faultSubsystem === "generator";
 
   return (
-    <div className="minimal-card p-6 flex flex-col h-full">
+    <div className="minimal-card p-6 flex flex-col">
       {/* Header */}
       <div className="flex items-center justify-between mb-4">
         <div>

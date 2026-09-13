@@ -84,7 +84,7 @@ export function TurbineDetailView() {
 
         {/* Timeframe Selector Pills */}
         <div className="flex items-center gap-1 bg-[#10131c] p-1 rounded-xl border border-white/[0.06]">
-          {(["24h", "7d", "30d"] as const).map((tf) => (
+          {(["24h"] as const).map((tf) => (
             <button
               key={tf}
               onClick={() => setTimeframe(tf)}
@@ -94,7 +94,7 @@ export function TurbineDetailView() {
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              {tf === "24h" ? "24h" : tf === "7d" ? "7 Days" : "30 Days"}
+              24h
             </button>
           ))}
         </div>
@@ -112,7 +112,7 @@ export function TurbineDetailView() {
         {/* Right Column (7 cols) */}
         <div className="lg:col-span-7 space-y-6">
           <TurbineKPIs turbine={selectedTurbine} />
-          <div className="h-[300px]">
+          <div className="h-[460px]">
             <TurbineTelemetryChart turbine={selectedTurbine} />
           </div>
           <ModelDiagnosticBox turbine={selectedTurbine} />

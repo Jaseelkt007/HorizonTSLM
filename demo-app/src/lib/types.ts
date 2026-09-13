@@ -38,6 +38,9 @@ export interface TurbineInfo {
   farm: string;
   turbNum: number;
   model: string;
+  /** ID of the exact TimeNet record supplied to OpenTSLM at inference time. */
+  sourceWindowId: string;
+  sourceAnchor: string;
   x: number; // Percentage coordinate on farm grid (0 to 100)
   y: number; // Percentage coordinate on farm grid (0 to 100)
   lat: number;

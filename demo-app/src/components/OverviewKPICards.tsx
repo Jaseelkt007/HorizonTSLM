@@ -2,10 +2,10 @@
 
 import React from "react";
 import { useStream } from "../context/StreamContext";
-import { Zap, Activity, Users, AlertTriangle, ArrowUpRight, ArrowDownRight, Wind } from "lucide-react";
+import { Zap, Activity, ArrowUpRight, Wind } from "lucide-react";
 
 export function OverviewKPICards() {
-  const { fleetKPIs, turbines, navigateToTurbine } = useStream();
+  const { fleetKPIs, turbines } = useStream();
 
   const activeAlarms = turbines.filter((t) => t.status !== "normal");
 
@@ -20,15 +20,7 @@ export function OverviewKPICards() {
           <div className="text-2xl font-bold text-white mt-1 tracking-tight">
             {fleetKPIs.totalFleetOutputMW} <span className="text-sm font-normal text-slate-400">MW</span>
           </div>
-          <div className="flex items-center gap-2 mt-1.5">
-            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400">
-              <ArrowUpRight className="w-3 h-3" />
-              {fleetKPIs.trendPct || "+1.40%"}
-            </span>
-            <span className="text-[11px] text-slate-400">
-              {fleetKPIs.comparisonLabel || "Since yesterday"}
-            </span>
-          </div>
+          <div className="mt-1.5 text-[11px] text-slate-400">Mean across the selected 24-hour SCADA windows</div>
         </div>
 
         <div className="w-10 h-10 rounded-full bg-blue-600/10 flex items-center justify-center text-blue-400">
@@ -40,10 +32,10 @@ export function OverviewKPICards() {
       <div className="minimal-card p-5 flex items-center justify-between">
         <div>
           <span className="text-xs font-medium text-slate-400">
-            Fleet Availability
+            Units represented
           </span>
           <div className="text-2xl font-bold text-white mt-1 tracking-tight">
-            {fleetKPIs.fleetAvailabilityPct}%
+            {turbines.length}
           </div>
           <div className="flex items-center gap-2 mt-1.5">
             <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/15 text-emerald-400">
@@ -96,8 +88,7 @@ export function OverviewKPICards() {
 
       {/* Card 4: Active Alarms / Weather */}
       <div
-        onClick={() => (activeAlarms.length > 0 ? navigateToTurbine(activeAlarms[0].id) : undefined)}
-        className="minimal-card p-5 flex items-center justify-between cursor-pointer hover:border-rose-500/30 transition-all"
+        className="minimal-card p-5 flex items-center justify-between"
       >
         <div>
           <span className="text-xs font-medium text-slate-400">
@@ -127,7 +118,7 @@ export function OverviewKPICards() {
             {fleetKPIs.weatherForecast.windDirection}
           </div>
           <div className="text-[10px] text-slate-400 mt-0.5">
-            Gusts: {fleetKPIs.weatherForecast.gustSpeed} m/s
+            Dataset window mean
           </div>
         </div>
       </div>

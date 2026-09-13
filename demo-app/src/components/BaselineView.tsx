@@ -2,11 +2,7 @@
 
 import React, { useState } from "react";
 import { useStream } from "../context/StreamContext";
-import {
-  PLANTS,
-  getFarmBenchmarks,
-  ANOMALY_CASE_STUDIES,
-} from "../lib/mock-data";
+import { PLANTS, getFarmBenchmarks, getAnomalyCaseStudies } from "../lib/mock-data";
 import {
   BarChart2,
   CheckCircle2,
@@ -29,7 +25,7 @@ export function BaselineView() {
     setSelectedPlant,
   } = useStream();
 
-  const [selectedCaseId, setSelectedCaseId] = useState<string>("case-km-01");
+  const [selectedCaseId, setSelectedCaseId] = useState<string>("");
   const [selectedWindowIdx, setSelectedWindowIdx] = useState<number>(0);
 
   const benchmarks = getFarmBenchmarks(selectedPlant);
@@ -39,9 +35,8 @@ export function BaselineView() {
   const activeWindow =
     evaluatedWindows[selectedWindowIdx] || evaluatedWindows[0] || null;
 
-  const activeCase =
-    ANOMALY_CASE_STUDIES.find((c) => c.id === selectedCaseId) ||
-    ANOMALY_CASE_STUDIES[0];
+  const caseStudies = getAnomalyCaseStudies(selectedPlant);
+  const activeCase = caseStudies.find((c) => c.id === selectedCaseId) || caseStudies[0];
 
   return (
     <div className="space-y-6 p-8 max-w-[1500px] mx-auto">
@@ -421,7 +416,7 @@ export function BaselineView() {
           </div>
 
           <div className="flex items-center gap-1 bg-[#10131c] p-1 rounded-full border border-white/[0.06] text-xs overflow-x-auto">
-            {ANOMALY_CASE_STUDIES.map((c) => (
+            {caseStudies.map((c) => (
               <button
                 key={c.id}
                 onClick={() => setSelectedCaseId(c.id)}
@@ -437,8 +432,8 @@ export function BaselineView() {
           </div>
         </div>
 
-        {/* Selected Case Study Details */}
-        <div className="p-5 rounded-2xl bg-[#10131c] border border-white/[0.04] space-y-4">
+        {/* Selected saved inference window */}
+        {activeCase && <div className="p-5 rounded-2xl bg-[#10131c] border border-white/[0.04] space-y-4">
           <div className="flex flex-wrap items-center justify-between gap-4">
             <div>
               <h4 className="text-sm font-bold text-white">
@@ -451,7 +446,7 @@ export function BaselineView() {
 
             <div className="flex items-center gap-3 text-xs">
               <div className="px-3 py-1.5 rounded-xl bg-white/[0.04] border border-white/[0.06]">
-                <span className="text-[10px] text-slate-400 block">Baseline Lead Time</span>
+                <span className="text-[10px] text-slate-400 block">Baseline lead time</span>
                 <span className="text-slate-200 font-semibold">{activeCase.heuristicLeadTime}</span>
               </div>
               <div className="px-3 py-1.5 rounded-xl bg-blue-600/15 border border-blue-500/30">
@@ -459,15 +454,13 @@ export function BaselineView() {
                 <span className="text-blue-300 font-bold">{activeCase.tslmLeadTime}</span>
               </div>
               <div className="px-3 py-1.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30">
-                <span className="text-[10px] text-emerald-400 block">Advantage</span>
+                <span className="text-[10px] text-emerald-400 block">Comparison</span>
                 <span className="text-emerald-300 font-bold">{activeCase.leadTimeDelta}</span>
               </div>
             </div>
           </div>
 
-          <p className="text-xs text-slate-300 leading-relaxed">
-            {activeCase.description}
-          </p>
+          <p className="text-xs text-slate-300 leading-relaxed">Recorded alarm: {activeCase.description}</p>
 
           <div className="p-3.5 rounded-xl bg-white/[0.02] border border-white/[0.04] text-xs">
             <span className="text-[11px] text-slate-400 font-semibold block mb-1">
@@ -478,7 +471,7 @@ export function BaselineView() {
             </p>
           </div>
 
-          <div className="pt-2 border-t border-white/[0.06]">
+          {activeCase.physicsSignatures.length > 0 && <div className="pt-2 border-t border-white/[0.06]">
             <span className="text-[11px] text-slate-400 font-medium block mb-2">
               Observed SCADA Physics Signatures:
             </span>
@@ -493,8 +486,8 @@ export function BaselineView() {
                 </div>
               ))}
             </div>
-          </div>
-        </div>
+          </div>}
+        </div>}
       </div>
     </div>
   );

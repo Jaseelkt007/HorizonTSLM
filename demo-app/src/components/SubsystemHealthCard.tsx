@@ -56,13 +56,7 @@ export function SubsystemHealthCard({ turbine: propTurbine }: SubsystemHealthCar
           <div className="text-3xl font-bold text-white tracking-tight mt-0.5">
             {turbine.bearingTemp} °C
           </div>
-          <div className="flex items-center gap-1.5 mt-1 text-xs">
-            <span className={turbine.sigmaDivergence > 1.5 ? "text-rose-400 font-medium flex items-center" : "text-emerald-400 font-medium flex items-center"}>
-              <ArrowUpRight className="w-3.5 h-3.5 mr-0.5" />
-              +{turbine.sigmaDivergence}σ Divergence
-            </span>
-            <span className="text-slate-400">on Turbine {turbine.id}</span>
-          </div>
+          <div className="mt-1 text-xs text-slate-400">Latest 10-minute value in the selected SCADA window</div>
         </div>
 
         {/* Progress Bars */}

@@ -44,7 +44,7 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
               <span className="text-xs font-semibold text-white">
                 {turbine.errorCode || "ERR-MB-4029: Bearing Thermal Excursion"}
               </span>
-              <span className="text-xs text-slate-400">Duration: 4h 12m</span>
+              <span className="text-xs text-slate-400">Source: saved SCADA window</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3 text-xs pt-1">
@@ -55,8 +55,8 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
                 </span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Divergence</span>
-                <span className="text-rose-400 font-medium">+{turbine.sigmaDivergence}σ from normal</span>
+                <span className="text-slate-400 text-[11px] block">Source window</span>
+                <span className="text-rose-400 font-medium">{(turbine as any).sourceWindowId}</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Predicted Lead Time</span>
@@ -70,8 +70,7 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
           </div>
 
           <div className="text-xs text-slate-400 flex items-center justify-between px-1">
-            <span>Prior 30 days: 0 hard trip lockouts</span>
-            <span className="text-emerald-400">Early precursor flagged</span>
+            <span>Prediction and event labels are from the selected source window.</span>
           </div>
         </div>
       ) : (

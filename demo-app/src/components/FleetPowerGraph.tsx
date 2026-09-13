@@ -25,6 +25,9 @@ export function FleetPowerGraph() {
   }, [timeframe, selectedPlant]);
 
   const latestPoint = data[data.length - 1] || data[0];
+  const rangeLabel = data.length
+    ? `${data[0].timeLabel} – ${latestPoint.timeLabel}`
+    : "No dataset samples available";
 
   const xAxisInterval = timeframe === "7d" ? 0 : timeframe === "24h" ? 5 : 3;
 
@@ -38,15 +41,12 @@ export function FleetPowerGraph() {
               Fleet Power Output
             </h3>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              {timeframe === "24h" ? "24h High-Res" : timeframe === "7d" ? "7-Day Run" : "30-Day Corpus"}
+              24h SCADA window
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            {timeframe === "24h"
-              ? "24-hour continuous 10-min SCADA telemetry versus expected power curve"
-              : timeframe === "7d"
-              ? "7-day consecutive SCADA trajectory during storm event (Jan 15 – Jan 21, 2018)"
-              : "30-day historical SCADA generation profile (Daily fleet aggregation)"}
+            24-hour SCADA aggregate (10-minute bins)
+            <span className="ml-1 text-slate-500">{rangeLabel}</span>
           </p>
         </div>
 
@@ -59,11 +59,7 @@ export function FleetPowerGraph() {
 
           {/* Timeframe Pill Selector */}
           <div className="flex items-center gap-1 bg-[#10131b] p-1 rounded-full border border-white/[0.06]">
-            {[
-              { id: "24h" as const, label: "24h" },
-              { id: "7d" as const, label: "7 Days" },
-              { id: "30d" as const, label: "30 Days" },
-            ].map((tab) => (
+            {[{ id: "24h" as const, label: "24h" }].map((tab) => (
               <button
                 key={tab.id}
                 onClick={() => setTimeframe(tab.id)}
@@ -83,7 +79,11 @@ export function FleetPowerGraph() {
       {/* Chart Canvas */}
       <div className="flex-1 w-full min-h-[260px]">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+          <ComposedChart
+            key={`${selectedPlant}-${timeframe}`}
+            data={data}
+            margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+          >
             <defs>
               <linearGradient id="areaGlow" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.12} />
@@ -186,7 +186,7 @@ export function FleetPowerGraph() {
         </div>
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <span>Expected Theoretical Band</span>
+          <span>Expected output (SCADA power-curve residual)</span>
         </div>
         <div className="flex items-center gap-4 ml-auto text-slate-400">
           <span>Fleet Mean: <strong className="text-slate-200">{fleetKPIs.totalFleetOutputMW} MW</strong></span>

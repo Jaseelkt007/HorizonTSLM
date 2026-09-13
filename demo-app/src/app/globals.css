@@ -50,3 +50,17 @@ body {
   transition: all 0.15s ease;
   border-radius: 9999px;
 }
+
+@keyframes turbine-spin { to { transform: rotate(360deg); } }
+@keyframes wind-drift { 50% { transform: translateX(3px); } }
+
+.turbine-rotor { animation: turbine-spin linear infinite; }
+.turbine-rotor i {
+  position: absolute; left: 50%; top: 50%; width: 2px; height: 44%;
+  transform-origin: 50% 0; border-radius: 999px; background: rgba(224, 242, 254, 0.9);
+}
+.turbine-rotor i:nth-child(1) { transform: rotate(0deg) translate(-50%, -1px); }
+.turbine-rotor i:nth-child(2) { transform: rotate(120deg) translate(-50%, -1px); }
+.turbine-rotor i:nth-child(3) { transform: rotate(240deg) translate(-50%, -1px); }
+.wind-arrow { animation: wind-drift 1.2s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .turbine-rotor, .wind-arrow { animation: none; } }

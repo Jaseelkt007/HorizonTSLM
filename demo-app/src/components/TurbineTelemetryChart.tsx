@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useMemo } from "react";
-import { TurbineInfo } from "../lib/types";
+import { TelemetryPoint, TurbineInfo } from "../lib/types";
 import { useStream } from "../context/StreamContext";
 import { generateTelemetrySeries } from "../lib/mock-data";
 import {
@@ -22,21 +22,31 @@ interface TurbineTelemetryChartProps {
 type ChannelMode = "temperature" | "power" | "vibration";
 
 export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
-  const { timeframe, tickOffset } = useStream();
+  const { timeframe } = useStream();
   const [channelMode, setChannelMode] = useState<ChannelMode>("temperature");
 
+  // Each point is a value exported from the selected turbine's raw 10-minute
+  // SCADA window. Do not fall back to fabricated series when a channel is
+  // unavailable: the empty state below makes that visible to the operator.
   const data = useMemo(() => {
-    return generateTelemetrySeries(turbine.id, timeframe, turbine.farm);
-  }, [turbine.id, timeframe, turbine.farm]);
+    const points = generateTelemetrySeries(turbine.id, timeframe, turbine.farm);
+    const requiredKey: keyof TelemetryPoint =
+      channelMode === "temperature"
+        ? "bearingTemp"
+        : channelMode === "power"
+          ? "activePower"
+          : "vibrationIndex";
+    return points.filter((point) => Number.isFinite(point[requiredKey]));
+  }, [channelMode, turbine.id, timeframe, turbine.farm]);
 
   const isAnomalyTurbine = turbine.status !== "normal";
   const xAxisInterval = timeframe === "7d" ? 0 : timeframe === "24h" ? 5 : 3;
 
   return (
-    <div className="minimal-card p-6 flex flex-col h-full">
+    <div className="minimal-card p-6 flex flex-col h-full min-h-0 overflow-hidden">
       {/* Header with Title and Segmented Channel Pills */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
-        <div>
+      <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-4 shrink-0">
+        <div className="min-w-0">
           <div className="flex items-center gap-2">
             <h3 className="text-base font-bold text-white tracking-tight">
               Sensor Telemetry Bands
@@ -46,12 +56,12 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-0.5">
-            Continuous 10-minute ground-truth SCADA against expected normal envelope
+            Continuous 10-minute SCADA values; expected power is the dataset power-curve residual derivation
           </p>
         </div>
 
         {/* Channel Selector Pills */}
-        <div className="flex items-center gap-1 bg-[#10131c] p-1 rounded-full border border-white/[0.06] text-xs">
+        <div className="flex shrink-0 items-center gap-1 bg-[#10131c] p-1 rounded-full border border-white/[0.06] text-xs">
           {[
             { id: "temperature" as const, label: "Temperature (°C)" },
             { id: "power" as const, label: "Power Output (kW)" },
@@ -60,7 +70,7 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
             <button
               key={ch.id}
               onClick={() => setChannelMode(ch.id)}
-              className={`px-3 py-1 rounded-full font-medium transition-all ${
+              className={`whitespace-nowrap px-3 py-1 rounded-full font-medium transition-all ${
                 channelMode === ch.id
                   ? "bg-blue-600 text-white shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
@@ -73,9 +83,18 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
       </div>
 
       {/* Chart Canvas */}
-      <div className="flex-1 w-full min-h-[220px]">
-        <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={data} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+      <div className="flex-1 min-h-[220px] w-full">
+        {data.length === 0 ? (
+          <div className="flex h-full items-center justify-center rounded-xl border border-dashed border-white/[0.08] text-xs text-slate-400">
+            No {channelMode} readings are available in this raw SCADA window.
+          </div>
+        ) : (
+          <ResponsiveContainer width="100%" height="100%" minHeight={220}>
+            <ComposedChart
+              key={`${turbine.farm}-${turbine.id}-${timeframe}`}
+              data={data}
+              margin={{ top: 10, right: 10, left: -20, bottom: 0 }}
+            >
             <defs>
               <linearGradient id="envelopeGradientMinimal" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#38bdf8" stopOpacity={0.12} />
@@ -102,7 +121,7 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                   fontSize={11}
                   tickLine={false}
                   axisLine={false}
-                  domain={[20, 100]}
+                  domain={["auto", "auto"]}
                   tick={{ fill: "#64748b" }}
                   unit="°C"
                 />
@@ -120,10 +139,6 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                             <span className="text-white font-bold">{p.bearingTemp} °C</span>
                           </div>
                           <div className="flex justify-between gap-6">
-                            <span className="text-slate-400">Expected Normal:</span>
-                            <span className="text-slate-300">{p.bearingTempExpected} °C</span>
-                          </div>
-                          <div className="flex justify-between gap-6">
                             <span className="text-amber-400">Gearbox Temp:</span>
                             <span className="text-slate-300">{p.gearboxTemp} °C</span>
                           </div>
@@ -132,21 +147,6 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                     }
                     return null;
                   }}
-                />
-                <Area
-                  type="monotone"
-                  dataKey="bearingUpperBand"
-                  stroke="transparent"
-                  fill="url(#envelopeGradientMinimal)"
-                />
-                <Line
-                  type="monotone"
-                  dataKey="bearingTempExpected"
-                  stroke="#f59e0b"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  dot={false}
-                  name="Expected Thermal Band"
                 />
                 <Line
                   type="monotone"
@@ -194,12 +194,6 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                     return null;
                   }}
                 />
-                <Area
-                  type="monotone"
-                  dataKey="powerUpperBand"
-                  stroke="transparent"
-                  fill="url(#envelopeGradientMinimal)"
-                />
                 <Line
                   type="monotone"
                   dataKey="expectedPower"
@@ -245,24 +239,11 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                             <span className="text-purple-400 font-medium">Vibration Index:</span>
                             <span className="text-white font-bold">{p.vibrationIndex} g</span>
                           </div>
-                          <div className="flex justify-between gap-6">
-                            <span className="text-slate-400">Normal Baseline:</span>
-                            <span className="text-slate-300">{p.vibrationExpected} g</span>
-                          </div>
                         </div>
                       );
                     }
                     return null;
                   }}
-                />
-                <Line
-                  type="monotone"
-                  dataKey="vibrationExpected"
-                  stroke="#64748b"
-                  strokeWidth={1.5}
-                  strokeDasharray="4 4"
-                  dot={false}
-                  name="Baseline"
                 />
                 <Line
                   type="monotone"
@@ -275,20 +256,23 @@ export function TurbineTelemetryChart({ turbine }: TurbineTelemetryChartProps) {
                 />
               </>
             )}
-          </ComposedChart>
-        </ResponsiveContainer>
+            </ComposedChart>
+          </ResponsiveContainer>
+        )}
       </div>
 
       {/* Clean Legend */}
-      <div className="flex items-center gap-6 mt-3 pt-3 border-t border-white/[0.04] text-xs text-slate-400">
+      <div className="shrink-0 flex items-center gap-6 mt-3 pt-3 border-t border-white/[0.04] text-xs text-slate-400">
         <div className="flex items-center gap-2">
           <span className="w-2.5 h-2.5 rounded-full bg-sky-400" />
           <span>Observed Sensor Reading</span>
         </div>
-        <div className="flex items-center gap-2">
-          <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
-          <span>Expected Physics Normal Band</span>
-        </div>
+        {channelMode === "power" && (
+          <div className="flex items-center gap-2">
+            <span className="w-2.5 h-2.5 rounded-full bg-amber-400" />
+            <span>Power-curve estimate</span>
+          </div>
+        )}
       </div>
     </div>
   );

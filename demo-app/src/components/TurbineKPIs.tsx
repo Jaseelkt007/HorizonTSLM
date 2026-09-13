@@ -51,7 +51,7 @@ export function TurbineKPIs({ turbine }: TurbineKPIsProps) {
           </div>
           <div className="flex items-center gap-1.5 mt-1 text-xs">
             <span className={isBearingHot ? "text-rose-400 font-medium" : "text-slate-400"}>
-              {isBearingHot ? `+${turbine.sigmaDivergence}σ High` : "Nominal range"}
+              {isBearingHot ? "SCADA value" : "SCADA value"}
             </span>
             <span className="text-slate-400">Gearbox {turbine.gearboxTemp}°C</span>
           </div>
@@ -71,10 +71,7 @@ export function TurbineKPIs({ turbine }: TurbineKPIsProps) {
             {turbine.vibrationIndex.toFixed(3)} <span className="text-xs font-normal text-slate-400">g</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1 text-xs">
-            <span className={isVibrationHigh ? "text-rose-400 font-medium" : "text-emerald-400 font-medium"}>
-              {isVibrationHigh ? "Harmonic 2X" : "Nominal"}
-            </span>
-            <span className="text-slate-400">Baseline 0.12 g</span>
+            <span className="text-slate-400">Tower Acceleration X channel</span>
           </div>
         </div>
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isVibrationHigh ? "bg-rose-500/15 text-rose-400" : "bg-purple-500/15 text-purple-400"}`}>
