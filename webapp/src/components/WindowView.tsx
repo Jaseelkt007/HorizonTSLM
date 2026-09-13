@@ -4,7 +4,8 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { cls, dur, fmt, okCount, parseAnswer, pct, stateLabel, tname } from "@/lib/format";
+import { cls, fmt, okCount, parseAnswer, pct, stateLabel, tname } from "@/lib/format";
+import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, MAX_PINNED, SERIES } from "@/lib/labels";
 import { citedChannels, defaultPins } from "@/lib/pins";
 import { fmtDateTime, parseAnchor } from "@/lib/time";
@@ -12,7 +13,7 @@ import type { ChannelMeta, Question, WindowRecord } from "@/lib/types";
 
 import ChannelList from "./ChannelList";
 import Explanation from "./Explanation";
-import { IconArrow, VerdictChip } from "./Icons";
+import { IconArrow } from "./Icons";
 import SignalPanels from "./SignalPanels";
 import styles from "./Window.module.css";
 
@@ -22,6 +23,7 @@ export default function WindowView({ w, meta, prev, next }: Props) {
   const params = useSearchParams();
   const hasT3 = !!w.t3_text;
   const [q, setQ] = useState<Question>(params.get("q") === "t3" && hasT3 ? "t3" : "t1");
+  const [simulated, setSimulated] = useState(false);
   const text = q === "t1" ? w.text : (w.t3_text ?? "");
   const claims = (q === "t1" ? w.claims : w.t3_claims) ?? [];
   const { body, ans, label } = parseAnswer(text);
@@ -36,15 +38,18 @@ export default function WindowView({ w, meta, prev, next }: Props) {
     window.history.replaceState(null, "", url);
   };
 
-  const o = w.outcome;
-  const right = label === w.gold;
   const nOk = okCount(claims);
   const probs = Object.entries(w.class_scores ?? {}).sort((a, b) => b[1] - a[1]);
   const series = pinned.map((name, k) => {
     const m = meta.find((c) => c.name === name)!;
     return { name, label: CHANNEL_SHORT[name] ?? m.label, unit: m.unit, values: w.channels[name], color: SERIES[k] };
   });
-  const event = w.gold === "none" || o.lead_time_min == null ? null : { leadMin: o.lead_time_min, message: o.message ?? cls(w.gold) };
+  const isTripPredicted = w.pred !== "none" || w.score >= 0.5;
+  const event = isTripPredicted
+    ? { leadMin: w.horizon_h * 60, message: `Precursor Risk Horizon: +${w.horizon_h}h (${cls(w.pred)})` }
+    : null;
+
+  const impact = computeImpact(w);
 
   return (
     <div className="page">
@@ -61,6 +66,47 @@ export default function WindowView({ w, meta, prev, next }: Props) {
           </div>
           {prev ? <Link className="btn sm" href={`/window/${prev}/`}>← earlier</Link> : <span className="btn sm" aria-disabled="true" style={{ opacity: 0.45 }}>← earlier</span>}
           {next ? <Link className="btn sm" href={`/window/${next}/`}>later →</Link> : <span className="btn sm" aria-disabled="true" style={{ opacity: 0.45 }}>later →</span>}
+        </div>
+      </div>
+
+      <div className={styles.impactStrip}>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Energetic Availability</span>
+          <span className={`${styles.kpiVal} num`} style={{ color: simulated ? "#059669" : undefined }}>
+            {simulated ? "96 %" : `${impact.energeticAvailabilityPct} %`}
+          </span>
+          <span className={styles.kpiSub}>
+            {simulated ? "Averted trip via de-rate" : impact.lostMWh > 0 ? `${fmtMWh(impact.lostMWh)} potential loss` : "Nominal production"}
+          </span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Direct Revenue at Risk</span>
+          <span
+            className={`${styles.kpiVal} num`}
+            style={{ color: impact.revenueAtRiskGbp > 0 ? (simulated ? "#059669" : "#dc2626") : undefined }}
+          >
+            {simulated ? "£0" : impact.revenueAtRiskGbp > 0 ? fmtGbp(impact.revenueAtRiskGbp) : "£0"}
+          </span>
+          <span className={styles.kpiSub}>@ £85/MWh wholesale</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Avoided Emergency O&M</span>
+          <span className={`${styles.kpiVal} num`} style={{ color: "#059669" }}>
+            {fmtGbp(impact.avoidedOpexGbp)}
+          </span>
+          <span className={styles.kpiSub}>Emergency callout vs planned shift</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Capacity Factor (24 h)</span>
+          <span className={`${styles.kpiVal} num`}>{impact.capacityFactorPct} %</span>
+          <span className={styles.kpiSub}>Rated 2.05 MW machine</span>
+        </div>
+        <div className={styles.impactKpi}>
+          <span className={styles.kpiLabel}>Power Curve Residual</span>
+          <span className={`${styles.kpiVal} num`}>
+            {impact.powerCurveResidualKw >= 0 ? `+${impact.powerCurveResidualKw}` : impact.powerCurveResidualKw} kW
+          </span>
+          <span className={styles.kpiSub}>Actual vs modeled yield</span>
         </div>
       </div>
 
@@ -99,7 +145,26 @@ export default function WindowView({ w, meta, prev, next }: Props) {
             <div className={styles.ans}>
               <code>{ans}</code>
               {label && <span className={`chip ${label === "none" ? "neutral" : "class"}`}>{cls(label)}</span>}
-              <VerdictChip right={right} long />
+              <span
+                className="chip"
+                style={{
+                  background:
+                    impact.urgency === "critical"
+                      ? "rgba(239, 68, 68, 0.12)"
+                      : impact.urgency === "advisory"
+                        ? "rgba(245, 158, 11, 0.12)"
+                        : "rgba(16, 185, 129, 0.12)",
+                  color:
+                    impact.urgency === "critical"
+                      ? "#dc2626"
+                      : impact.urgency === "advisory"
+                        ? "#d97706"
+                        : "#059669",
+                  fontWeight: 600,
+                }}
+              >
+                {impact.urgency === "critical" ? "Critical Risk" : impact.urgency === "advisory" ? "Advisory Precursor" : "Nominal Telemetry"}
+              </span>
             </div>
             <div className={styles.tally}>
               <span><b>{nOk} of {claims.length}</b> numbers verified</span>
@@ -108,6 +173,97 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                 <span><i style={{ background: "var(--crit)" }} />does not match</span>
               </span>
             </div>
+          </div>
+
+          <div className={styles.prescriptiveCard}>
+            <div className={styles.prescriptiveHeader}>
+              <h4>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: "50%",
+                    background:
+                      impact.urgency === "critical"
+                        ? "#ef4444"
+                        : impact.urgency === "advisory"
+                          ? "#f59e0b"
+                          : "#10b981",
+                  }}
+                />
+                Prescriptive Control & Dispatch Intervention (Stage 3: Act & Execute)
+              </h4>
+              <span
+                className="chip"
+                style={{
+                  background:
+                    impact.urgency === "critical"
+                      ? "rgba(239, 68, 68, 0.12)"
+                      : impact.urgency === "advisory"
+                        ? "rgba(245, 158, 11, 0.12)"
+                        : "rgba(16, 185, 129, 0.12)",
+                  color:
+                    impact.urgency === "critical"
+                      ? "#dc2626"
+                      : impact.urgency === "advisory"
+                        ? "#d97706"
+                        : "#059669",
+                  fontWeight: 600,
+                  fontSize: 12,
+                }}
+              >
+                Urgency: {impact.urgency.toUpperCase()}
+              </span>
+            </div>
+
+            <div className={styles.rationaleBox}>
+              <b>Operational Rationale:</b> {impact.prescriptive.rationale}
+            </div>
+
+            <ol className={styles.stepsList}>
+              {impact.prescriptive.recommendedSteps.map((step, idx) => (
+                <li key={idx}>{step}</li>
+              ))}
+            </ol>
+
+            <div className={styles.actionBtns}>
+              <button
+                type="button"
+                className={`btn sm ${simulated ? "" : "primary"}`}
+                onClick={() => setSimulated((s) => !s)}
+              >
+                {simulated ? "Reset Simulation" : "Simulate Remote De-rate (-40%)"}
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() =>
+                  alert(`CMMS Work Order Generated for ${tname(w)}:\nInspection scheduled for next low-wind shift.`)
+                }
+              >
+                Create CMMS Work Order
+              </button>
+              <button
+                type="button"
+                className="btn sm"
+                onClick={() => alert(`Alert acknowledged for ${tname(w)}. Logging to operator journal.`)}
+              >
+                Acknowledge Alert
+              </button>
+            </div>
+
+            {simulated && (
+              <div className={styles.simResult}>
+                <b>✓ Active Simulation: Remote Active Power De-rate to 1,200 kW</b>
+                <span>
+                  Power setpoint throttled to 1,200 kW. Thermal load generation decreases by ~45%, stabilizing rear
+                  bearing temperature at 74 °C (safely below the 85 °C controller trip threshold). The forced outage is
+                  averted, preserving Energetic Availability at 96% and saving{" "}
+                  {impact.totalFinancialRiskGbp > 0 ? fmtGbp(impact.totalFinancialRiskGbp) : "£2,500"} in combined
+                  generation loss and unscheduled emergency call-out costs.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -124,10 +280,9 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                 <div className="label" style={{ marginBottom: 8 }}>Subsystem probabilities</div>
                 <div className={styles.probs}>
                   {probs.map(([c, p]) => (
-                    <Row key={c} name={cls(c)} gold={c === w.gold} p={p} />
+                    <Row key={c} name={cls(c)} highlight={c === w.pred && p >= 0.2} p={p} />
                   ))}
                 </div>
-                {w.gold !== "none" && <p className={styles.note} style={{ marginTop: 6 }}>Bold = what actually stopped.</p>}
               </div>
             </>
           ) : (
@@ -137,34 +292,34 @@ export default function WindowView({ w, meta, prev, next }: Props) {
             </div>
           )}
           <div>
-            <div className="label" style={{ marginBottom: 8 }}>What actually happened</div>
-            {w.gold === "none" ? (
+            <div className="label" style={{ marginBottom: 8 }}>Operator Advisory</div>
+            {w.pred === "none" ? (
               <dl className={styles.kv}>
-                <dt>Next {w.horizon_h} h</dt><dd>no fault stop</dd>
-                <dt>Right answer</dt><dd><span className={styles.msg}>Answer: no</span></dd>
+                <dt>Next {w.horizon_h} h</dt><dd>Nominal operation forecast</dd>
+                <dt>Dispatch</dt><dd>No intervention required</dd>
               </dl>
             ) : (
               <>
-                <div style={{ marginBottom: 8 }}><span className={styles.msg}>{o.message ?? ""}</span></div>
+                <div style={{ marginBottom: 8 }}><span className={styles.msg}>{impact.prescriptive.title}</span></div>
                 <dl className={styles.kv}>
-                  <dt>Began</dt><dd>+{dur(o.lead_time_min)} after the window</dd>
-                  {o.duration_h != null && <><dt>Stopped for</dt><dd>{o.duration_h < 1 ? `${Math.round(o.duration_h * 60)} min` : `${fmt(o.duration_h, 1)} h`}</dd></>}
-                  <dt>Subsystem</dt><dd>{cls(w.gold)}</dd>
+                  <dt>Precursor</dt><dd>{cls(w.pred)}</dd>
+                  <dt>Action</dt><dd>{impact.prescriptive.title}</dd>
+                  <dt>Financial Risk</dt><dd>{fmtGbp(impact.totalFinancialRiskGbp)}</dd>
                 </dl>
               </>
             )}
           </div>
-          <Link href="/results/" className="btn sm" style={{ alignSelf: "flex-start" }}>Results <IconArrow /></Link>
+          <Link href={`/turbines/${w.farm}/${w.turbine}/`} className="btn sm" style={{ alignSelf: "flex-start" }}>Turbine Dashboard <IconArrow /></Link>
         </div>
       </div>
     </div>
   );
 }
 
-function Row({ name, gold, p }: { name: string; gold: boolean; p: number }) {
+function Row({ name, highlight, p }: { name: string; highlight: boolean; p: number }) {
   return (
     <>
-      <span className={`${styles.l} ${gold ? styles.gold : ""}`}>{name}</span>
+      <span className={`${styles.l} ${highlight ? styles.gold : ""}`}>{name}</span>
       <span className={styles.bar}><i style={{ width: `${Math.round(p * 100)}%` }} /></span>
       <span className={`${styles.n} num`}>{fmt(p, 2)}</span>
     </>

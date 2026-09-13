@@ -24,3 +24,109 @@
 .kv dt { color: var(--ink-3); }
 .kv dd { margin: 0; font-weight: 500; min-width: 0; }
 .kv dd .msg { white-space: normal; }
+
+.impactStrip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.impactKpi {
+  padding: 12px 14px;
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.impactKpi .kpiLabel {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+  font-weight: 600;
+}
+
+.impactKpi .kpiVal {
+  font-size: 20px;
+  font-weight: 700;
+  font-family: var(--fu);
+  color: var(--ink);
+}
+
+.impactKpi .kpiSub {
+  font-size: 11px;
+  color: var(--ink-2);
+}
+
+.prescriptiveCard {
+  background: var(--card-bg, #ffffff);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-top: 16px;
+}
+
+.prescriptiveHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+
+.prescriptiveHeader h4 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rationaleBox {
+  padding: 10px 14px;
+  border-radius: 6px;
+  background: var(--card-2, rgba(0, 0, 0, 0.02));
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--ink);
+  margin-bottom: 14px;
+  border-left: 3px solid var(--accent);
+}
+
+.stepsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0 0 16px 0;
+  padding-left: 20px;
+  font-size: 13px;
+  color: var(--ink);
+}
+
+.actionBtns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.simResult {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border-radius: 6px;
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 13px;
+  color: #065f46;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}

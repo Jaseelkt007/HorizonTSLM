@@ -81,12 +81,13 @@ export default function SignalPanels({ anchor, series, horizonH, event, panelHei
         {event ? (
           (!narrow || curT == null) && (
             <text x={W - PR} y={14} fontSize={12} fontWeight={600} textAnchor="end" fill="var(--crit)">
-              {compact || W < 760 ? `stop at +${dur(event.leadMin)}` : `stop at +${dur(event.leadMin)} · ${event.message}`}
+              {event.message}
             </text>
           )
         ) : (
-          (!narrow || curT == null) && <text x={W - PR} y={14} fontSize={12} textAnchor="end" fill="var(--ink-3)">no fault stop in the next {horizonH} h</text>
+          (!narrow || curT == null) && <text x={W - PR} y={14} fontSize={12} textAnchor="end" fill="var(--ink-3)">nominal envelope · no stop expected in next {horizonH} h</text>
         )}
+
 
         {series.map((s, k) => {
           const top = TOP + k * (HEAD + panelH + GAP);
