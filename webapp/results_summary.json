@@ -254,5 +254,40 @@
  "floor": {
   "auroc": 0.5,
   "recall_at_10far": 0.0
- }
+ },
+ "baselines": [
+  {
+   "label": "XGBoost, context only (proxy)",
+   "test_a": {
+    "auroc": 0.547,
+    "recall_at_10far": 0.156
+   },
+   "test_b": {
+    "auroc": 0.563,
+    "recall_at_10far": 0.138
+   }
+  },
+  {
+   "label": "XGBoost, sensor statistics",
+   "test_a": {
+    "auroc": 0.774,
+    "recall_at_10far": 0.504
+   },
+   "test_b": {
+    "auroc": 0.609,
+    "recall_at_10far": 0.231
+   }
+  },
+  {
+   "label": "XGBoost, sensors + context",
+   "test_a": {
+    "auroc": 0.767,
+    "recall_at_10far": 0.516
+   },
+   "test_b": {
+    "auroc": 0.615,
+    "recall_at_10far": 0.226
+   }
+  }
+ ]
 }

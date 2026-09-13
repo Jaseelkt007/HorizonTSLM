@@ -115,7 +115,7 @@ table.results tr.headline td{font-weight:600;background:var(--accent-soft)}
 
 <section id="results" role="tabpanel" class="results" hidden>
   <h2>Every model on the same held-out windows</h2>
-  <p>Val: unseen turbines on the training farm. Test A: the training farm in years the model never saw. Test B: Kelmarsh, a farm and turbine model it never saw. Always-no scores AUROC 0.50 and recall 0. The headline model is the one used on the Windows tab.</p>
+  <p>Val: unseen turbines on the training farm. Test A: the training farm in years the model never saw. Test B: Kelmarsh, a farm and turbine model it never saw. Always-no scores AUROC 0.50 and recall 0. XGBoost rows are the conventional baseline on 24 h summary statistics (no explanation). The headline model is the one used on the Windows tab; its AUROC uses the near-binary generate-mode score, so read its recall column.</p>
   <div class="results-wrap"><table class="results" id="tbl-main"></table></div>
   <h2>Where the signal is: recall at 10 % false alarms per subsystem (Kelmarsh)</h2>
   <p>Grid, yaw and brake stops have no precursor at 10-minute resolution, and the model says so. Overspeed does; thermal classes only partly, with 83 and 54 training examples.</p>
@@ -238,6 +238,7 @@ function renderResults(R){
   const runs=R.runs;const splits=["val","test_a","test_b"];const sname={val:"Val",test_a:"Test A · unseen years",test_b:"Test B · unseen farm"};
   let h=`<thead><tr><th>Model</th>${splits.map(s=>`<th colspan="3">${sname[s]}</th>`).join("")}</tr><tr><th></th>${splits.map(()=>`<th>AUROC</th><th>recall @10 % FAR</th><th>subsystem acc</th>`).join("")}</tr></thead><tbody>`;
   for(const r of runs){h+=`<tr class="${r.run.endsWith("_rich")?"headline":""}"><td>${esc(r.label)}</td>${splits.map(s=>{const m=r.splits[s];return `<td>${fmt(m.auroc,3)}</td><td>${fmt(m.recall_at_10far,3)}</td><td>${fmt(m.subsystem_acc,2)}</td>`}).join("")}</tr>`}
+  for(const b of (R.baselines||[])){h+=`<tr><td>${esc(b.label)} <span class="chip neutral">no text</span></td><td>–</td><td>–</td><td>–</td>${["test_a","test_b"].map(s=>`<td>${fmt(b[s].auroc,3)}</td><td>${fmt(b[s].recall_at_10far,3)}</td><td>–</td>`).join("")}</tr>`}
   h+=`<tr><td>always “no”</td>${splits.map(()=>`<td>0.500</td><td>0.000</td><td>–</td>`).join("")}</tr></tbody>`;
   $("#tbl-main").innerHTML=h;
   const head=runs.find(r=>r.run.endsWith("_rich"))||runs[runs.length-1];const pc=head.splits.test_b.per_class;const classes=Object.keys(pc);

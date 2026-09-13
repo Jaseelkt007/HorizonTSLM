@@ -66,4 +66,6 @@ Use this table in the project tracker; only rows with completed predictions may 
 | Historical logs-only (XGBoost) | — | — | Waiting for `hist_*` parquet columns |
 | Sensors + historical logs (XGBoost) | — | — | Waiting for `hist_*` parquet columns |
 | Gemini text-only summary baseline | — | — | Resumable test jobs running; score after both JSONLs are complete |
-| OpenTSLM raw sensor sequence | — | — | Owned by training teammate |
+| OpenTSLM Flamingo, label only (`t1_flamingo_llama1b`) | 0.613 | 0.241 | Complete — `docs/results/t1_flamingo_llama1b/` |
+| OpenTSLM SP + LoRA, label only (`t1_sp_llama1b`) | 0.623 | 0.244 | Complete — `docs/results/t1_sp_llama1b/` |
+| OpenTSLM Flamingo, reason-first + rich text (`t1_flamingo_llama1b_evidence_rich`, headline) | 0.589* | 0.268 | Complete — `docs/results/t1_flamingo_llama1b_evidence_rich/`; *generate-mode score is near-binary, loglik re-score pending |
