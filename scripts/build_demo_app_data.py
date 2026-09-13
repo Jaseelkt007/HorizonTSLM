@@ -13,12 +13,26 @@ import json
 from collections import defaultdict
 from pathlib import Path
 
+import pandas as pd
+
 
 FARMS = {
     "kelmarsh": {"name": "Kelmarsh Wind Farm", "model": "Senvion MM92 (2.05 MW)"},
     "penmanshiel": {"name": "Penmanshiel Wind Farm", "model": "Senvion MM82 (2.05 MW)"},
 }
 RATED_KW = 2050.0
+TELEMETRY_COLUMNS = (
+    "window_id",
+    "anchor",
+    "power",
+    "power_curve_residual",
+    "wind_speed",
+    "wind_direction",
+    "main_bearing_temperature",
+    "gear_oil_temperature",
+    "stator_temperature",
+    "tower_acceleration_x",
+)
 
 
 def number(value: float) -> float:
@@ -40,8 +54,25 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--input", default="webapp/data/demo_data.json")
     parser.add_argument("--output", default="demo-app/src/lib/grounded-data.json")
+    parser.add_argument(
+        "--windows",
+        nargs="+",
+        default=(
+            "data/interim/kelmarsh_windows.parquet",
+            "data/interim/penmanshiel_windows.parquet",
+        ),
+        help="Interim parquet window tables used as the telemetry source.",
+    )
     args = parser.parse_args()
     source = json.loads(Path(args.input).read_text())
+    source_window_ids = {window["id"] for window in source["windows"]}
+    parquet = pd.concat(
+        [pd.read_parquet(path, columns=list(TELEMETRY_COLUMNS)) for path in args.windows],
+        ignore_index=True,
+    ).set_index("window_id")
+    missing = source_window_ids - set(parquet.index)
+    if missing:
+        raise ValueError(f"{len(missing)} demo window(s) are absent from --windows")
     by_farm_turbine: dict[tuple[str, int], list[dict]] = defaultdict(list)
     for window in source["windows"]:
         by_farm_turbine[(window["farm"], int(window["turbine"]))].append(window)
@@ -55,7 +86,16 @@ def main() -> int:
             # Prefer a positive, highest-confidence saved prediction.  The
             # selected source ID remains visible in the UI.
             window = max(candidates, key=lambda w: (w["pred"] != "none", w["score"], w["anchor"]))
-            ch = window["channels"]
+            raw_window = parquet.loc[window["id"]]
+            if isinstance(raw_window, pd.DataFrame):
+                raise ValueError(f"Duplicate window ID in parquet input: {window['id']}")
+            ch = {
+                name: raw_window[name]
+                for name in TELEMETRY_COLUMNS
+                if name not in {"window_id", "anchor"}
+            }
+            anchor = pd.Timestamp(raw_window["anchor"])
+            timestamps = pd.date_range(end=anchor, periods=len(ch["power"]), freq="10min")
             final = {name: values[-1] for name, values in ch.items()}
             expected = final["power"] - final["power_curve_residual"]
             telemetry = []
@@ -63,7 +103,8 @@ def main() -> int:
                 power = ch["power"][i]
                 residual = ch["power_curve_residual"][i]
                 telemetry.append({
-                    "timeLabel": f"{i // 6:02d}:{(i % 6) * 10:02d}",
+                    "timestamp": timestamps[i].isoformat(),
+                    "timeLabel": timestamps[i].strftime("%H:%M"),
                     "activePower": number(power),
                     "expectedPower": number(power - residual),
                     "windSpeed": number(ch["wind_speed"][i]),
@@ -87,7 +128,7 @@ def main() -> int:
             turbines.append({
                 "id": f"T-{turbine_no:02d}", "name": f"{farm_id[:2].upper()}-{turbine_no:02d}",
                 "farm": farm_id, "turbNum": turbine_no, "model": meta["model"],
-                "sourceWindowId": window["id"], "sourceAnchor": window["anchor"],
+                "sourceWindowId": window["id"], "sourceAnchor": anchor.isoformat(),
                 "status": status(window["score"], window["pred"]),
                 "activePower": number(final["power"]), "expectedPower": number(expected),
                 "ratedPower": RATED_KW, "windSpeed": number(final["wind_speed"]),

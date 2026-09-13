@@ -42,7 +42,7 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
           <div className="p-4 rounded-2xl bg-[#10131c] border border-white/[0.04] space-y-3">
             <div className="flex items-center justify-between">
               <span className="text-xs font-semibold text-white">
-                {turbine.errorCode || "ERR-MB-4029: Bearing Thermal Excursion"}
+                {turbine.activeFault.replaceAll("_", " ")}
               </span>
               <span className="text-xs text-slate-400">Source: saved SCADA window</span>
             </div>
@@ -59,8 +59,8 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
                 <span className="text-rose-400 font-medium">{(turbine as any).sourceWindowId}</span>
               </div>
               <div>
-                <span className="text-slate-400 text-[11px] block">Predicted Lead Time</span>
-                <span className="text-amber-400 font-medium">{turbine.predictedTTF || "48 Hours"}</span>
+                <span className="text-slate-400 text-[11px] block">Observed Event Lead</span>
+                <span className="text-amber-400 font-medium">{turbine.predictedTTF || "No observed event"}</span>
               </div>
               <div>
                 <span className="text-slate-400 text-[11px] block">Confidence</span>
@@ -76,9 +76,9 @@ export function ActiveAlarmsBox({ turbine }: ActiveAlarmsBoxProps) {
       ) : (
         <div className="p-8 rounded-2xl bg-[#10131c] border border-white/[0.04] text-center space-y-2">
           <ShieldCheck className="w-8 h-8 text-emerald-400 mx-auto opacity-80" />
-          <div className="text-xs font-semibold text-white">No Active Faults</div>
+          <div className="text-xs font-semibold text-white">No Selected-Window Alert</div>
           <p className="text-xs text-slate-400 max-w-xs mx-auto">
-            Turbine telemetry conforms to baseline thermal curves. All bearings and pitch actuators operating nominally.
+            The saved model prediction for this selected SCADA window is “none”.
           </p>
         </div>
       )}

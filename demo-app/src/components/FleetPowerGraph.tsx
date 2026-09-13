@@ -29,7 +29,14 @@ export function FleetPowerGraph() {
     ? `${data[0].timeLabel} – ${latestPoint.timeLabel}`
     : "No dataset samples available";
 
-  const xAxisInterval = timeframe === "7d" ? 0 : timeframe === "24h" ? 5 : 3;
+  // The 24-hour view contains 144 ten-minute samples.  Showing a label for
+  // every hour leaves too little room for the `HH:mm` text, especially on
+  // narrower cards.  Keep the full-resolution series, but anchor the axis at
+  // clear four-hour landmarks (00:00, 04:00, …, 20:00).
+  const xAxisTicks = useMemo(
+    () => data.filter((_, index) => index % 24 === 0).map((point) => point.timeLabel),
+    [data]
+  );
 
   return (
     <div className="minimal-card p-6 flex flex-col h-full">
@@ -41,11 +48,15 @@ export function FleetPowerGraph() {
               Fleet Power Output
             </h3>
             <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-blue-500/10 text-blue-400 border border-blue-500/20">
-              24h SCADA window
+              {timeframe === "24h" ? "24h SCADA window" : timeframe === "7d" ? "7-Day SCADA window" : "30-Day SCADA window"}
             </span>
           </div>
           <p className="text-xs text-slate-400 mt-1">
-            24-hour SCADA aggregate (10-minute bins)
+            {timeframe === "24h"
+              ? "24-hour SCADA aggregate (10-minute bins)"
+              : timeframe === "7d"
+              ? "7-day SCADA aggregate"
+              : "30-day SCADA aggregate"}
             <span className="ml-1 text-slate-500">{rangeLabel}</span>
           </p>
         </div>
@@ -59,10 +70,16 @@ export function FleetPowerGraph() {
 
           {/* Timeframe Pill Selector */}
           <div className="flex items-center gap-1 bg-[#10131b] p-1 rounded-full border border-white/[0.06]">
-            {[{ id: "24h" as const, label: "24h" }].map((tab) => (
+            {[
+              { id: "24h" as const, label: "24h" },
+              { id: "7d" as const, label: "7 Days" },
+              { id: "30d" as const, label: "30 Days" },
+            ].map((tab) => (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setTimeframe(tab.id)}
+                aria-pressed={timeframe === tab.id}
                 className={`px-3.5 py-1 text-xs font-medium rounded-full transition-all ${
                   timeframe === tab.id
                     ? "bg-blue-600 text-white shadow-sm"
@@ -99,7 +116,8 @@ export function FleetPowerGraph() {
               fontSize={11}
               tickLine={false}
               axisLine={false}
-              interval={xAxisInterval}
+              ticks={xAxisTicks}
+              minTickGap={32}
               tick={{ fill: "#64748b" }}
             />
 

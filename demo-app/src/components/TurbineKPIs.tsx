@@ -11,7 +11,6 @@ interface TurbineKPIsProps {
 export function TurbineKPIs({ turbine }: TurbineKPIsProps) {
   const isDerated = turbine.activePower < turbine.expectedPower - 100;
   const isBearingHot = turbine.bearingTemp > 75;
-  const isVibrationHigh = turbine.vibrationIndex > 0.3;
 
   const powerDelta = turbine.activePower - turbine.expectedPower;
   const powerDeltaPct = ((powerDelta / (turbine.expectedPower || 1)) * 100).toFixed(1);
@@ -61,20 +60,20 @@ export function TurbineKPIs({ turbine }: TurbineKPIsProps) {
         </div>
       </div>
 
-      {/* Metric 3: Bearing Vibration Index */}
+      {/* Raw SCADA acceleration; no alarm threshold is implied by this card. */}
       <div className="minimal-card p-5 flex items-center justify-between">
         <div>
           <span className="text-xs font-medium text-slate-400">
             Vibration Index
           </span>
-          <div className={`text-2xl font-bold mt-1 tracking-tight ${isVibrationHigh ? "text-rose-400" : "text-white"}`}>
-            {turbine.vibrationIndex.toFixed(3)} <span className="text-xs font-normal text-slate-400">g</span>
+          <div className="text-2xl font-bold mt-1 tracking-tight text-white">
+            {turbine.vibrationIndex.toFixed(2)} <span className="text-xs font-normal text-slate-400">mm/s²</span>
           </div>
           <div className="flex items-center gap-1.5 mt-1 text-xs">
             <span className="text-slate-400">Tower Acceleration X channel</span>
           </div>
         </div>
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${isVibrationHigh ? "bg-rose-500/15 text-rose-400" : "bg-purple-500/15 text-purple-400"}`}>
+        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-purple-500/15 text-purple-400">
           <Activity className="w-5 h-5" />
         </div>
       </div>

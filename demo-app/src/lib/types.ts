@@ -53,7 +53,8 @@ export interface TurbineInfo {
   bearingTemp: number; // °C
   gearboxTemp: number; // °C
   generatorTemp: number; // °C
-  vibrationIndex: number; // g
+  /** Raw ``Tower Acceleration X`` SCADA channel, in mm/s². */
+  vibrationIndex: number;
   activeFault: string | null;
   faultSubsystem: Subsystem | null;
   anomalyConfidence: number; // percentage, e.g. 94
@@ -87,8 +88,9 @@ export interface TelemetryPoint {
   gearboxTemp: number; // °C
   gearboxTempExpected: number; // °C
   generatorTemp: number; // °C
-  vibrationIndex: number; // g
-  vibrationExpected: number; // g
+  /** Raw ``Tower Acceleration X`` SCADA channel, in mm/s². */
+  vibrationIndex: number;
+  vibrationExpected: number; // mm/s²
   capacityFactor: number; // %
   isAnomaly?: boolean;
 }

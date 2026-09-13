@@ -205,9 +205,7 @@ export function BaselineView() {
                     <span className="text-[10px] text-slate-400 uppercase font-semibold block">Tabular Baseline</span>
                     <div className="font-semibold text-slate-300">Static Threshold / XGBoost</div>
                     <p className="text-[11px] text-slate-400 mt-1">
-                      {activeWindow.gold !== "none"
-                        ? "Missed dynamic thermal gradient. Flagged nominal or false tripped."
-                        : "Nominal operational prediction."}
+                      Per-window XGBoost outputs are not included in this snapshot. Aggregate results appear below.
                     </p>
                   </div>
 
@@ -232,7 +230,7 @@ export function BaselineView() {
                       Model Generated Reasoning Output
                     </span>
                     <span className="text-[11px] text-emerald-400 font-medium bg-emerald-500/10 px-2 py-0.5 rounded-full">
-                      Faithfulness: 86% Mechanically Verified
+                      Claim verdicts shown below
                     </span>
                   </div>
 
@@ -335,7 +333,7 @@ export function BaselineView() {
             </div>
             <div className="flex items-center gap-2.5 text-blue-400">
               <CheckCircle2 className="w-4 h-4 flex-shrink-0" />
-              <span>86.0% of numeric claims mechanically verified against SCADA ground truth</span>
+              <span>Each selected-window numeric claim is checked against its exported SCADA channels above</span>
             </div>
           </div>
         </div>

@@ -7,7 +7,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from "recharts";
 import { Calendar, ChevronDown } from "lucide-react";
 
 export function FleetStatusDonut() {
-  const { turbines, selectedPlant } = useStream();
+  const { turbines, selectedPlant, fleetKPIs } = useStream();
 
   const currentPlant = PLANTS.find((p) => p.id === selectedPlant) || PLANTS[0];
 
@@ -98,7 +98,7 @@ export function FleetStatusDonut() {
           <div className="flex items-center justify-between gap-6">
             <div className="flex items-center gap-2">
               <span className="w-2.5 h-2.5 rounded-full bg-purple-500" />
-              <span className="text-slate-300">Warning (Pitch)</span>
+              <span className="text-slate-300">Warning</span>
             </div>
             <span className="font-semibold text-white">{warningCount}</span>
           </div>
@@ -116,7 +116,7 @@ export function FleetStatusDonut() {
               <span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
               <span className="text-slate-300">Wind Velocity</span>
             </div>
-            <span className="font-semibold text-slate-200">12.4 m/s</span>
+            <span className="font-semibold text-slate-200">{fleetKPIs.weatherForecast.windSpeed} m/s</span>
           </div>
         </div>
       </div>

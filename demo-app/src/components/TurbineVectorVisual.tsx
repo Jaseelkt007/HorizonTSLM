@@ -183,7 +183,7 @@ export function TurbineVectorVisual({ turbine }: TurbineVectorVisualProps) {
             <g>
               <rect x="180" y="82" width="160" height="28" rx="14" fill="#2d1217" stroke="#ef4444" strokeWidth="1" />
               <text x="195" y="100" fill="#fca5a5" fontSize="11" fontFamily="sans-serif" fontWeight="600">
-                Main Bearing Alert (+3.4σ)
+                Model class: {turbine.activeFault?.replaceAll("_", " ")}
               </text>
             </g>
           )}

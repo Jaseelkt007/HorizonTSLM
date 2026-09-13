@@ -44,6 +44,8 @@ export function Sidebar() {
 
   const timeframes: { id: Timeframe; label: string }[] = [
     { id: "24h", label: "24h" },
+    { id: "7d", label: "7 Days" },
+    { id: "30d", label: "30 Days" },
   ];
 
   return (

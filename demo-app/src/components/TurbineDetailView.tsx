@@ -84,17 +84,19 @@ export function TurbineDetailView() {
 
         {/* Timeframe Selector Pills */}
         <div className="flex items-center gap-1 bg-[#10131c] p-1 rounded-xl border border-white/[0.06]">
-          {(["24h"] as const).map((tf) => (
+          {(["24h", "7d", "30d"] as const).map((tf) => (
             <button
               key={tf}
+              type="button"
               onClick={() => setTimeframe(tf)}
+              aria-pressed={timeframe === tf}
               className={`px-3 py-1 rounded-lg text-xs font-medium transition-all ${
                 timeframe === tf
                   ? "bg-white text-slate-900 font-semibold shadow-xs"
                   : "text-slate-400 hover:text-slate-200"
               }`}
             >
-              24h
+              {tf === "24h" ? "24h" : tf === "7d" ? "7 Days" : "30 Days"}
             </button>
           ))}
         </div>
