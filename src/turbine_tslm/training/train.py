@@ -49,6 +49,13 @@ DEFAULTS: dict[str, Any] = {
     "warmup_frac": 0.03,
     "grad_clip": 1.0,
     "early_stop_patience": 3,
+    "tasks": [
+        "t1"
+    ],  # t1 early warning (+ t3 post-hoc explanation rows derived from the 1 h positives)
+    "answer_mode": "label",  # label (MVP) | evidence (rule-based reasoning before the Answer line)
+    "evidence_sentences": 3,
+    "series_stats": "basic",  # rich: first-6h / 6h-before-end / last-hour values in every channel text
+    "answers_from": None,  # jsonl of {window_id, answer}: per-record answer override (RFT stage 2)
     "max_samples": None,  # per split, stratified (smoke runs)
     "horizons": None,  # e.g. [6]
     "dataset_ids": ["cubico/penmanshiel", "cubico/kelmarsh"],
@@ -56,7 +63,7 @@ DEFAULTS: dict[str, Any] = {
     "max_new_tokens": 24,
     "predict_mode": "loglik",  # loglik: batched teacher-forced scoring of every answer candidate (fast, no
     # generation); generate: free generation + parse + yes/no log-likelihood (needed for evidence text); both
-    "score_batch_size": 64,  # candidate sequences per forward pass in loglik mode
+    "score_batch_size": 32,  # candidate sequences per forward pass in loglik mode
     "predict_dtype": "bfloat16",  # cast the whole model before prediction (inference only; training keeps model_dtype)
     "checkpoint_every_steps": 200,
     "log_every_steps": 10,
@@ -143,7 +150,11 @@ def build_model(cfg: dict[str, Any]):
 
             path = Path(hf_hub_download(repo_id=init, filename="model_checkpoint.pt"))
         print(f"[init] loading {path}")
-        model.load_from_file(str(path))  # upstream format, strict=False
+        ck = torch.load(path, map_location="cpu", weights_only=False)
+        if "trainable" in ck:  # one of our own checkpoints (trainable parameters only)
+            load_checkpoint(model, path)
+        else:
+            model.load_from_file(str(path))  # upstream format, strict=False
     return model
 
 
@@ -201,6 +212,17 @@ def make_optimizer(model, cfg: dict[str, Any]) -> torch.optim.Optimizer:
 # --------------------------------------------------------------------------------------------- data
 
 
+def load_answer_overrides(path: str | None) -> dict[str, str] | None:
+    if not path:
+        return None
+    rows = [
+        json.loads(line)
+        for line in Path(path).read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ]
+    return {r["window_id"]: r["answer"] for r in rows}
+
+
 def make_loaders(cfg: dict[str, Any], eos: str):
     from opentslm.model_config import PATCH_SIZE
     from opentslm.time_series_datasets.util import (
@@ -215,6 +237,11 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         max_samples=cfg["max_samples"],
         horizons=cfg["horizons"],
         seed=cfg["seed"],
+        answer_mode=cfg["answer_mode"],
+        evidence_sentences=cfg["evidence_sentences"],
+        tasks=tuple(cfg["tasks"]),
+        series_stats=cfg["series_stats"],
+        answer_overrides=load_answer_overrides(cfg["answers_from"]),
     )
     sets = {s: DS(s, EOS_TOKEN=eos) for s in ("train", "validation", "test")}
     for s, d in sets.items():
@@ -362,12 +389,19 @@ def train(
 
 
 def _sum_logprob(logits: torch.Tensor, labels: torch.Tensor) -> torch.Tensor:
-    """Per-sample sum of log p(label token) over positions where labels != -100 (next-token shifted)."""
-    logp = torch.log_softmax(logits[:, :-1].float(), dim=-1)
+    """Per-sample sum of log p(label token) over positions where labels != -100 (next-token shifted).
+
+    Only the labelled positions go through log-softmax (a full-vocabulary log-softmax over every position of 64
+    long SP sequences is ~40 GB), so memory scales with the number of answer tokens, not the prompt length.
+    """
     tgt = labels[:, 1:]
     mask = tgt != -100
-    tok = logp.gather(-1, tgt.clamp(min=0).unsqueeze(-1)).squeeze(-1)
-    return (tok * mask).sum(dim=1)
+    rows = mask.nonzero(as_tuple=True)
+    sel = logits[:, :-1][rows].float()  # (n_label_tokens, vocab)
+    lp = torch.log_softmax(sel, dim=-1).gather(-1, tgt[rows].unsqueeze(-1)).squeeze(-1)
+    out = torch.zeros(labels.size(0), dtype=lp.dtype, device=lp.device)
+    out.index_add_(0, rows[0], lp)
+    return out
 
 
 @torch.no_grad()
@@ -412,21 +446,92 @@ def answer_loglik(
         return float(batch_answer_loglik(model, collate([s]))[0])
 
 
-def candidate_answers(model, classes: tuple[str, ...]) -> list[str]:
+@torch.no_grad()
+def generate_texts(
+    model, batch: list[dict[str, Any]], max_new_tokens: int, **gen_kwargs
+) -> list[str]:
+    """Batched generation with LEFT padding.
+
+    OpenTSLM pads prompts on the right (fine for teacher-forced loss), but then generation for the shorter prompts
+    in a batch starts after pad tokens and comes out garbled / mid-sentence. Flamingo: flip the tokenizer's padding
+    side for the call. SP: roll each right-padded embedding row so its padding moves to the front, then call the
+    LLM's generate directly (mirrors OpenTSLMSP.generate).
+    """
+    if hasattr(model, "text_tokenizer"):  # OpenTSLMFlamingo
+        tok = model.text_tokenizer
+        side = tok.padding_side
+        tok.padding_side = "left"
+        try:
+            return model.generate(batch, max_new_tokens=max_new_tokens, **gen_kwargs)
+        finally:
+            tok.padding_side = side
+    inputs_embeds, attention_mask = model.pad_and_apply_batch(batch)
+    B, L, _ = inputs_embeds.shape
+    lengths = attention_mask.sum(dim=1).long()
+    left_embeds = torch.zeros_like(inputs_embeds)
+    left_mask = torch.zeros_like(attention_mask)
+    for i in range(B):
+        n = int(lengths[i])
+        left_embeds[i, L - n :] = inputs_embeds[i, :n]
+        left_mask[i, L - n :] = 1
+    gen_ids = model.llm.generate(
+        inputs_embeds=left_embeds,
+        attention_mask=left_mask,
+        max_new_tokens=max_new_tokens,
+        pad_token_id=model.tokenizer.pad_token_id,
+        **gen_kwargs,
+    )
+    return model.tokenizer.batch_decode(gen_ids, skip_special_tokens=True)
+
+
+def evidence_prefix(text: str) -> str:
+    """Generated text up to (not including) its last 'Answer' — the reasoning part, whitespace-trimmed."""
+    i = text.lower().rfind("answer")
+    return (text if i < 0 else text[:i]).strip()
+
+
+def candidate_answers(model, classes: tuple[str, ...], task: str = "t1") -> list[str]:
+    """t1: 'no' + one 'yes, <class>' per class (index 0 = no); t3: one 'Answer: <class>' per class."""
     eos = model.get_eos_token()
+    if task == "t3":
+        return [f"Answer: {c}{eos}" for c in classes]
     return [f"Answer: no{eos}"] + [f"Answer: yes, {c}{eos}" for c in classes]
+
+
+def fill_record(
+    rec: dict[str, Any], p: torch.Tensor, task: str, classes: tuple[str, ...]
+) -> None:
+    """score / label / class_scores from the candidate probabilities (t1: index 0 is 'no'; t3: classes only)."""
+    if task == "t3":
+        cls_p = p
+        rec["score"] = 1.0  # every t3 record is a real stop; only the class is scored
+    else:
+        rec["score"] = float(1 - p[0])
+        cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
+    best = int(torch.argmax(cls_p))
+    rec["label"] = classes[best] if task == "t3" or rec["score"] >= 0.5 else "none"
+    rec["class_scores"] = {c: float(v) for c, v in zip(classes, cls_p, strict=True)}
 
 
 @torch.no_grad()
 def score_candidates(
-    cfg: dict[str, Any], model, chunk: list[dict[str, Any]], cands: list[str], collate
+    cfg: dict[str, Any],
+    model,
+    chunk: list[dict[str, Any]],
+    cands: list[str],
+    collate,
+    prefixes=None,
 ) -> torch.Tensor:
-    """(len(chunk), len(cands)) sum log-likelihoods, computed in sub-batches of score_batch_size sequences."""
+    """(len(chunk), len(cands)) sum log-likelihoods, computed in sub-batches of score_batch_size sequences.
+
+    ``prefixes`` (one string per chunk item, e.g. the model's own generated evidence) is prepended to every
+    candidate, so the yes/no score is conditioned on the reasoning the model actually wrote.
+    """
     seqs = []
-    for s in chunk:
+    for j, s in enumerate(chunk):
         for c in cands:
             item = dict(s)
-            item["answer"] = c
+            item["answer"] = (prefixes[j] + " " if prefixes and prefixes[j] else "") + c
             seqs.append(item)
     out = []
     step = max(1, cfg["score_batch_size"])
@@ -445,19 +550,32 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
     samples = [
         s for d in (sets["validation"], sets["test"]) for s in d if s["split"] in wanted
     ]
+    samples.sort(
+        key=lambda s: s.get("task", "t1")
+    )  # chunks never mix tasks (different candidate sets)
     mode = cfg["predict_mode"]
     classes = fault_classes()
-    cands = candidate_answers(model, classes)
     print(f"[predict] {len(samples)} windows over {sorted(wanted)}, mode={mode}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bs = cfg["eval_batch_size"]
     t0 = time.time()
+    n_chunks = 0
     with open(out_path, "w", encoding="utf-8") as fh:
-        for i in range(0, len(samples), bs):
+        i = 0
+        while i < len(samples):
             chunk = samples[i : i + bs]
+            task = chunk[0].get("task", "t1")
+            if any(c.get("task", "t1") != task for c in chunk):
+                chunk = chunk[
+                    : next(
+                        k for k, c in enumerate(chunk) if c.get("task", "t1") != task
+                    )
+                ]
+            cands = candidate_answers(model, classes, task)
             recs = [
                 {
                     "window_id": s["window_id"],
+                    "task": task,
                     "split": s["split"],
                     "horizon_h": s["horizon_h"],
                     "gold": s["label"],
@@ -468,38 +586,36 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                 ll = score_candidates(cfg, model, chunk, cands, collate)
                 probs = torch.softmax(ll, dim=1)
                 for rec, p in zip(recs, probs, strict=True):
-                    p_yes = float(1 - p[0])
-                    cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
-                    best = int(torch.argmax(cls_p))
-                    rec["score"] = p_yes
-                    rec["label"] = classes[best] if p_yes >= 0.5 else "none"
-                    rec["class_scores"] = {
-                        c: float(v) for c, v in zip(classes, cls_p, strict=True)
-                    }
+                    fill_record(rec, p, task, classes)
             if mode in ("generate", "both"):
                 with autocast(cfg):
-                    texts = model.generate(
-                        collate(chunk), max_new_tokens=cfg["max_new_tokens"]
-                    )
-                for rec, s, text in zip(recs, chunk, texts, strict=True):
+                    texts = generate_texts(model, collate(chunk), cfg["max_new_tokens"])
+                for rec, text in zip(recs, texts, strict=True):
                     rec["text"] = text
-                    if mode == "generate":
-                        rec["label"] = scoring.parse_answer(text)
-                        ll_yes = answer_loglik(cfg, model, s, "Answer: yes", collate)
-                        ll_no = answer_loglik(cfg, model, s, "Answer: no", collate)
-                        rec["score"] = 1 / (1 + math.exp(-(ll_yes - ll_no)))
+                if mode == "generate":
+                    # score the label candidates conditioned on the evidence the model wrote (text before "Answer")
+                    prefixes = [evidence_prefix(t) for t in texts]
+                    ll = score_candidates(cfg, model, chunk, cands, collate, prefixes)
+                    probs = torch.softmax(ll, dim=1)
+                    for rec, text, p in zip(recs, texts, probs, strict=True):
+                        fill_record(rec, p, task, classes)
+                        rec["label"] = scoring.parse_answer(
+                            text
+                        )  # what the model actually wrote
             for rec in recs:
                 fh.write(json.dumps(rec) + "\n")
-            if (i // bs) % 20 == 0:
+            i += len(chunk)
+            n_chunks += 1
+            if n_chunks % 20 == 1:
                 print(
-                    f"[predict] {i + len(chunk)}/{len(samples)} ({time.time() - t0:.0f}s)",
+                    f"[predict] {i}/{len(samples)} ({time.time() - t0:.0f}s)",
                     flush=True,
                 )
 
 
 def score_predictions(cfg: dict[str, Any], pred_path: Path) -> dict[str, Any]:
     preds = scoring.load_predictions(pred_path)
-    labels = scoring.load_labels(cfg["windows"])
+    labels = scoring.load_labels(cfg["windows"], tasks=tuple(cfg["tasks"]))
     res = scoring.score(preds, labels)
     report = scoring.format_report(res, cfg["run_name"])
     print(report)

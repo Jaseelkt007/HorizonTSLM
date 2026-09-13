@@ -9,6 +9,7 @@ lora: true
 epochs: 5
 batch_size: 4   # SP puts 19x36 series tokens in the LLM input; batch 8 hits OOM
 eval_batch_size: 16
+score_batch_size: 16   # SP sequences carry 19x36 series tokens; full-vocab logits are the memory limit
 lr: 1.0e-4
 warmup_frac: 0.03
 early_stop_patience: 2

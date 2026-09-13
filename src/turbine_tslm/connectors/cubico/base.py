@@ -22,12 +22,24 @@ import pyarrow as pa
 from timenet.connectors.base import BaseConnector
 from timenet.dataset import TimeFDataset, TimeSeries
 from timenet.dataset.axis import RegularAxis
-from timenet.types import Annotation, AnswerTask, ClassificationTask, DataSource, TimeSeriesSpec, ureg
+from timenet.types import (
+    Annotation,
+    AnswerTask,
+    ClassificationTask,
+    DataSource,
+    TimeSeriesSpec,
+    ureg,
+)
 
 from turbine_tslm.data.channels import CHANNEL_NAMES, CHANNELS, STEP_MINUTES
 from turbine_tslm.data.greenbyte import iter_turbine_years
-from turbine_tslm.data.prompts import answer_label, pre_prompt
-from turbine_tslm.data.windows import WINDOW_STEPS, build_windows, records_to_frame
+from turbine_tslm.data.prompts import answer_label, pre_prompt, t2_pre_prompt
+from turbine_tslm.data.windows import (
+    WINDOW_STEPS,
+    build_t2_windows,
+    build_windows,
+    records_to_frame,
+)
 
 
 def _text(v) -> str | None:
@@ -49,7 +61,12 @@ def build_window_table(farm: str, raw_dir: Path, years: tuple[int, ...] | None =
             continue
         scada, status = ty.load()
         recs = build_windows(scada, status, farm=farm, turbine=ty.turbine)
-        print(f"[windows] {ty.turbine_id} {ty.year}: {sum(r.is_positive for r in recs)} pos / {sum(not r.is_positive for r in recs)} neg")
+        t2 = build_t2_windows(scada, status, farm=farm, turbine=ty.turbine)
+        print(
+            f"[windows] {ty.turbine_id} {ty.year}: {sum(r.is_positive for r in recs)} pos / "
+            f"{sum(not r.is_positive for r in recs)} neg; t2 {sum(r.is_positive for r in t2)} escalate / {len(t2) - sum(r.is_positive for r in t2)} not"
+        )
+        recs += t2
         if recs:
             frames.append(records_to_frame(recs, ty.year))
     if not frames:
@@ -100,7 +117,9 @@ class CubicoConnector(BaseConnector[Path]):
                 time_series=tuple(series), subject_ids=(row.turbine_id,), record_id=rid,
                 start_time=int(start.timestamp() * 1_000_000),
             )
+            task = _text(getattr(row, "task", None)) or "t1"
             ann = {
+                "task": task, "warning_message": _text(getattr(row, "warning_message", None)),
                 "split": _text(row.split), "farm": _text(row.farm), "turbine_id": _text(row.turbine_id), "year": int(row.year),
                 "anchor": anchor.isoformat(), "horizon_h": int(row.horizon_h), "state_at_anchor": _text(row.state_at_anchor),
                 "label": _text(row.label), "is_positive": bool(row.is_positive),
@@ -114,7 +133,10 @@ class CubicoConnector(BaseConnector[Path]):
             # TimeNet rejects a value-less annotation and needs one value type per key, so negatives omit the
             # next-event fields (parquet stores their missing strings as NaN floats).
             record.add_annotations([Annotation(key=k, value=v, id=f"{rid}:{k}") for k, v in ann.items() if v is not None])
-            prompt = pre_prompt(row.farm, row.turbine_id, anchor.strftime("%B"), row.state_at_anchor, int(row.horizon_h))
+            if task == "t2":
+                prompt = t2_pre_prompt(row.farm, row.turbine_id, anchor.strftime("%B"), row.state_at_anchor, ann["warning_message"] or "")
+            else:
+                prompt = pre_prompt(row.farm, row.turbine_id, anchor.strftime("%B"), row.state_at_anchor, int(row.horizon_h))
             dataset.add_tasks(
                 record,
                 [

@@ -89,6 +89,8 @@ class WindowRecord:
     next_event_duration_h: float | None
     next_event_iec: str | None
     signals: np.ndarray = field(repr=False)  # (WINDOW_STEPS, n_channels) raw values
+    task: str = "t1"  # t1 early warning | t2 warning escalation (docs/problem-statement.md §5)
+    warning_message: str | None = None  # t2 only: the warning raised at the anchor (known at t, so a legal input)
 
 
 def _first_fault_within(events: pd.DataFrame, t: pd.Timestamp, hours: int) -> pd.Series | None:
@@ -213,6 +215,63 @@ def build_windows(
     return records
 
 
+T2_HORIZON_H = 24
+
+
+def build_t2_windows(
+    scada: pd.DataFrame,
+    status: pd.DataFrame,
+    farm: str,
+    turbine: int,
+    horizon_h: int = T2_HORIZON_H,
+) -> list[WindowRecord]:
+    """T2 warning escalation: one record per fault-class *Warning* (deduped per class within 2 h), anchored at the
+    warning start; label = class of the first fault-class stop in ``(t, t + 24 h]`` (``none`` if it does not
+    escalate). The warning text is stored (it is known at ``t``); the escalating stop is not."""
+    channels = extract_channels(scada)
+    ev = split_events(status)
+    turbine_id = f"{farm}-{turbine:02d}"
+    warnings = ev.any_fault[ev.any_fault["status"] == "Warning"]
+    keep, last_by_cls = [], {}
+    for idx, row in warnings.iterrows():
+        prev = last_by_cls.get(row["cls"])
+        if prev is None or (row["start"] - prev) > pd.Timedelta(hours=DEDUPE_HOURS):
+            keep.append(idx)
+        last_by_cls[row["cls"]] = row["start"]
+    stops = ev.faults[ev.faults["status"] == "Stop"]
+    records: list[WindowRecord] = []
+    seen: set[pd.Timestamp] = set()
+    for _, w in warnings.loc[keep].iterrows():
+        t = w["start"].floor(f"{STEP_MINUTES}min")
+        if t in seen:
+            continue
+        seen.add(t)
+        state = _state(channels, t)
+        if state is None:
+            continue
+        if _overlaps(ev.manual, t - pd.Timedelta(hours=WINDOW_HOURS), t):
+            continue
+        sig = _window(channels, t)
+        if sig is None:
+            continue
+        nxt = _first_fault_within(stops, w["start"], horizon_h)
+        label = "none" if nxt is None else nxt["cls"]
+        records.append(
+            WindowRecord(
+                turbine_id, farm, turbine, t, horizon_h, label, label != "none", state,
+                {f"{horizon_h}h": label},
+                None if nxt is None else (nxt["start"] - t).total_seconds() / 60,
+                None if nxt is None else nxt["message"],
+                None if nxt is None or pd.isna(nxt["duration_s"]) else nxt["duration_s"] / 3600,
+                None if nxt is None else nxt["iec_category"],
+                sig,
+                task="t2",
+                warning_message=str(w["message"]),
+            )
+        )
+    return records
+
+
 def assign_split(farm: str, turbine: int, year: int) -> str:
     """docs/problem-statement.md §6: Penmanshiel 1–12 / 2017–19 train, 13–15 val, 2020–21 test_a; Kelmarsh test_b."""
     if farm == "kelmarsh":
@@ -226,7 +285,9 @@ def records_to_frame(records: list[WindowRecord], year: int) -> pd.DataFrame:
     rows = []
     for r in records:
         row = {
-            "window_id": f"{r.turbine_id}-{r.anchor.strftime('%Y%m%dT%H%M')}-h{r.horizon_h}",
+            "window_id": f"{r.turbine_id}-{r.anchor.strftime('%Y%m%dT%H%M')}-{'h' if r.task == 't1' else 'w'}{r.horizon_h}",
+            "task": r.task,
+            "warning_message": r.warning_message,
             "farm": r.farm,
             "turbine": r.turbine,
             "turbine_id": r.turbine_id,
@@ -242,7 +303,9 @@ def records_to_frame(records: list[WindowRecord], year: int) -> pd.DataFrame:
             "next_event_iec": r.next_event_iec,
             "split": assign_split(r.farm, r.turbine, year),
         }
-        row.update({f"fault_within_{k}": v for k, v in r.fault_within.items()})
+        row.update({f"fault_within_{k}": r.fault_within.get(k, None) for k in ("1h", "3h", "6h")})
+        if r.task == "t2":
+            row["fault_within_24h"] = r.fault_within.get("24h")
         for j, name in enumerate(CHANNEL_NAMES):
             row[name] = r.signals[:, j].tolist()
         rows.append(row)
