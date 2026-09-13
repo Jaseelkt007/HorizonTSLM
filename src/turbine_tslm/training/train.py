@@ -20,6 +20,7 @@ import json
 import math
 import os
 import random
+import re
 import sys
 import time
 from pathlib import Path
@@ -64,6 +65,9 @@ DEFAULTS: dict[str, Any] = {
     "predict_mode": "loglik",  # loglik: batched teacher-forced scoring of every answer candidate (fast, no
     # generation); generate: free generation + parse + yes/no log-likelihood (needed for evidence text); both
     "score_batch_size": 32,  # candidate sequences per forward pass in loglik mode
+    "rescore_from": None,  # predict_mode=rescore: existing predictions.jsonl with generated text; the yes/no score is
+    # recomputed by comparing conclusion candidates conditioned on the model's own evidence sentences (without its
+    # conclusion), which gives a graded score where the generate-mode score is near-binary
     "predict_dtype": "bfloat16",  # cast the whole model before prediction (inference only; training keeps model_dtype)
     "checkpoint_every_steps": 200,
     "log_every_steps": 10,
@@ -490,6 +494,97 @@ def evidence_prefix(text: str) -> str:
     return (text if i < 0 else text[:i]).strip()
 
 
+_CONCLUSION_RE = re.compile(
+    r"\s*(This pattern precedes[^.]*\.|This is consistent with[^.]*\.|No sign of a developing fault\.|"
+    r"Nothing here points to an imminent fault stop\.|No specific precursor[^.]*\.|The signals show no specific precursor[^.]*\.)\s*$"
+)
+
+
+def evidence_without_conclusion(text: str) -> str:
+    """The model's evidence sentences: generated text before 'Answer', minus a trailing conclusion sentence."""
+    return _CONCLUSION_RE.sub("", evidence_prefix(text)).strip()
+
+
+def conclusion_candidates(
+    model, classes: tuple[str, ...]
+) -> tuple[list[str], list[int]]:
+    """Conclusion + Answer candidates (t1); returns (texts, is_yes flags). Index 0/1 = the two 'no' conclusions."""
+    from turbine_tslm.data.evidence import CONCLUSION
+
+    eos = model.get_eos_token()
+    cands = [
+        f"No sign of a developing fault.\nAnswer: no{eos}",
+        f"Nothing here points to an imminent fault stop.\nAnswer: no{eos}",
+    ]
+    flags = [0, 0]
+    for c in classes:
+        concl = CONCLUSION.get(
+            c, f"This pattern precedes a {c.replace('_', ' ')} stop."
+        )
+        cands.append(f"{concl}\nAnswer: yes, {c}{eos}")
+        cands.append(
+            f"No specific precursor for it is visible in these signals, but a {c.replace('_', ' ')} stop follows.\nAnswer: yes, {c}{eos}"
+        )
+        flags += [1, 1]
+    return cands, flags
+
+
+@torch.no_grad()
+def rescore(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
+    """Graded P(yes) for an evidence model from its own generated texts (see DEFAULTS['rescore_from'])."""
+    from turbine_tslm.data.taxonomy import fault_classes
+
+    model.eval()
+    classes = fault_classes()
+    cands, flags = conclusion_candidates(model, classes)
+    flags_t = torch.tensor(flags, dtype=torch.bool)
+    prev = {}
+    for line in Path(cfg["rescore_from"]).read_text(encoding="utf-8").splitlines():
+        if line.strip():
+            r = json.loads(line)
+            prev[r["window_id"]] = r
+    samples = [
+        s
+        for d in (sets["validation"], sets["test"])
+        for s in d
+        if s["window_id"] in prev and s.get("task", "t1") == "t1"
+    ]
+    print(
+        f"[rescore] {len(samples)} t1 records from {cfg['rescore_from']}, {len(cands)} candidates each"
+    )
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    bs = cfg["eval_batch_size"]
+    t0 = time.time()
+    with open(out_path, "w", encoding="utf-8") as fh:
+        for i in range(0, len(samples), bs):
+            chunk = samples[i : i + bs]
+            prefixes = [
+                evidence_without_conclusion(prev[s["window_id"]]["text"]) for s in chunk
+            ]
+            ll = score_candidates(cfg, model, chunk, cands, collate, prefixes)
+            probs = torch.softmax(ll, dim=1)
+            for s, p in zip(chunk, probs, strict=True):
+                rec = dict(prev[s["window_id"]])
+                p_yes = float(p[flags_t].sum())
+                per_class = {
+                    c: float(p[2 + 2 * k] + p[3 + 2 * k]) for k, c in enumerate(classes)
+                }
+                tot = max(sum(per_class.values()), 1e-12)
+                rec["score"] = p_yes
+                rec["score_generate_mode"] = prev[s["window_id"]].get("score")
+                rec["class_scores"] = {c: v / tot for c, v in per_class.items()}
+                fh.write(json.dumps(rec) + "\n")
+            if (i // bs) % 20 == 0:
+                print(
+                    f"[rescore] {i + len(chunk)}/{len(samples)} ({time.time() - t0:.0f}s)",
+                    flush=True,
+                )
+        # t3 and any records without text pass through unchanged
+        for wid, r in prev.items():
+            if r.get("task") == "t3":
+                fh.write(json.dumps(r) + "\n")
+
+
 def candidate_answers(model, classes: tuple[str, ...], task: str = "t1") -> list[str]:
     """t1: 'no' + one 'yes, <class>' per class (index 0 = no); t3: one 'Answer: <class>' per class."""
     eos = model.get_eos_token()
@@ -702,7 +797,10 @@ def main(argv: list[str] | None = None) -> int:
     pred_path = out / "predictions.jsonl"
     if cfg["predict_dtype"] and cfg["model_type"] == "OpenTSLMFlamingo":
         model.to(getattr(torch, cfg["predict_dtype"]))
-    predict(cfg, model, sets, collate, pred_path)
+    if cfg["predict_mode"] == "rescore":
+        rescore(cfg, model, sets, collate, pred_path)
+    else:
+        predict(cfg, model, sets, collate, pred_path)
     res = score_predictions(cfg, pred_path)
     if wb is not None:
         summary = {}
