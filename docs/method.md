@@ -227,6 +227,22 @@ Kelmarsh at 1 h: 0.30 vs 0.28.
 | reason-first + rich text (headline) | **0.86** (0.88 / 0.87 / 0.85) | **28 %** | 1.00 | 100 % |
 | + RFT epoch | 0.87 (0.89 / 0.88 / 0.86) | 26 % | 1.00 | 100 % |
 
+**LLM judge** (`scripts/llm_judge.py`, gpt-5, the same 40 held-out windows — 20 fault, 20 quiet — for every model;
+`docs/results/llm_judge/judge_n40.json`). Scores 1–5 for grounded (claims match the facts computed from the window),
+coherent, actionable, plus whether the reasoning supports the answer line:
+
+| model | grounded | coherent | actionable | supports answer |
+|---|---|---|---|---|
+| reason-first, basic text | 1.70 | 3.33 | 1.00 | 45 % |
+| headline (rich text) | 2.38 | 3.35 | 1.00 | 48 % |
+| headline + RFT | 2.88 | 3.92 | 1.00 | 58 % |
+
+The judge's ordering agrees with the rule checker but it is harsher (one wrong figure, or a conclusion that
+contradicts the true outcome, costs the whole text); it rates the RFT model as the better *text* (more coherent,
+more often supporting its own answer) while the headline stays the better alarm model on Kelmarsh. "Actionable" is
+1.0 for every model because the targets never recommend an action — the next cheap improvement is a rule-derived
+recommendation sentence per class in the training targets.
+
 **Training dynamics.** Label-only models overfit after epoch 2 (val loss 0.145 → 0.217 for Flamingo); SP + LoRA
 fits fastest and its Kelmarsh loss rises from 0.16 to 0.50 by epoch 4 — the adapted backbone memorises the training
 farm. Reason-first targets overfit later (epoch 3) and keep the Kelmarsh loss flat: richer supervision per window

@@ -79,4 +79,6 @@ intervals on test-B (2,000 resamples, `scripts/bootstrap_ci.py`, `docs/results/b
 R@10 0.268 [0.238, 0.297] vs XGBoost sensors-only 0.206 [0.173, 0.238], paired difference −0.062 [−0.097, −0.027];
 RFT vs headline +0.007 [−0.019, +0.035] (not significant). Hard-label metrics (written "yes"/"no" + subsystem),
 per-horizon and per-class rows, and the text faithfulness numbers are in each run's `report.md` / `results.json` /
-`faithfulness.json`; see `docs/results/README.md` for the columns.
+`faithfulness.json`; see `docs/results/README.md` for the columns. LLM-judge scores (gpt-5, 40 shared windows) for
+the three text models are in `docs/results/llm_judge/judge_n40.json` (grounded 1.7 / 2.4 / 2.9, coherent 3.3 / 3.4 /
+3.9 for basic / headline / RFT; actionable 1.0 for all — the targets contain no recommendation sentence).
