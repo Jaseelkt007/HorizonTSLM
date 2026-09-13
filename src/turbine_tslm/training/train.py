@@ -429,6 +429,43 @@ def answer_loglik(
         return float(batch_answer_loglik(model, collate([s]))[0])
 
 
+@torch.no_grad()
+def generate_texts(
+    model, batch: list[dict[str, Any]], max_new_tokens: int
+) -> list[str]:
+    """Batched generation with LEFT padding.
+
+    OpenTSLM pads prompts on the right (fine for teacher-forced loss), but then generation for the shorter prompts
+    in a batch starts after pad tokens and comes out garbled / mid-sentence. Flamingo: flip the tokenizer's padding
+    side for the call. SP: roll each right-padded embedding row so its padding moves to the front, then call the
+    LLM's generate directly (mirrors OpenTSLMSP.generate).
+    """
+    if hasattr(model, "text_tokenizer"):  # OpenTSLMFlamingo
+        tok = model.text_tokenizer
+        side = tok.padding_side
+        tok.padding_side = "left"
+        try:
+            return model.generate(batch, max_new_tokens=max_new_tokens)
+        finally:
+            tok.padding_side = side
+    inputs_embeds, attention_mask = model.pad_and_apply_batch(batch)
+    B, L, _ = inputs_embeds.shape
+    lengths = attention_mask.sum(dim=1).long()
+    left_embeds = torch.zeros_like(inputs_embeds)
+    left_mask = torch.zeros_like(attention_mask)
+    for i in range(B):
+        n = int(lengths[i])
+        left_embeds[i, L - n :] = inputs_embeds[i, :n]
+        left_mask[i, L - n :] = 1
+    gen_ids = model.llm.generate(
+        inputs_embeds=left_embeds,
+        attention_mask=left_mask,
+        max_new_tokens=max_new_tokens,
+        pad_token_id=model.tokenizer.pad_token_id,
+    )
+    return model.tokenizer.batch_decode(gen_ids, skip_special_tokens=True)
+
+
 def evidence_prefix(text: str) -> str:
     """Generated text up to (not including) its last 'Answer' — the reasoning part, whitespace-trimmed."""
     i = text.lower().rfind("answer")
@@ -534,9 +571,7 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                     fill_record(rec, p, task, classes)
             if mode in ("generate", "both"):
                 with autocast(cfg):
-                    texts = model.generate(
-                        collate(chunk), max_new_tokens=cfg["max_new_tokens"]
-                    )
+                    texts = generate_texts(model, collate(chunk), cfg["max_new_tokens"])
                 for rec, text in zip(recs, texts, strict=True):
                     rec["text"] = text
                 if mode == "generate":
