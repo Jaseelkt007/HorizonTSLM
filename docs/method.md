@@ -195,6 +195,14 @@ AUROC for the two reason-first rows is the near-binary generate-mode score (see 
 recorded in the hand-off when available. Per horizon, headline model, recall at 10 % FAR: 1 h 0.45 / 0.30,
 3 h 0.32 / 0.27, 6 h 0.27 / 0.23 (test_a / test_b).
 
+**Confidence intervals (Kelmarsh, paired bootstrap, 2,000 resamples, `scripts/bootstrap_ci.py`,
+`docs/results/bootstrap/test_b.json`).** Recall at 10 % FAR: headline 0.268 [0.238, 0.297]; XGBoost sensors-only
+0.206 [0.173, 0.238], paired difference vs headline −0.062 [−0.097, −0.027], P(XGBoost better) = 0.00; XGBoost +
+context 0.223, difference −0.040 [−0.076, −0.006]; label-only Flamingo 0.241 and SP 0.244, differences within noise
+(P ≈ 0.11–0.15); reason-first with basic text 0.230, difference −0.035 [−0.066, −0.003] (the rich channel text helps
+the label, not only the text). AUROC intervals are ±0.023 for every model; the headline's generate-mode AUROC
+0.589 [0.565, 0.612] is below XGBoost's 0.596–0.614 because the score is near-binary (§ 7).
+
 **Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b.
 
 **Per class, Kelmarsh, recall at 10 % FAR (headline model / XGBoost sensors-only):** structural_overspeed 0.59 / 0.40,
