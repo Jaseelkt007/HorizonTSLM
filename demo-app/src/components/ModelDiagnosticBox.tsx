@@ -35,7 +35,11 @@ export function ModelDiagnosticBox({ turbine }: { turbine: TurbineInfo }) {
     setMessages([{ id: `summary-${turbine.farm}-${turbine.id}-${timeframe}`, role: "assistant", content: summary }]);
     setInput(question);
   }, [question, summary, timeframe, turbine.farm, turbine.id]);
-  useEffect(() => bottom.current?.scrollIntoView({ behavior: "smooth" }), [messages, isProcessing]);
+  useEffect(() => {
+    // Block body on purpose: an arrow that returns scrollIntoView's result makes React treat it as a
+    // cleanup function and crash the view ("u is not a function") in production.
+    bottom.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, isProcessing]);
 
   async function send(event: FormEvent) {
     event.preventDefault();
