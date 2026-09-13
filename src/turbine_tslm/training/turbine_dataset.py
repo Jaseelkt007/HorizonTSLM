@@ -67,7 +67,8 @@ def load_rows(
             rows.append(
                 {
                     "window_id": rec.record_id,
-                    "task": "t1",
+                    "task": ann.get("task", "t1"),
+                    "warning_message": ann.get("warning_message"),
                     "split": ann["split"],
                     "farm": ann["farm"],
                     "horizon_h": int(ann["horizon_h"]),
@@ -139,8 +140,11 @@ class TurbineQADataset(QADataset):
         rows = self.rows()
         if self.horizons:
             rows = [r for r in rows if r["horizon_h"] in self.horizons]
-        rows = [r for r in rows if "t1" in self.tasks] + (
-            t3_rows(rows) if "t3" in self.tasks else []
+        t1 = [r for r in rows if r["task"] == "t1"]
+        rows = (
+            (t1 if "t1" in self.tasks else [])
+            + [r for r in rows if r["task"] == "t2" and "t2" in self.tasks]
+            + (t3_rows(t1) if "t3" in self.tasks else [])
         )
         out = []
         for key in ("train", "validation", "test"):

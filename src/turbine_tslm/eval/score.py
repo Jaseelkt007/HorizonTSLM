@@ -43,6 +43,7 @@ from typing import Any
 
 import numpy as np
 import pandas as pd
+import pyarrow.parquet as pq
 
 from turbine_tslm.data.taxonomy import fault_classes
 
@@ -154,13 +155,21 @@ def load_labels(
     ``tasks``: ``t1`` = the windows as built; ``t3`` = post-hoc records derived from the 1 h positives (ids get a
     ``#t3`` suffix, matching ``training.turbine_dataset.t3_rows``). The returned frame has a ``task`` column.
     """
-    frames = [pd.read_parquet(p, columns=LABEL_COLUMNS) for p in paths]
+    frames = []
+    for p in paths:
+        cols = set(pq.read_schema(p).names)
+        frames.append(
+            pd.read_parquet(
+                p, columns=LABEL_COLUMNS + (["task"] if "task" in cols else [])
+            )
+        )
     df = pd.concat(frames, ignore_index=True)
     df["label"] = df["label"].astype(str)
-    df["task"] = "t1"
-    parts = []
-    if "t1" in tasks:
-        parts.append(df)
+    if "task" not in df.columns:
+        df["task"] = "t1"
+    df["task"] = df["task"].fillna("t1")
+    parts = [df[df["task"] == t] for t in tasks if t in ("t1", "t2")]
+    df = df[df["task"] == "t1"]
     if "t3" in tasks:
         t3 = df[(df["label"] != NONE) & (df["horizon_h"] == 1)].copy()
         t3["window_id"] = t3["window_id"] + "#t3"

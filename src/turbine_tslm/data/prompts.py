@@ -65,3 +65,27 @@ def t3_pre_prompt(farm: str, turbine_id: str, month: str) -> str:
 
 def t3_answer_label(label: str) -> str:
     return f"Answer: {label}"
+
+
+# ---- T2 warning escalation: the warning text is known at the anchor, so it is part of the question.
+T2_PRE_PROMPT = (
+    "You are monitoring wind turbine {turbine_id} ({turbine_type}, {rated_kw} kW) in {month}. "
+    "Below are the last 24 hours of 10-minute SCADA signals, ending now. The turbine is currently {state}. "
+    'The controller has just raised the warning "{warning}". Decide whether it will escalate to a fault stop '
+    "(forced outage) within the next 24 hours. If yes, name the subsystem from: {classes}. "
+    'Do not state a decision until the final line. End with "Answer: ".'
+)
+
+
+def t2_pre_prompt(
+    farm: str, turbine_id: str, month: str, state: str, warning: str
+) -> str:
+    return T2_PRE_PROMPT.format(
+        turbine_id=turbine_id,
+        turbine_type=TURBINE_TYPE[farm],
+        rated_kw=RATED_KW,
+        month=month,
+        state=state,
+        warning=warning,
+        classes=", ".join(fault_classes()),
+    )
