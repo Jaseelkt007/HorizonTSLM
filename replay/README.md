@@ -1,32 +1,28 @@
-# Pipeline showcase — one window, end to end
+# Pipeline console — one window, end to end, on one screen
 
 Standalone page: `index.html` plus copies of `docs/results/replay/*.json` (one Kelmarsh turbine-day each, hourly
 windows through the headline checkpoint). No build, no server logic, no GPU or API calls.
 
     cd replay && python -m http.server 8010      # open http://localhost:8010
 
-One screen, no scrolling: the input on the left, the question / answer / check on the right, the model along the
-bottom, and Start / Next / Restart in the header. Choose the turbine-day, the window (hour) and the horizon, press
-**Start**, and the five stages play at a presentation pace (slow / normal / quick; **Next** or → skips ahead,
-Esc / Restart resets, Enter starts):
+Layout (everything on one screen at ≥ 1280 px; columns stack on phones):
 
-1. **Input** — "The previous 24 hours of SCADA sensor measurements": wind speed, power, gearbox temperature and oil
-   pressure, generator temperatures, pitch angle, rotor speed, grid voltage/frequency, tower acceleration, other
-   channels — each with its sparkline and last value from the window.
-2. **Question** — "Will a fault stop begin within the next H hours? If yes, which subsystem?" with the exact prompt
-   (pre-prompt and the 19 channel descriptions, whose statistics are recomputed from the window as the training code
-   does) behind a disclosure.
-3. **Model** — the data flowing through OpenTSLM-Flamingo (after the paper's architecture figure): the 19 channels
-   into the patch encoder (1-D conv, patch 4 → 36 × 128), the Perceiver Resampler (64 latents), gated cross-attention
-   before every block of the frozen Llama-3.2-1B, prompt tokens entering below, generated tokens leaving into the
-   output box word by word.
-4. **Answer** — the model's real output typed out in the FINDING / EVIDENCE / ANSWER frame: FINDING is its
-   conclusion sentence, EVIDENCE its evidence sentences with every number marked verified (green) or wrong (red),
-   ANSWER its `Answer:` line; P(fault stop) gauge and subsystem probabilities beside it.
-5. **Check** — the numbers recomputed from the window, what the log recorded (the real line, lead time from this
-   window, whether the answer matches), and an **action** line that is a fixed playbook entry per subsystem — labelled
-   as such, it is not model output.
+- **header** — turbine-day, the 24 h window, the horizon (1 / 3 / 6 h), the pace, and **Run / Next → / Reset**;
+  a stage rail underneath (Input → Question → Model → Answer → Check) fills in as the run proceeds.
+- **left — Input**: the 19 SCADA channels as a vertical list (name, unit, sparkline, last value of the window);
+  the ones the answer cites are marked once the model has answered.
+- **middle — Model**: the five-step strip (SCADA inputs → patch encoder → Perceiver resampler → Llama-3.2-1B →
+  generated text) and the flow diagram beneath it: channel sparklines fan into the patch grid (36 per channel), then
+  the latent tokens (64 per channel), the transformer (frozen, gated cross-attention), the generated tokens and the
+  text streaming word by word — the real generated assessment, then its `Answer:` line; a progress bar below.
+- **right — chat column**: the **Question** on top (with the exact prompt behind a disclosure), then the **Model
+  answer**: a verdict box ("Yes — structural / overspeed stop likely within 3 h" or "No fault stop expected"),
+  P(fault stop) with the 0.80 alarm line, **Key evidence** — the model's own sentences, each marked ✓ (every number
+  verified against the window) / ✗ (a number does not match) / – (no numeric claim), the answer line, and buttons for
+  the full text + prompt and for the **Check** card: numbers verified, what the alarm log recorded (real log line,
+  lead time from this window, whether the answer matches), and an action line that is a fixed playbook entry per
+  subsystem, labelled as such (not model output).
 
-Deep links: `#<case>&step=<0–12>&h=<1|3|6>`; add `?autorun` to open the page already playing, `?pace=1.6|1|0.5`.
-Every figure comes from the case JSON (`scripts/replay_case.py`, checkpoint `t1_flamingo_llama1b_evidence_rich`).
-Schema: `docs/results/replay/README.md`. Light and dark themes; phone-width safe.
+Keys: Enter = Run, → = Next, Esc = Reset. Deep links: `#<case>&step=<0–12>&h=<1|3|6>`; `?autorun` opens the page
+already running; `?pace=1.6|1|0.5`. Every figure comes from the case JSON (`scripts/replay_case.py`, checkpoint
+`t1_flamingo_llama1b_evidence_rich`); schema in `docs/results/replay/README.md`. Light and dark themes.

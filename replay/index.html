@@ -5,188 +5,229 @@
 <style>
 :root{
   color-scheme:light;
-  --page:#f4f6f9; --card:#ffffff; --card-2:#f8fafc; --hover:#f1f4f8;
-  --line:#e3e8ef; --line-2:#cbd3dd;
+  --page:#f3f5f9; --card:#ffffff; --card-2:#f7f9fc; --hover:#eef2f8;
+  --line:#e2e7ef; --line-2:#c9d2de;
   --ink:#0b1220; --ink-2:#3f4a5a; --ink-3:#6b7684; --ink-4:#98a2b0;
-  --accent:#2b5fd9; --accent-ink:#1f4bb3; --accent-soft:#e8eefc; --accent-line:#a9bff0;
-  --good:#1a7f4b; --good-soft:#dff3e7; --warn:#b4650f; --warn-soft:#fbeedc; --crit:#c0362c; --crit-soft:#fbe3e1;
-  --series:#3d4b58; --s1:#2a78d6; --s3:#1baf7a;
+  --accent:#2563eb; --accent-ink:#1d4fd7; --accent-soft:#e8effd; --accent-line:#a9c0f4; --accent-deep:#1e40af;
+  --good:#16803c; --good-soft:#dcf5e5; --warn:#b4650f; --warn-soft:#fdf0dc; --crit:#c2362b; --crit-soft:#fbe4e1;
+  --c-wind:#2563eb; --c-temp:#ea7a2a; --c-pitch:#16a34a; --c-rotor:#7c3aed; --c-grid:#0ea5e9; --c-tower:#dc2626; --c-other:#64748b;
   --shadow:0 1px 2px rgba(11,18,32,.05);
   --fu:"Inter",system-ui,-apple-system,"Segoe UI",sans-serif; --fm:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,monospace;
 }
 @media (prefers-color-scheme:dark){ :root:not([data-theme="light"]){
   color-scheme:dark;
-  --page:#0f141b; --card:#161c24; --card-2:#1b222c; --hover:#1e2631;
+  --page:#0f141b; --card:#161c24; --card-2:#1b222c; --hover:#1f2833;
   --line:#273040; --line-2:#37425a;
   --ink:#e8edf3; --ink-2:#b3bcc9; --ink-3:#8a95a5; --ink-4:#66717f;
-  --accent:#6d9bff; --accent-ink:#9dbcff; --accent-soft:#1b2b4d; --accent-line:#35548f;
+  --accent:#5b8dff; --accent-ink:#8fb0ff; --accent-soft:#1b2b4d; --accent-line:#35548f; --accent-deep:#2b4ea8;
   --good:#5ec98d; --good-soft:#163526; --warn:#e3a94f; --warn-soft:#3b2c12; --crit:#f08078; --crit-soft:#47201d;
-  --series:#c2ccd3; --s1:#3987e5; --s3:#199e70;
+  --c-wind:#5b8dff; --c-temp:#f59e5b; --c-pitch:#4ade80; --c-rotor:#a78bfa; --c-grid:#38bdf8; --c-tower:#f87171; --c-other:#94a3b8;
   --shadow:none;
 }}
 :root[data-theme="dark"]{
   color-scheme:dark;
-  --page:#0f141b; --card:#161c24; --card-2:#1b222c; --hover:#1e2631;
+  --page:#0f141b; --card:#161c24; --card-2:#1b222c; --hover:#1f2833;
   --line:#273040; --line-2:#37425a;
   --ink:#e8edf3; --ink-2:#b3bcc9; --ink-3:#8a95a5; --ink-4:#66717f;
-  --accent:#6d9bff; --accent-ink:#9dbcff; --accent-soft:#1b2b4d; --accent-line:#35548f;
+  --accent:#5b8dff; --accent-ink:#8fb0ff; --accent-soft:#1b2b4d; --accent-line:#35548f; --accent-deep:#2b4ea8;
   --good:#5ec98d; --good-soft:#163526; --warn:#e3a94f; --warn-soft:#3b2c12; --crit:#f08078; --crit-soft:#47201d;
-  --series:#c2ccd3; --s1:#3987e5; --s3:#199e70;
+  --c-wind:#5b8dff; --c-temp:#f59e5b; --c-pitch:#4ade80; --c-rotor:#a78bfa; --c-grid:#38bdf8; --c-tower:#f87171; --c-other:#94a3b8;
   --shadow:none;
 }
 *,*::before,*::after{box-sizing:border-box}
 html{background:var(--page)}
-body{margin:0;background:var(--page);color:var(--ink);font:14px/1.45 var(--fu);-webkit-font-smoothing:antialiased}
+body{margin:0;background:var(--page);color:var(--ink);font:13.5px/1.45 var(--fu);-webkit-font-smoothing:antialiased}
 button{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
 h1,h2,h3{margin:0}
 p{margin:0}
 [hidden]{display:none!important}
-svg text{font-family:var(--fu);font-variant-numeric:tabular-nums}
+svg text{font-family:var(--fu)}
 .num{font-variant-numeric:tabular-nums}
 .muted{color:var(--ink-3)}
-.label{font:600 11px/1.2 var(--fu);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
 
-/* ---- app frame: header + stage, fills the viewport ---- */
-.app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding:0 16px;padding-block:0 12px;gap:10px}
-.bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding-top:10px}
-.brand{display:flex;align-items:center;gap:9px;min-width:0;margin-right:auto}
-.brand svg{width:26px;height:26px;color:var(--accent);flex:none}
-.brand b{font:600 14px/1.2 var(--fu);letter-spacing:-.01em;display:block;white-space:nowrap}
-.brand small{font:400 11.5px var(--fu);color:var(--ink-3);display:block;white-space:nowrap}
-.picks{display:flex;flex-wrap:wrap;gap:6px 10px;align-items:end}
+/* ---------- frame ---------- */
+.app{height:100vh;height:100dvh;display:flex;flex-direction:column;padding:0 14px;padding-block:0 8px;gap:8px}
+.bar{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:8px 16px;padding:10px 4px 4px}
+@media (min-width:1280px){.bar{flex-wrap:nowrap}}
+.brand{display:flex;align-items:center;gap:10px;min-width:0;margin-right:auto}
+.brand svg{width:34px;height:34px;color:var(--accent);flex:none}
+.brand h1{font:700 19px/1.15 var(--fu);letter-spacing:-.02em;white-space:nowrap}
+.brand small{display:flex;gap:4px 8px;align-items:center;font:400 12px var(--fu);color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
+.brand>div{min-width:0}
+.pill{display:inline-flex;align-items:center;gap:6px;font:500 11.5px/1 var(--fu);padding:5px 9px;border-radius:999px;background:var(--good-soft);color:var(--good)}
+.pill i{width:7px;height:7px;border-radius:50%;background:currentColor}
+.pill.blue{background:var(--accent-soft);color:var(--accent-ink)}
+.pill.blue i{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{opacity:.35}}
+.picks{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:end;flex:none}
+@media (min-width:1280px){.picks{flex-wrap:nowrap}.brand{flex:1 1 200px}}
 label.f{display:flex;flex-direction:column;gap:3px;font:500 11px var(--fu);color:var(--ink-3);min-width:0}
-select{font:13px var(--fu);color:var(--ink);background:var(--card);border:1px solid var(--line-2);border-radius:8px;padding:6px 26px 6px 9px;max-width:100%;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%236b7684' stroke-width='1.5' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
+select{font:12.5px var(--fu);color:var(--ink);background:var(--card);border:1px solid var(--line-2);border-radius:8px;padding:7px 24px 7px 9px;max-width:100%;appearance:none;background-image:url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' fill='none' stroke='%236b7684' stroke-width='1.5' stroke-linecap='round'/></svg>");background-repeat:no-repeat;background-position:right 9px center}
 .ctl{display:flex;gap:6px;align-items:center}
-.btn{display:inline-flex;align-items:center;gap:6px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);font:500 13px var(--fu);padding:7px 12px;border-radius:8px;cursor:pointer;white-space:nowrap}
+.btn{display:inline-flex;align-items:center;gap:7px;border:1px solid var(--line-2);background:var(--card);color:var(--ink);font:500 13px var(--fu);padding:8px 12px;border-radius:9px;cursor:pointer;white-space:nowrap}
+.ctl{flex:none}
 .btn:hover{background:var(--hover)}
-.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;min-width:84px;justify-content:center}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#fff;min-width:88px;justify-content:center}
 .btn.primary:hover{background:var(--accent-ink)}
+.btn.soft{background:var(--accent-soft);border-color:var(--accent-line);color:var(--accent-ink)}
 .btn:disabled{opacity:.4;cursor:not-allowed}
-.btn svg{width:11px;height:11px}
-.theme{border:1px solid var(--line-2);background:var(--card);width:32px;height:32px;border-radius:8px;cursor:pointer;display:grid;place-items:center;color:var(--ink-2)}
+.btn svg{width:12px;height:12px}
+.theme{border:1px solid var(--line-2);background:var(--card);width:34px;height:34px;border-radius:9px;cursor:pointer;display:grid;place-items:center;color:var(--ink-2)}
 .theme svg{width:16px;height:16px}
-.rail{flex:none;display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
-.rail div{display:flex;align-items:center;gap:8px;padding:4px 10px;border-radius:8px;border:1px solid var(--line);background:var(--card);color:var(--ink-4);font:600 12px var(--fu);min-width:0}
-.rail div i{flex:none;width:18px;height:18px;border-radius:50%;border:1.5px solid var(--line-2);display:grid;place-items:center;font:600 10px var(--fu);font-style:normal}
-.rail div span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.rail div.done{color:var(--ink-2)} .rail div.done i{background:var(--good);border-color:var(--good);color:#fff}
-.rail div.active{color:var(--ink);border-color:var(--accent);box-shadow:inset 0 0 0 1px var(--accent)} .rail div.active i{background:var(--accent);border-color:var(--accent);color:#fff}
 
-.stage{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,5fr) minmax(0,6fr);grid-template-rows:minmax(0,1fr) auto;gap:10px}
-.pane{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-height:0;display:flex;flex-direction:column}
-.pane-h{flex:none;display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:4px 12px;padding:9px 14px;border-bottom:1px solid var(--line)}
-.pane-h .k{display:inline-flex;align-items:center;gap:7px;font:600 11.5px var(--fu);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3)}
-.pane-h .k i{width:18px;height:18px;border-radius:50%;background:var(--line-2);color:#fff;display:grid;place-items:center;font:600 10px var(--fu);font-style:normal}
-.pane.on .pane-h .k{color:var(--accent-ink)} .pane.on .pane-h .k i{background:var(--accent)}
-.pane-h .hint{color:var(--ink-3);font-size:12px}
-.pane-b{flex:1;min-height:0;overflow:auto;padding:12px 14px}
-.bottom{grid-column:1/-1}
-.bottom .pane-b{overflow:hidden;padding:6px 14px 8px}
-@media (max-width:1000px){
-  .app{height:auto;min-height:100vh}
-  .stage{grid-template-columns:1fr;grid-template-rows:auto auto auto}
-  .pane-b{overflow:visible}
-  .bottom .pane-b{overflow-x:auto}
-}
+/* stage rail with connecting lines */
+.rail{flex:none;display:grid;grid-template-columns:repeat(5,1fr);padding:2px 8px}
+.rail div{display:flex;align-items:center;gap:8px;color:var(--ink-4);font:600 13px var(--fu);min-width:0}
+.rail div i{flex:none;width:24px;height:24px;border-radius:50%;background:var(--card);border:1.5px solid var(--line-2);display:grid;place-items:center;font:600 11px var(--fu);font-style:normal;color:var(--ink-4)}
+.rail div::after{content:"";flex:1;height:2px;background:var(--line);margin:0 14px 0 12px;border-radius:1px}
+.rail div:last-child::after{display:none}
+.rail div.done{color:var(--ink-2)} .rail div.done i{background:var(--accent);border-color:var(--accent);color:#fff}
+.rail div.done::after{background:var(--accent-line)}
+.rail div.active{color:var(--accent-ink)} .rail div.active i{background:var(--accent);border-color:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+@media (max-width:760px){.rail div span{display:none}}
 
-/* ---- left: input ---- */
-.inmeta{display:flex;flex-wrap:wrap;gap:2px 12px;font-size:12px;color:var(--ink-2);margin-bottom:8px}
+.cols{flex:1;min-height:0;display:grid;grid-template-columns:320px minmax(0,1fr) 350px;gap:10px}
+@media (max-width:1180px){.cols{grid-template-columns:260px minmax(0,1fr) 320px}}
+@media (max-width:1000px){.app{height:auto;min-height:100vh}.cols{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow);min-height:0;display:flex;flex-direction:column}
+.card-h{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:6px 10px;padding:10px 14px;border-bottom:1px solid var(--line)}
+.card-h .ic{width:22px;height:22px;border-radius:7px;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;flex:none}
+.card-h .ic svg{width:12px;height:12px}
+.card-h .ic.g{background:var(--good-soft);color:var(--good)}
+.card-h .ic.q{background:var(--card-2);color:var(--ink-3);border:1px solid var(--line)}
+.card-h h2{font:700 12.5px/1.2 var(--fu);letter-spacing:.06em;text-transform:uppercase}
+.card-h .hint{color:var(--ink-3);font-size:12.5px;min-width:0}
+.card-h .right{margin-left:auto}
+.card-b{flex:1;min-height:0;overflow:auto;padding:12px 14px}
+.colr{display:flex;flex-direction:column;gap:10px;min-height:0;overflow:auto}
+.colr .card{flex:none}
+
+/* ---------- left: input list ---------- */
+.inmeta{display:flex;flex-wrap:wrap;gap:2px 8px;font-size:12px;color:var(--ink-2);padding:10px 14px 6px}
 .inmeta b{color:var(--ink)}
-.inputs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px 12px}
-@media (max-width:1200px) and (min-width:1001px){.inputs{grid-template-columns:1fr}}
-.inp{display:flex;flex-direction:column;gap:2px;padding:5px 9px;border:1px solid var(--line);border-radius:8px;background:var(--card-2);transition:opacity .35s,transform .35s,border-color .3s}
-.inp.dim{opacity:.35;transform:translateX(-6px)}
-.inp.hot{border-color:var(--accent)}
-.inp .t{font:600 12.5px var(--fu);display:flex;align-items:center;gap:7px}
-.inp .t::before{content:"•";color:var(--accent);font-size:18px;line-height:0}
-.inp .row{display:grid;grid-template-columns:1fr auto auto;gap:8px;align-items:center;font-size:11.5px;line-height:1.35;color:var(--ink-2)}
-.inp.wide{grid-column:1/-1}
-.inp.wide .rows{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:2px 18px}
-.inp .rows{display:flex;flex-direction:column;gap:2px}
-.inp .row .v{font-variant-numeric:tabular-nums;color:var(--ink);font-weight:500;white-space:nowrap}
-.inp .row svg{width:60px;height:14px}
+.chl{display:flex;flex-direction:column;gap:6px;padding:4px 12px 12px}
+.chr{display:grid;grid-template-columns:8px minmax(0,1fr) auto auto;gap:8px;align-items:center;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);transition:opacity .35s,transform .35s,border-color .3s,background .3s}
+.chr.dim{opacity:.3;transform:translateX(-6px)}
+.chr.hot{border-color:var(--accent);background:var(--accent-soft)}
+.chr.cited{border-color:var(--accent-line)}
+.chr .dot{width:8px;height:8px;border-radius:50%;background:var(--c)}
+.chr .nm{font:500 12.5px/1.25 var(--fu);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.chr .nm small{display:block;font:400 11px var(--fu);color:var(--ink-3)}
+.chr svg{width:58px;height:20px}
+.chr .v{font:600 12px var(--fu);font-variant-numeric:tabular-nums;white-space:nowrap;min-width:54px;text-align:right}
+.chr .v small{font-weight:400;color:var(--ink-3)}
 
-/* ---- right: output ---- */
-.blk{opacity:0;transform:translateY(6px);transition:opacity .4s,transform .4s}
-.blk.show{opacity:1;transform:none}
-.blk+.blk{margin-top:10px;padding-top:10px;border-top:1px solid var(--line)}
-.q{font:500 17px/1.35 var(--fu);letter-spacing:-.01em}
-.blk.compact .q{font:500 13px/1.4 var(--fu);color:var(--ink-2)}
-.blk.compact details{display:none}
-.q b{color:var(--accent-ink)}
-details.prompt{margin-top:6px}
-details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;font-size:12px}
-.mono{font:400 11.5px/1.45 var(--fm);color:var(--ink-2);white-space:pre-wrap;word-break:break-word;background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;max-height:150px;overflow:auto}
-.mono b{color:var(--accent-ink);font-weight:500}
-.placeholder{color:var(--ink-3);font-size:13.5px;display:flex;flex-direction:column;gap:6px;align-items:flex-start}
-.out{display:grid;grid-template-columns:minmax(0,1fr) 215px;gap:16px;align-items:start}
-@media (max-width:640px){.out{grid-template-columns:1fr}}
-.lines{display:flex;flex-direction:column;gap:9px}
-.line{display:grid;grid-template-columns:82px minmax(0,1fr);gap:10px;align-items:baseline;opacity:0;transition:opacity .35s}
-.line.show{opacity:1}
-.line .lk{font:700 11px var(--fm);letter-spacing:.06em;color:var(--accent-ink);padding-top:3px}
-.line .lv{font:400 14.5px/1.5 var(--fu)}
-.line .lv code{font:500 13px var(--fm);background:var(--card-2);border:1px solid var(--line);padding:5px 9px;border-radius:7px;display:inline-block;margin-right:8px}
-.line .lv mark{background:var(--good-soft);color:inherit;padding:1px 3px 0;border-radius:3px;text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
-.line .lv mark.bad{background:var(--crit-soft);text-decoration-style:wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
-.caret{display:inline-block;width:2px;height:1em;background:var(--ink);vertical-align:-2px;margin-left:1px;animation:blink 1s steps(2) infinite}
+/* ---------- middle: model ---------- */
+.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:0;padding:12px 10px 8px;flex:none}
+.stp{padding:0 10px;border-left:1px solid var(--line);display:flex;flex-direction:column;gap:3px;align-items:center;text-align:center;color:var(--ink-3)}
+.stp:first-child{border-left:0}
+.stp i{width:22px;height:22px;border-radius:50%;background:var(--accent-soft);color:var(--accent-ink);display:grid;place-items:center;font:600 11px var(--fu);font-style:normal;margin-bottom:2px}
+.stp b{font:600 12.5px var(--fu);color:var(--ink)}
+.stp span{font:400 11.5px/1.3 var(--fu)}
+.stp.on i{background:var(--accent);color:#fff;box-shadow:0 0 0 4px var(--accent-soft)}
+.flowwrap{flex:1;min-height:0;overflow:auto;padding:6px 14px 8px}
+.flow{--sq:12px;--lbl:84px;--spk:74px;--llmw:126px;display:grid;grid-template-columns:auto 30px auto 26px auto 26px auto 26px auto minmax(140px,1fr);gap:0 5px;align-items:center;min-width:700px;height:100%;background:var(--card-2);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+@media (max-width:1560px){.flow{--sq:10px;--lbl:66px;--spk:60px;--llmw:108px}}
+.fc{display:flex;flex-direction:column;align-items:center;gap:8px;min-width:0}
+.fl{font:500 11.5px/1.3 var(--fu);color:var(--ink-3);text-align:center}
+.fl b{display:block;font-weight:600;color:var(--ink-2)}
+.srcrows{display:flex;flex-direction:column;gap:5px}
+.srow{display:grid;grid-template-columns:var(--lbl) var(--spk);gap:6px;align-items:center;font:400 11px var(--fu);color:var(--ink-2)}
+.srow span{text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.srow svg{width:var(--spk);height:22px;border:1px solid var(--line);border-radius:6px;background:var(--card)}
+.fan{width:30px;display:block;align-self:center}
+.fan path{fill:none;stroke:var(--accent-line);stroke-width:1.2}
+.fan.live path{stroke:var(--accent);stroke-dasharray:4 4;animation:dash 1s linear infinite}
+@keyframes dash{to{stroke-dashoffset:-16}}
+.arrow{width:26px;height:16px;display:block}
+.arrow path{stroke:var(--line-2);stroke-width:2;fill:none}
+.arrow.live path{stroke:var(--accent);stroke-dasharray:4 4;animation:dash 1s linear infinite}
+.fbox{border:1px solid var(--line);border-radius:12px;background:var(--card);padding:8px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;min-height:190px;transition:box-shadow .3s,border-color .3s}
+.fbox.on{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.grid{display:grid;grid-template-columns:repeat(4,var(--sq));gap:3px}
+.grid i,.colsq i{display:block;width:var(--sq);height:var(--sq);border-radius:2.5px;background:var(--line);transition:background .25s,transform .25s}
+.grid i.on,.colsq i.on{background:var(--accent)}
+.colsq{display:flex;flex-direction:column;gap:4px;align-items:center}
+.colsq i{width:20px;height:9px;border-radius:2.5px}
+.colsq i.lat.on{background:linear-gradient(90deg,var(--accent),#7c3aed)}
+.more{font:600 12px var(--fu);color:var(--ink-4);line-height:1}
+.llm{width:var(--llmw);min-height:200px;border-radius:14px;background:linear-gradient(160deg,var(--accent) 0%,var(--accent-deep) 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px 10px;box-shadow:0 8px 24px rgba(37,99,235,.25);transition:box-shadow .3s,transform .3s}
+.llm.on{box-shadow:0 10px 32px rgba(37,99,235,.45);transform:translateY(-2px)}
+.llm svg{width:34px;height:34px;opacity:.95}
+.llm b{font:700 13.5px/1.2 var(--fu)}
+.llm span{font:400 11px/1.3 var(--fu);opacity:.85}
+.llm .xa{display:flex;flex-direction:column;gap:2px;margin-top:4px}
+.llm .xa i{display:block;width:64px;height:3px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s}
+.llm .xa i.on{background:#fff}
+.llm .dots{display:flex;gap:4px;margin-top:4px}
+.llm .dots i{width:5px;height:5px;border-radius:50%;background:#fff;opacity:.35}
+.llm.on .dots i{animation:pulse 1s ease-in-out infinite}
+.llm.on .dots i:nth-child(2){animation-delay:.2s} .llm.on .dots i:nth-child(3){animation-delay:.4s}
+.stream{align-self:stretch;height:100%;min-height:190px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;font:400 11.5px/1.55 var(--fm);color:var(--ink-2);white-space:pre-wrap;word-break:break-word;overflow:auto}
+.stream .tag{color:var(--ink-4)}
+.stream .ansl{color:var(--accent-ink);font-weight:500}
+.stream .caret{display:inline-block;width:2px;height:1em;background:var(--ink);vertical-align:-2px;animation:blink 1s steps(2) infinite}
 @keyframes blink{50%{opacity:0}}
-.chip{display:inline-flex;align-items:center;gap:5px;font:500 11.5px/1 var(--fu);padding:4px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent;vertical-align:middle}
-.chip.class{background:var(--warn-soft);color:var(--warn)}
-.chip.neutral{background:var(--card-2);color:var(--ink-2);border-color:var(--line)}
-.chip.good{background:var(--good-soft);color:var(--good)}
-.chip.bad{background:var(--crit-soft);color:var(--crit)}
-.side{display:flex;flex-direction:column;gap:10px}
-.gauge{text-align:center;padding:8px 6px 6px;border:1px solid var(--line);border-radius:10px}
-.gauge svg{width:130px;height:74px;display:block;margin:0 auto}
-.gauge .arc{transition:stroke-dashoffset 1.2s cubic-bezier(.4,0,.2,1),stroke .5s}
-.gauge .v{font:600 26px/1 var(--fu);letter-spacing:-.02em;font-variant-numeric:tabular-nums;margin-top:-34px}
-.gauge .h{font:500 11.5px var(--fu);color:var(--ink-2);margin-top:8px}
-.gauge .s{font:400 11px var(--fu);color:var(--ink-3)}
-.probs{display:grid;grid-template-columns:minmax(0,auto) minmax(28px,1fr) 34px;gap:4px 8px;align-items:center;font-size:11.5px}
-.probs .l{color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:118px} .probs .l.gold{color:var(--ink);font-weight:600}
-.probs .bar{height:5px;background:var(--card-2);border:1px solid var(--line);border-radius:3px;overflow:hidden}
-.probs .bar i{display:block;height:100%;background:var(--accent);transition:width .8s}
-.probs .n{text-align:right;color:var(--ink-2);font-variant-numeric:tabular-nums}
-.check{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
-@media (max-width:760px){.check{grid-template-columns:1fr}}
-.cbox{border:1px solid var(--line);border-radius:9px;padding:10px 12px;display:flex;flex-direction:column;gap:6px;background:var(--card-2);min-width:0}
-.cbox h3{font:600 12.5px var(--fu)}
-.claims{display:flex;flex-direction:column;gap:2px;font-size:11.5px;max-height:96px;overflow:auto}
-.claims span{display:flex;gap:6px;align-items:flex-start}
-.claims i{flex:none;width:14px;height:14px;border-radius:50%;display:inline-grid;place-items:center;font-style:normal;font-size:9px;color:#fff;margin-top:2px}
-.claims i.ok{background:var(--good)} .claims i.no{background:var(--crit)}
+.prog{flex:none;display:grid;grid-template-columns:auto 1fr auto;gap:10px 14px;align-items:center;padding:10px 14px;border-top:1px solid var(--line);font-size:12.5px;color:var(--ink-2)}
+.prog .track{grid-column:1/-1;height:6px;border-radius:3px;background:var(--line);overflow:hidden}
+.prog .track i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--accent),#60a5fa);border-radius:3px;transition:width .4s}
+.prog .pct{font-weight:600;color:var(--ink);font-variant-numeric:tabular-nums}
+
+/* ---------- right: chat column ---------- */
+.qbox{font:500 15px/1.4 var(--fu);padding:12px 14px;border:1px solid var(--line);border-radius:10px;background:var(--card-2)}
+.qbox b{color:var(--accent-ink)}
+details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;font-size:12px;margin-top:8px}
+.mono{font:400 11px/1.45 var(--fm);color:var(--ink-2);white-space:pre-wrap;word-break:break-word;background:var(--card-2);border:1px solid var(--line);border-radius:8px;padding:8px 10px;margin-top:6px;max-height:160px;overflow:auto}
+.mono b{color:var(--accent-ink);font-weight:500}
+.wait{color:var(--ink-3);font-size:13px;display:flex;flex-direction:column;gap:6px}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;padding:14px;border-radius:10px;border:1px solid var(--line)}
+.verdict.yes{background:var(--crit-soft);border-color:transparent}
+.verdict.no{background:var(--good-soft);border-color:transparent}
+.verdict .ico{width:30px;height:30px;border-radius:50%;display:grid;place-items:center;color:#fff}
+.verdict.yes .ico{background:var(--crit)} .verdict.no .ico{background:var(--good)}
+.verdict .ico svg{width:15px;height:15px}
+.verdict b{font:700 17px/1.25 var(--fu);letter-spacing:-.01em}
+.verdict small{display:block;font:400 12px var(--fu);color:var(--ink-2);margin-top:2px}
+.conf{margin-top:12px}
+.conf .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2)}
+.conf .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
+.conf .track{position:relative;height:9px;border-radius:5px;background:var(--line);margin-top:5px;overflow:visible}
+.conf .track i{display:block;height:100%;width:0;border-radius:5px;background:var(--accent);transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+.conf .track i.hi{background:var(--crit)} .conf .track i.mid{background:var(--warn)}
+.conf .track em{position:absolute;top:-4px;left:80%;width:2px;height:17px;background:var(--crit);border-radius:1px}
+.conf .foot{font-size:11px;color:var(--ink-3);margin-top:4px}
+.kev{margin-top:14px}
+.kev h3{font:600 13px var(--fu);display:flex;align-items:center;gap:7px;margin-bottom:8px}
+.ev{display:grid;grid-template-columns:22px minmax(0,1fr);gap:10px;align-items:start;padding:9px 10px;border-radius:9px;background:var(--card-2);border:1px solid var(--line);margin-bottom:6px;opacity:0;transform:translateY(4px);transition:opacity .35s,transform .35s}
+.ev.show{opacity:1;transform:none}
+.ev .ic{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;color:#fff;font-style:normal;font-size:11px;font-weight:700}
+.ev .ic.ok{background:var(--good)} .ev .ic.bad{background:var(--crit)} .ev .ic.nil{background:var(--line-2);color:var(--ink-2)}
+.ev .t{font:500 13px/1.45 var(--fu)}
+.ev .s{font:400 11.5px var(--fu);color:var(--ink-3);margin-top:2px}
+.ev mark{background:var(--good-soft);color:inherit;padding:1px 2px 0;border-radius:3px;text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
+.ev mark.bad{background:var(--crit-soft);text-decoration-style:wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
+.ansline{margin-top:6px;display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center}
+.ansline code{font:500 12px var(--fm);background:var(--card-2);border:1px solid var(--line);padding:5px 8px;border-radius:7px}
+.chip{display:inline-flex;align-items:center;gap:5px;font:500 11.5px/1 var(--fu);padding:4px 8px;border-radius:999px;white-space:nowrap;border:1px solid transparent}
+.chip.class{background:var(--warn-soft);color:var(--warn)} .chip.neutral{background:var(--card-2);color:var(--ink-2);border-color:var(--line)} .chip.good{background:var(--good-soft);color:var(--good)} .chip.bad{background:var(--crit-soft);color:var(--crit)}
+.acts{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}
+.acts .btn{justify-content:center}
+.full{margin-top:10px;font:400 13px/1.55 var(--fu);border-top:1px solid var(--line);padding-top:10px}
+.full mark{background:var(--good-soft);color:inherit;padding:1px 2px 0;border-radius:3px;text-decoration:underline;text-decoration-color:var(--good);text-decoration-thickness:2px;text-underline-offset:3px}
+.full mark.bad{background:var(--crit-soft);text-decoration-style:wavy;text-decoration-color:var(--crit);text-decoration-thickness:1.5px}
+.chk{display:flex;flex-direction:column;gap:10px}
+.cb{border:1px solid var(--line);border-radius:9px;padding:9px 11px;background:var(--card-2);display:flex;flex-direction:column;gap:4px}
+.cb h4{margin:0;font:600 12.5px var(--fu);display:flex;align-items:center;gap:6px}
 .big{font:600 20px/1.1 var(--fu);letter-spacing:-.02em}
 .logline{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:12px;align-items:baseline}
-.logline .t{font:500 11.5px var(--fm);color:var(--ink-2)}
-.logline .m{font:600 13px var(--fu)}
-.play{font-size:12.5px;line-height:1.45}
-
-/* ---- bottom: model ---- */
-.model{display:grid;grid-template-columns:minmax(0,1fr);gap:4px;height:100%}
-.archbox{display:flex;justify-content:center;min-height:0}
-svg.arch{display:block;height:clamp(130px,17vh,200px);width:auto;max-width:100%}
-@media (max-width:1000px){svg.arch{height:220px;min-width:900px}}
-.arch .box{fill:var(--card-2);stroke:var(--line-2);stroke-width:1}
-.arch .box.train{fill:var(--accent-soft);stroke:var(--accent-line)}
-.arch .box.frozen{stroke-dasharray:4 3}
-.arch .box.hot{stroke:var(--accent);stroke-width:1.6}
-.arch .lbl{fill:var(--ink);font-size:11px;font-weight:600}
-.arch .sub{fill:var(--ink-3);font-size:9.5px}
-.arch .tiny{fill:var(--ink-4);font-size:8.5px}
-.arch .path{fill:none;stroke:var(--line-2);stroke-width:1.2}
-.arch .blk{fill:var(--card);stroke:var(--line-2);stroke-width:1}
-.arch .xa{fill:var(--accent-soft);stroke:var(--accent-line);stroke-width:.8}
-.arch .xa.hot{fill:var(--accent)}
-.arch .spark{fill:none;stroke:var(--series);stroke-width:1}
-.arch .tok{font-family:var(--fm);font-size:10px;fill:var(--ink)}
-.caption{display:flex;flex-wrap:wrap;gap:4px 16px;align-items:center;font-size:12.5px;color:var(--ink-2);min-height:20px}
-.caption b{color:var(--ink)}
-.legend{display:flex;gap:12px;font-size:11px;color:var(--ink-3);margin:0;white-space:nowrap}
-.legend i{display:inline-block;width:9px;height:9px;border-radius:2px;vertical-align:-1px;margin-right:4px}
-.foot{font:400 11px/1.4 var(--fu);color:var(--ink-4);flex:none;padding:0 2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.foot code{font:500 10.5px var(--fm)}
+.logline .t{font:500 11.5px var(--fm);color:var(--ink-2)} .logline .m{font:600 13px var(--fu)}
+.label{font:600 10.5px/1.2 var(--fu);color:var(--ink-3);letter-spacing:.06em;text-transform:uppercase}
+.foot{flex:none;display:flex;flex-wrap:wrap;gap:4px 14px;align-items:center;font:400 12px var(--fu);color:var(--ink-3);padding:2px 6px;white-space:nowrap;overflow:hidden}
+.foot .st{display:inline-flex;align-items:center;gap:6px;color:var(--ink-2);font-weight:500}
+.foot .st i{width:8px;height:8px;border-radius:50%;background:var(--good)}
+.foot code{font:500 11px var(--fm)}
+.foot .r{margin-left:auto}
 .err{color:var(--crit)}
 </style>
 
@@ -194,71 +235,72 @@ svg.arch{display:block;height:clamp(130px,17vh,200px);width:auto;max-width:100%}
 <header class="bar">
   <div class="brand">
     <svg viewBox="0 0 34 34" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17 14v18M13 32h8"/><g transform="translate(17 14)"><path d="M0 0 1.6-11.5Q0-13.5-1.6-11.5Z" fill="currentColor" stroke="none"/><path d="M0 0 1.6-11.5Q0-13.5-1.6-11.5Z" fill="currentColor" stroke="none" transform="rotate(120)"/><path d="M0 0 1.6-11.5Q0-13.5-1.6-11.5Z" fill="currentColor" stroke="none" transform="rotate(240)"/><circle r="2" fill="var(--page)"/></g></svg>
-    <div><b>Turbine Alarm Explainer · Pipeline</b><small id="chosen">loading…</small></div>
+    <div><h1>Turbine Alarm Explainer</h1><small id="sub"><span>loading…</span></small></div>
   </div>
   <div class="picks">
     <label class="f">Turbine-day<select id="c-case"></select></label>
-    <label class="f">Window ending (now)<select id="c-step"></select></label>
-    <label class="f">Next<select id="c-hz"><option value="t1_h6">6 h</option><option value="t1_h3" selected>3 h</option><option value="t1_h1">1 h</option></select></label>
+    <label class="f">24 h window<select id="c-step"></select></label>
+    <label class="f">Horizon<select id="c-hz"><option value="t1_h6">next 6 h</option><option value="t1_h3" selected>next 3 h</option><option value="t1_h1">next 1 h</option></select></label>
     <label class="f">Pace<select id="c-speed"><option value="1.6">slow</option><option value="1" selected>normal</option><option value="0.5">quick</option></select></label>
   </div>
   <div class="ctl">
-    <button class="btn primary" id="b-start" type="button"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Start</button>
-    <button class="btn" id="b-next" type="button" disabled>Next</button>
-    <button class="btn" id="b-restart" type="button" disabled>Restart</button>
+    <button class="btn primary" id="b-run" type="button"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run</button>
+    <button class="btn" id="b-next" type="button" disabled>Next →</button>
+    <button class="btn" id="b-reset" type="button" disabled>Reset</button>
     <button class="theme" id="theme" type="button" aria-label="Switch between light and dark" title="Light / dark"><svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.6" aria-hidden="true"><circle cx="10" cy="10" r="4"/><path d="M10 1.5v2M10 16.5v2M1.5 10h2M16.5 10h2M4 4l1.4 1.4M14.6 14.6 16 16M4 16l1.4-1.4M14.6 5.4 16 4"/></svg></button>
   </div>
 </header>
-
 <nav class="rail" id="rail" aria-label="Pipeline stages"></nav>
 
-<main class="stage">
-  <section class="pane" id="pane-in">
-    <div class="pane-h"><span class="k"><i>1</i>Input</span><span class="hint">the previous 24 hours of SCADA sensor measurements · nothing after &ldquo;now&rdquo;</span></div>
-    <div class="pane-b"><div class="inmeta" id="inmeta"></div><div class="inputs" id="inputs"></div></div>
+<main class="cols">
+  <section class="card" id="col-in">
+    <div class="card-h"><span class="ic"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M1.5 9l3-4 2.5 2.5L10.5 3"/></svg></span><h2>Input</h2><span class="hint">turbine SCADA time series</span></div>
+    <div class="inmeta" id="inmeta"></div>
+    <div class="card-b" style="padding:0"><div class="chl" id="chl"></div></div>
   </section>
 
-  <section class="pane" id="pane-out">
-    <div class="pane-h"><span class="k" id="out-k"><i>2</i>Output</span><span class="hint" id="out-hint"></span></div>
-    <div class="pane-b">
-      <div class="placeholder" id="ph"></div>
-      <div class="blk" id="blk-q" hidden>
-        <p class="q" id="question"></p>
-        <details class="prompt"><summary>The exact prompt the model receives</summary><div class="mono" id="prompt"></div></details>
-      </div>
-      <div class="blk" id="blk-a" hidden>
-        <div class="out">
-          <div class="lines" id="lines"></div>
-          <div class="side"><div class="gauge" id="gauge"></div><div><div class="label" style="margin-bottom:6px">Subsystem probabilities</div><div class="probs" id="probs"></div></div></div>
-        </div>
-      </div>
-      <div class="blk" id="blk-c" hidden><div class="check" id="check"></div></div>
+  <section class="card" id="col-model">
+    <div class="card-h"><span class="ic"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 6h8M6 2v8"/></svg></span><h2>Model</h2><span class="hint">from sensor signals to a natural-language explanation</span><span class="pill blue right" id="mstatus" hidden><i></i><span>Running inference…</span></span></div>
+    <div class="steps" id="steps">
+      <div class="stp" data-s="0"><i>1</i><b>SCADA inputs</b><span>19 channels<br>144 ten-minute means</span></div>
+      <div class="stp" data-s="1"><i>2</i><b>Patch encoder</b><span>cut each series into 36 patches, embed with a 1-D conv</span></div>
+      <div class="stp" data-s="2"><i>3</i><b>Perceiver resampler</b><span>compress each channel into 64 latent tokens</span></div>
+      <div class="stp" data-s="3"><i>4</i><b>Llama-3.2-1B</b><span>frozen; gated cross-attention reads the latents</span></div>
+      <div class="stp" data-s="4"><i>5</i><b>Generated text</b><span>evidence first, the answer on the last line</span></div>
+    </div>
+    <div class="flowwrap"><div class="flow" id="flow"></div></div>
+    <div class="prog" id="prog"><span id="p-left">Ready.</span><span></span><span class="pct" id="p-pct"></span><div class="track"><i id="p-bar"></i></div></div>
+  </section>
+
+  <section class="colr" id="col-out">
+    <div class="card">
+      <div class="card-h"><span class="ic q"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M4 4.5a2 2 0 1 1 3 1.7c-.7.4-1 .8-1 1.5M6 10h.01"/></svg></span><h2>Question</h2><span class="hint right" id="q-hint"></span></div>
+      <div class="card-b"><div class="qbox" id="qbox"></div><details class="prompt"><summary>The exact prompt the model receives</summary><div class="mono" id="prompt"></div></details></div>
+    </div>
+    <div class="card">
+      <div class="card-h"><span class="ic g"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg></span><h2>Model answer</h2><span class="hint right" id="a-hint"></span></div>
+      <div class="card-b" id="abody"><div class="wait" id="await"></div></div>
+    </div>
+    <div class="card" id="chkcard" hidden>
+      <div class="card-h"><span class="ic"><svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg></span><h2>Check</h2><span class="hint right">against the window and the alarm log</span></div>
+      <div class="card-b chk" id="chk"></div>
     </div>
   </section>
-
-  <section class="pane bottom" id="pane-model">
-    <div class="pane-h"><span class="k"><i>3</i>Model</span><div class="caption" id="caption">OpenTSLM-Flamingo: patch encoder → Perceiver Resampler → gated cross-attention into a frozen Llama-3.2-1B</div><p class="legend"><span><i style="background:var(--accent-soft);border:1px solid var(--accent-line)"></i>trained for this task</span><span><i style="background:var(--card-2);border:1px dashed var(--line-2)"></i>frozen</span></p></div>
-    <div class="pane-b"><div class="archbox" id="arch"></div></div>
-  </section>
 </main>
-<p class="foot" id="foot"></p>
+
+<footer class="foot"><span class="st"><i></i><span id="f-state">Demo ready</span></span><span id="f-data"></span><span class="r" id="f-src"></span></footer>
 </div>
 
 <script>
-const CASES=[
-  {id:"tower_oscillation_2019",title:"Tower oscillation"},
-  {id:"quiet_day_2019",title:"Quiet day"},
-  {id:"generator_cooling_miss_2019",title:"Generator-cooling miss"}];
+const CASES=[{id:"tower_oscillation_2019",title:"Tower oscillation"},{id:"quiet_day_2019",title:"Quiet day"},{id:"generator_cooling_miss_2019",title:"Generator-cooling miss"}];
 const HZH={t1_h6:6,t1_h3:3,t1_h1:1};
 const CLASS_LABEL={generator_cooling:"generator cooling",gearbox_lubrication:"gearbox lubrication",pitch_system:"pitch system",structural_overspeed:"structural / overspeed",converter_grid:"converter / grid",brake_hydraulics:"brake / hydraulics",yaw_cable:"yaw / cable",sensor_comms:"sensor / comms",none:"no fault stop"};
 const PLAYBOOK={generator_cooling:"Inspect the generator cooling fans and air path; consider de-rating until cleared.",gearbox_lubrication:"Inspect the gearbox lubrication circuit: pump, filter, oil level.",pitch_system:"Check the pitch batteries, charging and pitch drives.",converter_grid:"Check the converter and the grid connection; review grid events.",structural_overspeed:"Check tower vibration sensors and rotor balance; review overspeed settings before a supervised restart.",brake_hydraulics:"Inspect the brake hydraulics: accumulator, pads, pressure.",yaw_cable:"Check the yaw drives and cable twist; unwind if needed.",sensor_comms:"Check sensor wiring and the communication link.",none:"No action; keep monitoring."};
-const GROUPS=[
-  ["wind speed",["wind_speed"]],["power",["power"]],["gearbox temperature and oil pressure",["gear_oil_temperature","gear_oil_inlet_pressure"]],
-  ["generator temperatures",["gen_bearing_front_temperature","gen_bearing_rear_temperature","stator_temperature"]],["pitch angle",["pitch_angle"]],["rotor speed",["rotor_speed"]],
-  ["grid voltage / frequency",["grid_voltage","grid_frequency"]],["tower acceleration",["tower_acceleration_x"]],
-  ["other channels",["main_bearing_temperature","ambient_temperature","reactive_power","power_curve_residual","wind_direction","nacelle_position","yaw_misalignment"]]];
-const SHORT={wind_speed:"wind speed",wind_direction:"wind direction",ambient_temperature:"nacelle ambient temp.",power:"active power",rotor_speed:"rotor speed",pitch_angle:"blade pitch angle",nacelle_position:"nacelle position",gen_bearing_front_temperature:"gen. bearing front",gen_bearing_rear_temperature:"gen. bearing rear",stator_temperature:"stator",gear_oil_temperature:"gear oil temperature",main_bearing_temperature:"main bearing temp.",gear_oil_inlet_pressure:"gear oil inlet pressure",reactive_power:"reactive power",grid_voltage:"grid voltage",grid_frequency:"grid frequency",tower_acceleration_x:"tower acceleration X",power_curve_residual:"power-curve residual",yaw_misalignment:"yaw misalignment"};
+const ORDER=["wind_speed","power","rotor_speed","pitch_angle","stator_temperature","gen_bearing_front_temperature","gen_bearing_rear_temperature","gear_oil_temperature","gear_oil_inlet_pressure","main_bearing_temperature","tower_acceleration_x","grid_voltage","grid_frequency","reactive_power","power_curve_residual","ambient_temperature","wind_direction","nacelle_position","yaw_misalignment"];
+const COLOR={wind_speed:"var(--c-wind)",wind_direction:"var(--c-other)",ambient_temperature:"var(--c-other)",power:"var(--c-wind)",rotor_speed:"var(--c-rotor)",pitch_angle:"var(--c-pitch)",nacelle_position:"var(--c-other)",gen_bearing_front_temperature:"var(--c-temp)",gen_bearing_rear_temperature:"var(--c-temp)",stator_temperature:"var(--c-temp)",gear_oil_temperature:"var(--c-temp)",main_bearing_temperature:"var(--c-temp)",gear_oil_inlet_pressure:"var(--c-rotor)",reactive_power:"var(--c-grid)",grid_voltage:"var(--c-grid)",grid_frequency:"var(--c-grid)",tower_acceleration_x:"var(--c-tower)",power_curve_residual:"var(--c-other)",yaw_misalignment:"var(--c-other)"};
+const SHORT={wind_speed:"Wind speed",wind_direction:"Wind direction",ambient_temperature:"Nacelle ambient temp.",power:"Active power",rotor_speed:"Rotor speed",pitch_angle:"Pitch angle",nacelle_position:"Nacelle position",gen_bearing_front_temperature:"Gen. bearing front",gen_bearing_rear_temperature:"Gen. bearing rear",stator_temperature:"Gen. temp. (stator)",gear_oil_temperature:"Gear oil temp.",main_bearing_temperature:"Main bearing temp.",gear_oil_inlet_pressure:"Gear oil pressure",reactive_power:"Reactive power",grid_voltage:"Grid voltage",grid_frequency:"Grid frequency",tower_acceleration_x:"Tower accel. X",power_curve_residual:"Power-curve residual",yaw_misalignment:"Yaw misalignment"};
 const CITES={wind_speed:/wind (?:rose|fell|is|was|speed|stayed|dropped|picked)|m\/s|cut-in/i,power:/producing about|power (?:rose|fell|at|is|dropped)|kW/i,rotor_speed:/rotor at|rotor speed|rpm/i,pitch_angle:/feather|pitch/i,power_curve_residual:/power curve|power-curve/i,gen_bearing_front_temperature:/front bearing|hotter than the other side/i,gen_bearing_rear_temperature:/rear bearing|hotter than the other side/i,stator_temperature:/stator/i,gear_oil_temperature:/gear oil temperature/i,main_bearing_temperature:/main bearing/i,ambient_temperature:/ambient/i,gear_oil_inlet_pressure:/oil (?:inlet )?pressure/i,tower_acceleration_x:/tower/i,grid_voltage:/grid voltage|voltage/i,grid_frequency:/grid frequency|frequency/i,reactive_power:/reactive/i,wind_direction:/wind direction/i,nacelle_position:/nacelle/i,yaw_misalignment:/off the wind direction|yaw|misalign/i};
+const FLOWNAME={wind_speed:"Wind",power:"Power",rotor_speed:"Rotor",pitch_angle:"Pitch",stator_temperature:"Stator T",gen_bearing_front_temperature:"Bearing F",gen_bearing_rear_temperature:"Bearing R",gear_oil_temperature:"Gear oil T",gear_oil_inlet_pressure:"Oil press.",main_bearing_temperature:"Main brg T",tower_acceleration_x:"Tower acc.",grid_voltage:"Grid V",grid_frequency:"Grid Hz",reactive_power:"Reactive",power_curve_residual:"Residual",ambient_temperature:"Ambient",wind_direction:"Wind dir",nacelle_position:"Nacelle",yaw_misalignment:"Yaw err"};
 const N=144, ALARM=0.8, WARM=0.5;
 
 const $=s=>document.querySelector(s);
@@ -266,7 +308,7 @@ const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",
 const cls=c=>CLASS_LABEL[c]||c;
 const fmt=(x,d=2)=>x==null||Number.isNaN(+x)?"–":(+x).toFixed(d);
 const fv=v=>Math.abs(v)>=1000?v.toLocaleString("en-GB",{maximumFractionDigits:0}):Math.abs(v)>=100?v.toFixed(1):v.toFixed(2);
-const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],DAYS=["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
+const MONTHS=["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 const P=s=>new Date(s);
 const clock=d=>`${String(d.getUTCHours()).padStart(2,"0")}:${String(d.getUTCMinutes()).padStart(2,"0")}`;
 const clockS=d=>clock(d)+":"+String(d.getUTCSeconds()).padStart(2,"0");
@@ -279,8 +321,8 @@ function parseAnswer(t){const cut=t.search(/Answer\s*:/i);const body=cut<0?t:t.s
 function sentences(body){return body.split(/(?<=\.)\s+(?=[A-Z])/).map(s=>s.trim()).filter(Boolean)}
 function segments(text,claims){const {body}=parseAnswer(text);const out=[];let pos=0;for(const c of (claims||[])){if(c.start<pos||c.end>body.length)continue;if(c.start>pos)out.push({t:body.slice(pos,c.start)});out.push({t:body.slice(c.start,c.end),ok:c.ok});pos=c.end}if(pos<body.length)out.push({t:body.slice(pos)});return out}
 function sliceSegs(segs,from,to){const out=[];let pos=0;for(const s of segs){const a=Math.max(from,pos),b=Math.min(to,pos+s.t.length);if(b>a)out.push({t:s.t.slice(a-pos,b-pos),ok:s.ok});pos+=s.t.length}return out}
-function renderSegs(el,segs,upto=1e9){el.innerHTML="";let left=upto;for(const s of segs){if(left<=0)break;const txt=s.t.slice(0,left);left-=s.t.length;if(s.ok===undefined)el.appendChild(document.createTextNode(txt));else{const m=document.createElement("mark");if(!s.ok)m.className="bad";m.title=s.ok?"verified against the window":"does not match the window";m.textContent=txt;el.appendChild(m)}}}
-function spark(y,w=60,h=16,color="var(--ink-4)"){const n=y.length;let lo=Math.min(...y),hi=Math.max(...y);if(hi-lo<1e-6){hi=lo+1;lo-=1}const d=y.map((v,i)=>`${i?"L":"M"}${(1+i/(n-1)*(w-2)).toFixed(1)},${(1+(1-(v-lo)/(hi-lo))*(h-2)).toFixed(1)}`).join("");return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${color}" stroke-width="1.2" stroke-linejoin="round"/></svg>`}
+function segsHTML(segs){return segs.map(s=>s.ok===undefined?esc(s.t):`<mark class="${s.ok?"":"bad"}" title="${s.ok?"verified against the window":"does not match the window"}">${esc(s.t)}</mark>`).join("")}
+function spark(y,w=70,h=20,color="var(--ink-4)",sw=1.4){const n=y.length;let lo=Math.min(...y),hi=Math.max(...y);if(hi-lo<1e-6){hi=lo+1;lo-=1}const d=y.map((v,i)=>`${i?"L":"M"}${(2+i/(n-1)*(w-4)).toFixed(1)},${(2+(1-(v-lo)/(hi-lo))*(h-4)).toFixed(1)}`).join("");return `<svg viewBox="0 0 ${w} ${h}" aria-hidden="true"><path d="${d}" fill="none" stroke="${color}" stroke-width="${sw}" stroke-linejoin="round"/></svg>`}
 
 const state={caseId:CASES[0].id,step:9,hz:"t1_h3",pace:1,running:false,stage:0,token:0};
 const cache={};let D=null;
@@ -288,178 +330,166 @@ async function loadCase(id){if(!cache[id])cache[id]=fetch(id+".json").then(r=>{i
 const anchorOf=i=>P(D.steps[i].anchor);
 const leadMinAt=i=>{const s=D.steps[i];const extra=D.stop?(P(D.stop.start)-P(D.end))/60000:0;return s.hours_to_end*60+extra};
 const cur=()=>({s:D.steps[state.step],a:D.steps[state.step].answers[state.hz],anchor:anchorOf(state.step)});
+const stateLabel=s=>s==="producing"?"producing":s==="idle_low_wind"?"idle in low wind":s;
+const citedOf=a=>new Set(ORDER.filter(n=>CITES[n]&&CITES[n].test(parseAnswer(a.text).body)));
 
 /* ---------- chooser ---------- */
 function fillChooser(){
   $("#c-case").innerHTML=CASES.map(c=>`<option value="${c.id}">${c.title}</option>`).join("");$("#c-case").value=state.caseId;
-  $("#c-step").innerHTML=D.steps.map((s,i)=>`<option value="${i}">${clock(anchorOf(i))} (${D.stop?"−"+dur(leadMinAt(i))+" to the stop":"−"+dur(s.hours_to_end*60)+" to the end"})</option>`).join("");
+  $("#c-step").innerHTML=D.steps.map((s,i)=>{const a=anchorOf(i);const st=new Date(a.getTime()-(N-1)*600000);return `<option value="${i}">${clock(st)} → ${clock(a)}${D.stop?" (−"+dur(leadMinAt(i))+")":""}</option>`}).join("");
   $("#c-step").value=Math.min(state.step,D.steps.length-1);state.step=+$("#c-step").value;$("#c-hz").value=state.hz;
 }
-function chosenLine(){const a=anchorOf(state.step);$("#chosen").innerHTML=`Kelmarsh T${String(D.turbine).padStart(2,"0")} · ${DAYS[a.getUTCDay()]} ${dayS(a)} · 24 h ending ${clock(a)} · next ${HZH[state.hz]} h`}
 async function selectCase(id){state.caseId=id;D=await loadCase(id);fillChooser();for(const c of CASES)if(c.id!==id)loadCase(c.id).catch(()=>{});
-  $("#foot").innerHTML=`Every figure is read from <code>${esc(id)}.json</code> (model <code>${esc(D.model)}</code>, <code>scripts/replay_case.py</code> from the raw Kelmarsh SCADA and status log; Kelmarsh is fully held out). The action line is a fixed playbook entry per subsystem, not model output.`}
-
-/* ---------- idle view (before Start) ---------- */
-function idle(){
-  state.token++;state.running=false;state.stage=0;renderRail();
-  const {s,a,anchor}=cur();chosenLine();
-  renderInput(s,anchor,{animate:false});
-  for(const id of ["blk-q","blk-a","blk-c"]){const el=$("#"+id);el.hidden=true;el.classList.remove("show","compact")}
-  $("#ph").hidden=false;$("#ph").innerHTML=`<span>The question, the model&rsquo;s answer and the check will appear here.</span><span>Press <b>Start</b> — or change the turbine-day, the window and the horizon first.</span>`;
-  $("#out-hint").textContent="";$("#out-k").innerHTML=`<i>2</i>Output`;
-  $("#arch").innerHTML=archSVG(s,new Set());$("#caption").innerHTML=`OpenTSLM-Flamingo: patch encoder → Perceiver Resampler → gated cross-attention into a frozen Llama-3.2-1B`;
-  document.querySelectorAll(".pane").forEach(p=>p.classList.remove("on"));
-  $("#b-start").disabled=false;$("#b-next").disabled=true;$("#b-restart").disabled=true;$("#b-start").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Start`;
-  void a;
-}
+  $("#f-src").innerHTML=`every figure from <code>${esc(id)}.json</code> · model <code>${esc(D.model)}</code> · Kelmarsh is fully held out`}
 
 /* ---------- rail ---------- */
 const NAMES=["Input","Question","Model","Answer","Check"];
 function renderRail(){$("#rail").innerHTML=NAMES.map((n,i)=>`<div class="${state.stage>i+1?"done":state.stage===i+1?"active":""}"><i>${state.stage>i+1?"✓":i+1}</i><span>${n}</span></div>`).join("")}
-function paneOn(id){document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id===id))}
+
+/* ---------- idle ---------- */
+function idle(){
+  state.token++;state.running=false;state.stage=0;renderRail();
+  const {s,a,anchor}=cur();const st=new Date(anchor.getTime()-(N-1)*600000);
+  $("#sub").innerHTML=`<span>Kelmarsh T${String(D.turbine).padStart(2,"0")}</span><span>·</span><span>Senvion MM92, held-out farm</span><span>·</span><span>${dayS(st)} ${clock(st)} → ${clock(anchor)} (24 h)</span><span class="pill"><i></i>Replay · historical data</span>`;
+  renderInput(s,new Set(),false);
+  $("#qbox").innerHTML=`<span class="muted">Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?</span>`;$("#q-hint").textContent="";$("#prompt").innerHTML=promptFor(s,anchor);
+  $("#abody").innerHTML=`<div class="wait"><span>The model&rsquo;s answer will appear here: the verdict, P(fault stop), and each evidence sentence with its numbers checked.</span><span>Press <b>Run</b>.</span></div>`;$("#a-hint").textContent="";
+  $("#chkcard").hidden=true;$("#chk").innerHTML="";
+  buildFlow(s,new Set());setProg("Ready.",0,"");$("#mstatus").hidden=true;stepsOn(-1);
+  $("#b-run").disabled=false;$("#b-next").disabled=true;$("#b-reset").disabled=true;$("#b-run").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run`;
+  $("#f-state").textContent="Demo ready";$("#f-data").textContent=`historical data from ${dayS(anchor)} · Turbine T${String(D.turbine).padStart(2,"0")} · asking about the next ${HZH[state.hz]} h`;
+  void a;
+}
 
 /* ---------- run ---------- */
 let skipResolve=null;
 function waitOrSkip(ms,tok){return new Promise(res=>{const t=setTimeout(()=>{skipResolve=null;res(tok!==state.token)},ms);skipResolve=()=>{clearTimeout(t);skipResolve=null;res(tok!==state.token)}})}
 async function run(){
   const tok=++state.token;state.running=true;
-  $("#b-start").disabled=true;$("#b-next").disabled=false;$("#b-restart").disabled=false;
-  const {s,a,anchor}=cur();const pace=state.pace;const wait=ms=>waitOrSkip(ms*pace,tok);
-  for(const id of ["blk-q","blk-a","blk-c"]){const el=$("#"+id);el.hidden=true;el.classList.remove("show","compact")}
-  $("#ph").hidden=true;$("#lines").innerHTML="";$("#probs").innerHTML="";$("#check").innerHTML="";
+  $("#b-run").disabled=true;$("#b-next").disabled=false;$("#b-reset").disabled=false;$("#f-state").textContent="Running";
+  const {s,a,anchor}=cur();const pace=state.pace;const wait=ms=>waitOrSkip(ms*pace,tok);const cited=citedOf(a);
+  $("#abody").innerHTML=`<div class="wait"><span>Waiting for the model…</span></div>`;$("#chkcard").hidden=true;
   // 1 input
-  state.stage=1;renderRail();paneOn("pane-in");renderInput(s,anchor,{animate:true});if(await wait(3400))return;
+  state.stage=1;renderRail();renderInput(s,new Set(),true);if(await wait(3200))return;
   // 2 question
-  state.stage=2;renderRail();paneOn("pane-out");$("#out-k").innerHTML=`<i>2</i>Question`;renderQuestion(s,anchor);showBlk("blk-q");if(await wait(2600))return;
+  state.stage=2;renderRail();$("#qbox").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#q-hint").textContent=`asked at ${clock(anchor)}`;if(await wait(2200))return;
   // 3 model
-  state.stage=3;renderRail();paneOn("pane-model");await animateModel(s,a,tok);if(tok!==state.token)return;if(await wait(500))return;
+  state.stage=3;renderRail();await animateModel(s,a,tok,cited);if(tok!==state.token)return;if(await wait(400))return;
   // 4 answer
-  state.stage=4;renderRail();paneOn("pane-out");$("#out-k").innerHTML=`<i>4</i>Answer`;$("#blk-q").classList.add("compact");$("#out-hint").textContent=`asked at ${clock(anchor)} about the next ${HZH[state.hz]} h`;showBlk("blk-a");await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(1200))return;
+  state.stage=4;renderRail();renderInput(s,cited,false);await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(900))return;
   // 5 check
-  state.stage=5;renderRail();$("#out-k").innerHTML=`<i>5</i>Check`;renderCheck(s,a);showBlk("blk-c");
-  state.running=false;$("#b-next").disabled=true;$("#b-start").disabled=false;$("#b-start").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run again`;
-}
-function showBlk(id){const el=$("#"+id);el.hidden=false;requestAnimationFrame(()=>el.classList.add("show"))}
-
-/* ---------- 1 input ---------- */
-function renderInput(s,anchor,{animate}){
-  const start=new Date(anchor.getTime()-(N-1)*600000);
-  $("#inmeta").innerHTML=`<span><b>Kelmarsh T${String(D.turbine).padStart(2,"0")}</b> · Senvion MM92</span><span>${dayS(start)} ${clock(start)} → <b>${clock(anchor)}</b></span><span><b>144</b> ten-minute means × <b>${D.channels.length}</b> channels</span><span>currently <b>${s.state==="producing"?"producing":s.state==="idle_low_wind"?"idle in low wind":s.state}</b></span>`;
-  const host=$("#inputs");host.innerHTML="";
-  GROUPS.forEach(([title,names],k)=>{const div=document.createElement("div");div.className="inp"+(animate?" dim":"")+(names.length>3?" wide":"");
-    div.innerHTML=`<span class="t">${esc(title)}</span><div class="rows">`+names.map(n=>{const m=D.channels.find(c=>c.name===n);const y=s.channels[n];if(!m||!y)return "";return `<span class="row"><span>${esc(SHORT[n]||m.label)}</span>${spark(y)}<span class="v">${fv(y[N-1])} ${esc(m.unit)}</span></span>`}).join("")+`</div>`;
-    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),900*state.pace)},(150+240*k)*state.pace)});
+  state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false;$("#col-out").scrollTo({top:$("#col-out").scrollHeight,behavior:"smooth"});
+  state.running=false;$("#b-next").disabled=true;$("#b-run").disabled=false;$("#b-run").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run again`;$("#f-state").textContent="Done";
 }
 
-/* ---------- 2 question ---------- */
+/* ---------- input list ---------- */
+function renderInput(s,cited,animate){
+  $("#inmeta").innerHTML=`<span><b>Kelmarsh T${String(D.turbine).padStart(2,"0")}</b></span><span>·</span><span><b>${D.channels.length}</b> channels</span><span>·</span><span><b>144</b> ten-minute means</span><span>·</span><span>${stateLabel(s.state)}</span>`;
+  const host=$("#chl");host.innerHTML="";
+  ORDER.forEach((n,k)=>{const m=D.channels.find(c=>c.name===n);const y=s.channels[n];if(!m||!y)return;
+    const div=document.createElement("div");div.className="chr"+(animate?" dim":"")+(cited.has(n)?" cited":"");div.style.setProperty("--c",COLOR[n]);
+    div.innerHTML=`<span class="dot"></span><span class="nm">${esc(SHORT[n]||m.label)}<small>${esc(m.unit)}${cited.has(n)?" · cited":""}</small></span>${spark(y,70,20,COLOR[n])}<span class="v">${fv(y[N-1])} <small>${esc(m.unit)}</small></span>`;
+    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),700*state.pace)},(100+120*k)*state.pace)});
+}
+
+/* ---------- prompt ---------- */
 function promptFor(s,anchor){
   const h=HZH[state.hz];
-  const pre=`You are monitoring wind turbine Kelmarsh T${String(D.turbine).padStart(2,"0")} (Senvion MM92) in ${MONTHS[anchor.getUTCMonth()]}. Below are the last 24 hours of 10-minute SCADA signals, ending now. The turbine is currently ${s.state==="producing"?"producing":s.state==="idle_low_wind"?"idle in low wind":s.state}. Analyse the signals and decide whether a fault-related stop (forced outage) is likely to begin within the next ${h} hours. If yes, name the subsystem from: generator_cooling, gearbox_lubrication, pitch_system, brake_hydraulics, converter_grid, structural_overspeed, yaw_cable, sensor_comms. Do not state a decision until the final line. End with "Answer: ".`;
+  const pre=`You are monitoring wind turbine Kelmarsh T${String(D.turbine).padStart(2,"0")} (Senvion MM92) in ${MONTHS[anchor.getUTCMonth()]}. Below are the last 24 hours of 10-minute SCADA signals, ending now. The turbine is currently ${stateLabel(s.state)}. Analyse the signals and decide whether a fault-related stop (forced outage) is likely to begin within the next ${h} hours. If yes, name the subsystem from: generator_cooling, gearbox_lubrication, pitch_system, brake_hydraulics, converter_grid, structural_overspeed, yaw_cable, sensor_comms. Do not state a decision until the final line. End with "Answer: ".`;
   const lines=D.channels.map(m=>{const v=s.channels[m.name];const f6=mean(v.slice(0,36)),a6=mean(v.slice(N-42,N-36)),l1=mean(v.slice(N-6));return `⟨TS⟩ <b>${esc(m.label)}</b> in ${esc(m.unit)}, 10-minute means over 24 h, mean ${mean(v).toFixed(1)} std ${std(v).toFixed(1)}, first 6 h ${f6.toFixed(1)}, 6 h before the end ${a6.toFixed(1)}, last hour ${l1.toFixed(1)}: [144 values → 36 patches] ⟨endofchunk⟩`});
   return esc(pre)+"\n\n"+lines.join("\n")+"\n\nAssessment:";
 }
-function renderQuestion(s,anchor){$("#question").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#prompt").innerHTML=promptFor(s,anchor)}
 
-/* ---------- 3 model ---------- */
-const AW=1000,AH=222;
-const L={chan:{x0:16,x1:116,y0:24,y1:200},enc:{x:160,y:76,w:150,h:64},per:{x:340,y:76,w:150,h:64},llm:{x:540,y:22,w:220,h:174,n:16},out:{x:810,y:36,w:176,h:150}};
-function archSVG(s,cited){
-  const rows=D.channels.map((m,i)=>{const y=L.chan.y0+i*(L.chan.y1-L.chan.y0)/(D.channels.length-1);const v=s.channels[m.name];let lo=Math.min(...v),hi=Math.max(...v);if(hi-lo<1e-6){hi=lo+1;lo-=1}
-    const d=v.map((x,j)=>`${j?"L":"M"}${(L.chan.x0+j/(N-1)*(L.chan.x1-L.chan.x0)).toFixed(1)},${(y-3.5+(1-(x-lo)/(hi-lo))*7).toFixed(1)}`).join("");
-    return `<path class="spark" d="${d}" style="stroke:${cited.has(m.name)?"var(--accent)":"var(--series)"}"/>`}).join("");
-  const bh=(L.llm.h-10)/L.llm.n;
-  const blocks=Array.from({length:L.llm.n},(_,k)=>{const y=L.llm.y+L.llm.h-6-(k+1)*bh+1;return `<rect class="blk" x="${L.llm.x+22}" y="${y.toFixed(1)}" width="${L.llm.w-30}" height="${(bh-2).toFixed(1)}" rx="2"/><rect class="xa" id="xa${k}" x="${L.llm.x+6}" y="${y.toFixed(1)}" width="12" height="${(bh-2).toFixed(1)}" rx="2"/>`}).join("");
-  const box=(b,c,t,sub,id)=>`<rect id="${id}" class="box ${c}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="6"/><text class="lbl" x="${b.x+b.w/2}" y="${b.y+b.h/2-3}" text-anchor="middle">${t}</text><text class="sub" x="${b.x+b.w/2}" y="${b.y+b.h/2+11}" text-anchor="middle">${sub}</text>`;
-  const ym=(L.chan.y0+L.chan.y1)/2;
-  return `<svg class="arch" viewBox="0 0 ${AW} ${AH}" aria-label="Data flowing through OpenTSLM-Flamingo">
-    <text class="sub" x="${L.chan.x0}" y="14">19 channels · 144 values each</text>${rows}
-    <path class="path" d="M${L.chan.x1+6} ${ym} H${L.enc.x-4}"/>
-    ${box(L.enc,"train","Patch encoder","1-D conv · patch 4 → 36 × 128","b-enc")}
-    <path class="path" d="M${L.enc.x+L.enc.w} ${ym} H${L.per.x-4}"/>
-    ${box(L.per,"train","Perceiver Resampler","64 latents per channel","b-per")}
-    <path class="path" d="M${L.per.x+L.per.w} ${ym} H${L.llm.x-6}"/>
-    <rect id="b-llm" class="box frozen" x="${L.llm.x}" y="${L.llm.y}" width="${L.llm.w}" height="${L.llm.h}" rx="8"/>
-    ${blocks}
-    <text class="lbl" x="${L.llm.x+L.llm.w/2+8}" y="${L.llm.y-8}" text-anchor="middle">Llama-3.2-1B ❄ frozen · 16 blocks</text>
-    <text class="tiny" x="${L.llm.x+L.llm.w}" y="${AH-6}" text-anchor="end">gated x-attn (blue) before every block</text>
-    <text class="sub" x="${L.llm.x+30}" y="${AH-6}" text-anchor="end">prompt tokens →</text>
-    <path class="path" d="M${L.llm.x+40} ${AH-10} V${L.llm.y+L.llm.h+2}"/>
-    <path class="path" d="M${L.llm.x+L.llm.w} ${ym} H${L.out.x-4}"/>
-    <rect id="b-out" class="box" x="${L.out.x}" y="${L.out.y}" width="${L.out.w}" height="${L.out.h}" rx="6"/>
-    <text class="sub" x="${L.out.x+8}" y="${L.out.y-8}">generated text, token by token</text>
-    <g id="tokens"></g><g id="particles"></g>
-  </svg>`;
+/* ---------- model flow ---------- */
+const SRC_ROWS=8;
+function buildFlow(s,cited){
+  const rows=[...cited].concat(ORDER.filter(n=>!cited.has(n))).slice(0,SRC_ROWS);
+  const H=rows.length*27;const FAN_TOP=0;
+  const fan=rows.map((_,i)=>{const y=13+i*27;return `<path d="M0 ${y} C 17 ${y}, 17 ${H/2}, 34 ${H/2}"/>`}).join("");
+  const arrow=`<svg class="arrow" viewBox="0 0 30 16"><path d="M2 8h20M17 3l6 5-6 5"/></svg>`;
+  $("#flow").innerHTML=`
+    <div class="fc" style="align-self:center"><div class="srcrows" id="srcrows">${rows.map(n=>`<div class="srow"><span>${esc(FLOWNAME[n]||SHORT[n])}</span>${spark(s.channels[n],74,22,cited.has(n)?"var(--accent)":COLOR[n],1.2)}</div>`).join("")}${ORDER.length>rows.length?`<div class="srow"><span class="muted">+ ${ORDER.length-rows.length} more</span><span class="more" style="text-align:center">⋯</span></div>`:""}</div><div class="fl"><b>19 × 144</b>time points</div></div>
+    <svg class="fan" id="fan" viewBox="0 0 34 ${H}" style="height:${H}px;margin-top:-${ORDER.length>rows.length?44:22}px">${fan}</svg>
+    <div class="fc"><div class="fbox" id="fb-patch"><div class="grid" id="patches">${Array.from({length:36},()=>"<i></i>").join("")}</div></div><div class="fl"><b>Patches</b>36 per channel</div></div>
+    ${arrow}
+    <div class="fc"><div class="fbox" id="fb-lat"><div class="colsq" id="lats">${Array.from({length:12},()=>'<i class="lat"></i>').join("")}<span class="more">⋮</span></div></div><div class="fl"><b>Latent tokens</b>64 per channel</div></div>
+    ${arrow}
+    <div class="fc"><div class="llm" id="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3 3 3 0 0 0 2 3v1a3 3 0 0 0 3 3h1V4zM15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3 3 3 0 0 1-2 3v1a3 3 0 0 1-3 3h-1V4z"/></svg><b>Llama-3.2-1B</b><span>16 blocks · frozen</span><span>gated cross-attention</span><div class="xa" id="xa">${Array.from({length:8},()=>"<i></i>").join("")}</div><div class="dots"><i></i><i></i><i></i></div></div><div class="fl"><b>Transformer</b>reasons over the tokens</div></div>
+    ${arrow}
+    <div class="fc"><div class="fbox" id="fb-gen"><div class="colsq" id="gens">${Array.from({length:12},()=>"<i></i>").join("")}<span class="more">⋮</span></div></div><div class="fl"><b>Generated tokens</b>streaming</div></div>
+    <div class="fc" style="align-self:stretch"><div class="stream" id="stream"><span class="tag">assessment</span>\n</div></div>`;
 }
-async function animateModel(s,a,tok){
-  const cited=new Set(D.channels.map(c=>c.name).filter(n=>CITES[n]&&CITES[n].test(parseAnswer(a.text).body)));
-  $("#arch").innerHTML=archSVG(s,cited);
-  const pace=state.pace,cap=$("#caption");const hot=(id,on)=>{const e=document.getElementById(id);if(e)e.classList.toggle("hot",on)};
-  const pg=$("#particles");const parts=[];let raf=null,running=true;
-  const add=(path,dur,delay,style)=>parts.push({path,dur,t0:performance.now()+delay,style});
-  const lerp=(path,t)=>{const segs=path.length-1;const f=Math.min(segs-1e-9,t*segs);const i=Math.floor(f),u=f-i;return [path[i][0]+(path[i+1][0]-path[i][0])*u,path[i][1]+(path[i+1][1]-path[i][1])*u]};
-  const frame=now=>{if(!running)return;let h="";for(const p of parts){const t=(now-p.t0)/p.dur;if(t<0||t>=1)continue;const [x,y]=lerp(p.path,t);h+=p.style==="sq"?`<rect x="${(x-2.5).toFixed(1)}" y="${(y-2.5).toFixed(1)}" width="5" height="5" rx="1" fill="var(--accent)"/>`:p.style==="tok"?`<rect x="${(x-4).toFixed(1)}" y="${(y-3).toFixed(1)}" width="8" height="6" rx="1.5" fill="var(--ink-2)"/>`:`<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="2.4" fill="${p.style==="lat"?"var(--s3)":"var(--s1)"}"/>`}pg.innerHTML=h;raf=requestAnimationFrame(frame)};
-  raf=requestAnimationFrame(frame);
-  const stop=()=>{running=false;cancelAnimationFrame(raf);pg.innerHTML=""};
-  const step=async ms=>{const skip=await waitOrSkip(ms*pace,tok);if(skip)stop();return skip};
-  const ym=(L.chan.y0+L.chan.y1)/2;
-  cap.innerHTML=`<b>Patch encoder.</b> Each channel is z-scored and cut into 36 patches of 4 samples; a 1-D convolution turns each patch into a 128-d embedding.`;hot("b-enc",true);
-  D.channels.forEach((m,i)=>{const y=L.chan.y0+i*(L.chan.y1-L.chan.y0)/(D.channels.length-1);for(let k=0;k<4;k++)add([[L.chan.x1+4,y],[L.enc.x-2,ym]],1400,(i*40+k*220)*pace,"dot")});
-  if(await step(2600))return;
-  cap.innerHTML=`<b>Perceiver Resampler.</b> The 36 patch embeddings of a channel are compressed into 64 latent vectors — the same size whatever the length of the series.`;hot("b-enc",false);hot("b-per",true);
-  for(let k=0;k<36;k++)add([[L.enc.x+L.enc.w,ym],[L.per.x-2,ym]],900,k*45*pace,"sq");
-  if(await step(2400))return;
-  cap.innerHTML=`<b>Gated cross-attention.</b> Before every block of the frozen Llama-3.2-1B a trained cross-attention layer lets the text attend to the latents: x + γ · softmax(QKᵀ/√d)·V. The channel descriptions in the prompt say what each latent set is.`;hot("b-per",false);hot("b-llm",true);
-  const bh=(L.llm.h-10)/L.llm.n;for(let k=0;k<L.llm.n;k++){const y=L.llm.y+L.llm.h-6-(k+1)*bh+1+(bh-2)/2;for(let j=0;j<3;j++)add([[L.per.x+L.per.w,ym],[L.llm.x-14,ym],[L.llm.x-14,y],[L.llm.x+8,y]],1300,(k*70+j*150)*pace,"lat");setTimeout(()=>hot("xa"+k,true),(700+k*70)*pace)}
-  for(let k=0;k<12;k++)add([[L.llm.x+40,AH-12],[L.llm.x+40,L.llm.y+L.llm.h+2]],700,(400+k*120)*pace,"tok");
-  if(await step(3200))return;
-  const words=parseAnswer(a.text).body.split(/\s+/);cap.innerHTML=`<b>Generation.</b> The language model writes the assessment one token at a time — evidence first, the decision only on the final line.`;
-  const tg=$("#tokens");let line=0,col=0;const shown=[];const cw=6,maxw=L.out.w-16,maxLines=Math.floor((L.out.h-16)/14);
-  const place=w=>{const wpx=w.length*cw+6;if(col+wpx>maxw){line++;col=0}const x=L.out.x+8+col,y=L.out.y+18+line*14;col+=wpx;return [x,y]};
-  let nWords=0;for(const w of words){const [x,y]=place(w);if(line>=maxLines)break;shown.push({w,x,y});nWords++}
-  for(let i=0;i<nWords;i++){add([[L.llm.x+L.llm.w,ym],[L.out.x-2,ym]],650,i*140*pace,"tok");
-    setTimeout(()=>{if(tok!==state.token)return;tg.innerHTML=shown.slice(0,i+1).map(o=>`<text class="tok" x="${o.x}" y="${o.y}">${esc(o.w)}</text>`).join("")+(i+1===nWords&&nWords<words.length?`<text class="tok" x="${shown[i].x+shown[i].w.length*cw+2}" y="${shown[i].y}">…</text>`:"")},(650+i*140)*pace)}
-  if(await step(650+nWords*140+400))return;
-  hot("b-llm",false);cap.innerHTML=`<b>Done.</b> ${words.length} words, then the answer line.`;stop();
+function stepsOn(k){document.querySelectorAll("#steps .stp").forEach(el=>el.classList.toggle("on",+el.dataset.s===k))}
+function setProg(left,pct,right){$("#p-left").textContent=left;$("#p-pct").textContent=right;$("#p-bar").style.width=pct+"%"}
+const live=(id,on)=>{const e=document.getElementById(id);if(e)e.classList.toggle("live",on)};
+const on=(id,v)=>{const e=document.getElementById(id);if(e)e.classList.toggle("on",v)};
+async function animateModel(s,a,tok,cited){
+  buildFlow(s,cited);$("#mstatus").hidden=false;const pace=state.pace;
+  const step=async(ms)=>waitOrSkip(ms*pace,tok);
+  const arrows=[...document.querySelectorAll("#flow .arrow")];
+  // 1 inputs
+  stepsOn(0);live("fan",true);setProg("Processing… reading the 24 h window",6,"6%");if(await step(900))return;
+  // 2 patches
+  stepsOn(1);on("fb-patch",true);setProg("Encoding patches…",18,"18%");
+  const sq=[...document.querySelectorAll("#patches i")];sq.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*45*pace));
+  if(await step(36*45+400))return;live("fan",false);on("fb-patch",false);
+  // 3 latents
+  stepsOn(2);arrows[0].classList.add("live");on("fb-lat",true);setProg("Resampling into latent tokens…",38,"38%");
+  const lt=[...document.querySelectorAll("#lats i")];lt.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*110*pace));
+  if(await step(12*110+500))return;arrows[0].classList.remove("live");on("fb-lat",false);
+  // 4 transformer
+  stepsOn(3);arrows[1].classList.add("live");on("llm",true);setProg("Reasoning… gated cross-attention over the latents",60,"60%");
+  const xa=[...document.querySelectorAll("#xa i")];xa.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},(200+i*160)*pace));
+  if(await step(2400))return;arrows[1].classList.remove("live");
+  // 5 generation
+  stepsOn(4);arrows[2].classList.add("live");on("fb-gen",true);
+  const {body,ans}=parseAnswer(a.text);const words=body.split(/\s+/);const gens=[...document.querySelectorAll("#gens i")];const st=$("#stream");
+  const per=Math.max(40,Math.round(120*pace));
+  for(let i=0;i<words.length;i++){if(tok!==state.token)return;const g=gens[i%gens.length];gens.forEach(x=>x.classList.remove("on"));g.classList.add("on");
+    st.innerHTML=`<span class="tag">assessment</span>\n${esc(words.slice(0,i+1).join(" "))}<span class="caret"></span>`;st.scrollTop=st.scrollHeight;
+    setProg("Generating tokens…",60+Math.round(35*(i+1)/words.length),`${60+Math.round(35*(i+1)/words.length)}%`);await sleep(per)}
+  st.innerHTML=`<span class="tag">assessment</span>\n${esc(body)}\n<span class="ansl">${esc(ans)}</span>`;st.scrollTop=st.scrollHeight;
+  gens.forEach(x=>x.classList.add("on"));arrows[2].classList.remove("live");on("fb-gen",false);on("llm",false);
+  setProg(`Done — ${words.length} words, then the answer line`,100,"100%");$("#mstatus").hidden=true;
 }
 
-/* ---------- 4 answer ---------- */
+/* ---------- answer (chat) ---------- */
 async function renderAnswer(s,a,tok){
-  const {body,ans}=parseAnswer(a.text);const segs=segments(a.text,a.claims);const sents=sentences(body);
-  const concl=sents.length>1?sents[sents.length-1]:"";const evid=sents.length>1?sents.slice(0,-1):sents;
+  const h=HZH[state.hz];const {body,ans}=parseAnswer(a.text);const segs=segments(a.text,a.claims);const sents=sentences(body);
   const offs=[];let p=0;for(const t of sents){const i=body.indexOf(t,p);offs.push([i,i+t.length]);p=i+t.length}
-  const evRange=[offs[0][0],offs[evid.length-1][1]];const coRange=concl?[offs[offs.length-1][0],offs[offs.length-1][1]]:null;
-  const lines=[{k:"FINDING",segs:coRange?sliceSegs(segs,coRange[0],coRange[1]):[{t:sents[0]}]},{k:"EVIDENCE",segs:sliceSegs(segs,evRange[0],evRange[1])},{k:"ANSWER",ansText:ans}];
-  const host=$("#lines");host.innerHTML=lines.map((l,i)=>`<div class="line" id="ln${i}"><span class="lk">${l.k}</span><span class="lv" id="lv${i}"></span></div>`).join("");
-  $("#gauge").innerHTML=gaugeSVG(0,HZH[state.hz]);$("#probs").innerHTML="";
-  for(let i=0;i<lines.length;i++){const l=lines[i];const el=document.getElementById("lv"+i);document.getElementById("ln"+i).classList.add("show");
-    if(l.ansText){el.innerHTML=`<code>${esc(l.ansText)}</code><span class="chip ${a.label==="none"?"neutral":"class"}">${esc(cls(a.label))}</span>`;break}
-    const total=l.segs.reduce((n,x)=>n+x.t.length,0);const per=Math.max(8,Math.round(26*state.pace));
-    for(let c=0;c<=total;c+=2){if(tok!==state.token)return;renderSegs(el,l.segs,c);const cr=document.createElement("span");cr.className="caret";el.appendChild(cr);await sleep(per)}
-    renderSegs(el,l.segs,total);await sleep(300*state.pace)}
-  if(tok!==state.token)return;
-  setGauge(a.p_fault,HZH[state.hz]);
-  const top=Object.entries(a.class_scores||{}).sort((x,y)=>y[1]-x[1]).slice(0,4);
-  $("#probs").innerHTML=top.map(([c,pr])=>`<span class="l ${D.stop&&c===D.stop.class?"gold":""}">${esc(cls(c))}</span><span class="bar"><i style="width:0%"></i></span><span class="n">${fmt(pr,2)}</span>`).join("");
-  await sleep(30);$("#probs").querySelectorAll(".bar i").forEach((el,i)=>el.style.width=`${Math.round(top[i][1]*100)}%`);
+  const yes=a.label!=="none";const words=body.split(/\s+/).length;
+  $("#a-hint").textContent=`generated · ${words} words`;
+  const ev=sents.map((t,i)=>{const sg=sliceSegs(segs,offs[i][0],offs[i][1]);const claims=sg.filter(x=>x.ok!==undefined);const nOk=claims.filter(x=>x.ok).length;
+    const kind=claims.length===0?"nil":nOk===claims.length?"ok":"bad";const sub=claims.length===0?(i===sents.length-1?"conclusion":"no numeric claim"):nOk===claims.length?`${nOk} ${nOk===1?"number":"numbers"} verified against the window`:`${claims.length-nOk} of ${claims.length} numbers do not match the window`;
+    return `<div class="ev"><i class="ic ${kind}">${kind==="ok"?"✓":kind==="bad"?"✗":"–"}</i><div><div class="t">${segsHTML(sg)}</div><div class="s">${sub}</div></div></div>`}).join("");
+  $("#abody").innerHTML=`
+    <div class="verdict ${yes?"yes":"no"}"><span class="ico">${yes?`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M6 2.5v4M6 9h.01"/></svg>`:`<svg viewBox="0 0 12 12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 6.5 4.8 9 10 3.5"/></svg>`}</span><div><b>${yes?`Yes — ${esc(cls(a.label))} stop likely within ${h} h`:`No fault stop expected within ${h} h`}</b><small>${yes?"the model names the subsystem and its evidence below":"the model sees no developing fault"}</small></div></div>
+    <div class="conf"><div class="lab"><span>P(fault stop within ${h} h)</span><b id="pv">0.00</b></div><div class="track"><i id="pb"></i><em title="alarm line at 0.80"></em></div><div class="foot">alarm line at ${fmt(ALARM,2)} · yes-versus-no likelihood after the model&rsquo;s own reasoning</div></div>
+    <div class="kev"><h3>Key evidence <span class="muted" style="font-weight:400">· the model&rsquo;s own sentences, numbers checked</span></h3>${ev}</div>
+    <div class="ansline"><code>${esc(ans)}</code><span class="chip ${yes?"class":"neutral"}">${esc(cls(a.label))}</span></div>
+    <div class="acts"><button class="btn soft" type="button" id="b-full">Full text + prompt</button><button class="btn" type="button" id="b-check">Check against the log</button></div>
+    <div class="full" id="full" hidden><div class="label" style="margin-bottom:4px">Generated text</div>${segsHTML(segs)} <code style="font:500 12px var(--fm)">${esc(ans)}</code><details class="prompt"><summary>Prompt</summary><div class="mono">${promptFor(s,anchorOf(state.step))}</div></details></div>`;
+  $("#b-full").addEventListener("click",()=>{const f=$("#full");f.hidden=!f.hidden});
+  $("#b-check").addEventListener("click",()=>{if(skipResolve)skipResolve();else if(state.stage<5){state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false}});
+  await sleep(40);const pb=$("#pb");pb.style.width=`${Math.round(a.p_fault*100)}%`;pb.className=a.p_fault>=ALARM?"hi":a.p_fault>=WARM?"mid":"";
+  const pv=$("#pv");const t0=performance.now(),durMs=1100;const tick=()=>{const t=Math.min(1,(performance.now()-t0)/durMs);pv.textContent=fmt(a.p_fault*t,2);if(t<1&&tok===state.token)requestAnimationFrame(tick)};tick();
+  const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(420*state.pace);evs[i].classList.add("show")}
 }
-function gaugeSVG(p,h){const r=52,cx=65,cy=62,Lg=Math.PI*r;return `<svg viewBox="0 0 130 74" aria-hidden="true"><path d="M${cx-r} ${cy}A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="var(--line)" stroke-width="9" stroke-linecap="round"/><path class="arc" d="M${cx-r} ${cy}A${r} ${r} 0 0 1 ${cx+r} ${cy}" fill="none" stroke="var(--ink-4)" stroke-width="9" stroke-linecap="round" stroke-dasharray="${Lg.toFixed(2)}" stroke-dashoffset="${(Lg*(1-p)).toFixed(2)}"/><line x1="${(cx+r*Math.cos(Math.PI*(1-ALARM))).toFixed(1)}" y1="${(cy-r*Math.sin(Math.PI*(1-ALARM))).toFixed(1)}" x2="${(cx+(r+8)*Math.cos(Math.PI*(1-ALARM))).toFixed(1)}" y2="${(cy-(r+8)*Math.sin(Math.PI*(1-ALARM))).toFixed(1)}" stroke="var(--crit)" stroke-width="1.5"/></svg><div class="v num">${p?fmt(p,2):"–"}</div><div class="h">P(fault stop within ${h} h)</div><div class="s">alarm line at ${fmt(ALARM,2)}</div>`}
-function setGauge(p,h){const g=$("#gauge");g.innerHTML=gaugeSVG(0,h);requestAnimationFrame(()=>{const arc=g.querySelector(".arc");arc.setAttribute("stroke-dashoffset",(Math.PI*52*(1-p)).toFixed(2));arc.setAttribute("stroke",p>=ALARM?"var(--crit)":p>=WARM?"var(--warn)":"var(--ink-4)");g.querySelector(".v").textContent=fmt(p,2)})}
 
-/* ---------- 5 check ---------- */
+/* ---------- check ---------- */
 function renderCheck(s,a){
   const segs=segments(a.text,a.claims).filter(x=>x.ok!==undefined);const nOk=segs.filter(x=>x.ok).length;
   const i=state.step,last=i===D.steps.length-1,h=HZH[state.hz];
   const within=D.stop?leadMinAt(i)<=h*60+10:false;const gold=within?D.stop.class:"none";const right=a.label===gold;
   const early=!right&&D.stop&&a.label===D.stop.class&&!within;
   let impact="";
-  if(D.stop){const lead=leadMinAt(i);impact=`<div class="logline"><span class="t">${clockS(P(D.stop.start))}</span><span class="m">${esc(D.stop.message)}</span><span class="t">${esc(D.stop.iec)}</span><span>${esc(cls(D.stop.class))} · stopped for ${dur(D.stop.duration_h*60)}</span></div><div><div class="label">Lead time from this window</div><div class="big">${dur(lead)}</div><div class="muted" style="font-size:11.5px">${within?`inside the ${h} h asked about`:`beyond the ${h} h asked about — the strict answer here was "no"`}</div></div>`}
+  if(D.stop){const lead=leadMinAt(i);impact=`<div class="logline"><span class="t">${clockS(P(D.stop.start))}</span><span class="m">${esc(D.stop.message)}</span><span class="t">${esc(D.stop.iec)}</span><span>${esc(cls(D.stop.class))} · stopped for ${dur(D.stop.duration_h*60)}</span></div><div style="margin-top:4px"><span class="label">Lead time from this window</span><div class="big">${dur(lead)}</div><div class="muted" style="font-size:11.5px">${within?`inside the ${h} h asked about`:`beyond the ${h} h asked about — the strict answer here was "no"`}</div></div>`}
   else impact=`<div class="logline"><span class="t">${clock(P(D.end))}</span><span class="m">No fault stop</span></div><div class="muted">The right answer was &ldquo;no&rdquo;.</div>`;
   const t3=last&&D.steps[i].answers.t3;
-  $("#check").innerHTML=`
-    <div class="cbox"><h3>Numbers verified against the window</h3><div class="big">${nOk} of ${segs.length}</div><div class="claims">${segs.map(x=>`<span><i class="${x.ok?"ok":"no"}">${x.ok?"✓":"✗"}</i>${esc(x.t)}</span>`).join("")||"<span class='muted'>no numeric claims</span>"}</div></div>
-    <div class="cbox"><h3>Impact — what the log recorded</h3>${impact}<div><span class="chip ${right?"good":early?"class":"bad"}">${right?"answer matches the log":early?"right subsystem, ahead of the horizon asked":"answer does not match the log"}</span></div></div>
-    <div class="cbox"><h3>Action <span class="chip neutral" style="margin-left:4px">playbook, not model output</span></h3><p class="play">${esc(PLAYBOOK[a.label]||PLAYBOOK.none)}</p>${t3?`<div style="margin-top:4px"><div class="label">Asked afterwards</div><p class="play" id="posthoc" style="margin-top:3px"></p></div>`:""}</div>`;
-  if(t3){renderSegs($("#posthoc"),segments(t3.text,t3.claims));$("#posthoc").insertAdjacentHTML("beforeend",` <code style="font:500 11.5px var(--fm)">${esc(parseAnswer(t3.text).ans)}</code>`)}
+  $("#chk").innerHTML=`
+    <div class="cb"><h4>Numbers verified against the window</h4><div class="big">${nOk} of ${segs.length}</div>${segs.length?`<div class="muted" style="font-size:11.5px">${segs.map(x=>`${x.ok?"✓":"✗"} ${esc(x.t)}`).join(" · ")}</div>`:`<div class="muted">no numeric claims</div>`}</div>
+    <div class="cb"><h4>What the alarm log recorded</h4>${impact}<div style="margin-top:4px"><span class="chip ${right?"good":early?"class":"bad"}">${right?"answer matches the log":early?"right subsystem, ahead of the horizon asked":"answer does not match the log"}</span></div></div>
+    <div class="cb"><h4>Action <span class="chip neutral">playbook, not model output</span></h4><div>${esc(PLAYBOOK[a.label]||PLAYBOOK.none)}</div>${t3?`<div style="margin-top:4px"><span class="label">Asked afterwards</span><div class="full" style="border:0;padding:0;margin-top:2px;font-size:12.5px">${segsHTML(segments(t3.text,t3.claims))} <code style="font:500 11.5px var(--fm)">${esc(parseAnswer(t3.text).ans)}</code></div></div>`:""}</div>`;
 }
 
 /* ---------- init ---------- */
@@ -474,12 +504,12 @@ async function boot(){
   $("#c-step").addEventListener("change",e=>{state.step=+e.target.value;idle();writeHash()});
   $("#c-hz").addEventListener("change",e=>{state.hz=e.target.value;idle();writeHash()});
   $("#c-speed").addEventListener("change",e=>{state.pace=+e.target.value});
-  $("#b-start").addEventListener("click",run);
+  $("#b-run").addEventListener("click",run);
   $("#b-next").addEventListener("click",()=>{if(skipResolve)skipResolve()});
-  $("#b-restart").addEventListener("click",()=>{idle()});
+  $("#b-reset").addEventListener("click",idle);
   document.addEventListener("keydown",e=>{if(e.target.tagName==="SELECT")return;if(e.key==="ArrowRight"&&skipResolve)skipResolve();if(e.key==="Enter"&&!state.running)run();if(e.key==="Escape")idle()});
   const q=new URLSearchParams(location.search);if(q.get("pace")){state.pace=+q.get("pace");$("#c-speed").value=String(state.pace)}
   if(q.has("autorun"))run();
 }
-boot().catch(e=>{$("#chosen").innerHTML=`<span class="err">Could not load the case data: ${esc(String(e))} — serve this folder over HTTP.</span>`;console.error(e)});
+boot().catch(e=>{$("#sub").innerHTML=`<span class="err">Could not load the case data: ${esc(String(e))} — serve this folder over HTTP.</span>`;console.error(e)});
 </script>
