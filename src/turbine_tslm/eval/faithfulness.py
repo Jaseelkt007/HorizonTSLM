@@ -198,12 +198,15 @@ def evaluate(pred_path: str | Path, windows: list[str] | None = None) -> dict[st
         if line.strip()
     ]
     rows = [r for r in rows if r.get("text")]
-    series = load_series(windows, {r["window_id"] for r in rows})
+    base = {
+        r["window_id"]: r["window_id"].split("#")[0] for r in rows
+    }  # t3 ids = window id + "#t3"
+    series = load_series(windows, set(base.values()))
     per: list[dict[str, Any]] = []
     for r in rows:
-        if r["window_id"] not in series:
+        if base[r["window_id"]] not in series:
             continue
-        c = check_text(r["text"], series[r["window_id"]])
+        c = check_text(r["text"], series[base[r["window_id"]]])
         c["window_id"], c["split"], c["gold"] = (
             r["window_id"],
             r.get("split"),
