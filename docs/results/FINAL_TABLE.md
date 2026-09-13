@@ -20,8 +20,14 @@ of texts whose reasoning justifies the answer line). Generated from `docs/result
 | OpenTSLM Flamingo, headline + RFT (generate-mode score) | 0.706 · 0.51 · 0.59 · 0.41 | 0.708 · 0.39 · 0.62 · 0.47 | 0.601 · 0.27 · 0.37 · 0.17 | 0.61 / 0.48 | 0.87 | 26 % | 2.9 / 3.9 / 57 % |
 
 Notes.
-- XGBoost rows are the teammate's `v1` predictions (`scripts/train_xgboost_baseline.py`) re-scored with the shared
-  harness; the original numbers are in `docs/benchmark.md`. XGBoost has no val row (it tunes on val).
+- XGBoost rows: `scripts/train_xgboost_baseline.py` (teammate) re-run on the laptop with its fixed seed
+  (`random_state=42`, `n_jobs=1`) and scored with the same harness. The teammate's own run reports Kelmarsh AUROC /
+  R@10 of 0.609 / 0.231 (sensors-only) and 0.615 / 0.226 (+ context) in `docs/benchmark.md`; the rerun gives
+  0.596 / 0.206 and 0.614 / 0.223 — differences of ≤ 0.025, inside the bootstrap interval (±0.023). The scorer is
+  identical (the script calls it); the model differs slightly between machines. The teammate's exact prediction
+  files were not committed; if they are, replace `docs/results/xgboost_*/` with them. "Sensors + context" receives
+  the same anchor state / month / horizon the TSLM gets in its prompt and is the primary head-to-head comparator;
+  "sensor statistics" is the same-signals-only row. XGBoost has no val row (it tunes on val).
 - "Graded score" = conclusion candidates scored conditioned on the model's own evidence sentences
   (`predict_mode: rescore`); the generate-mode score of a reason-first model is near-binary, and the plain
   teacher-forced loglik after the prompt is off-distribution (AUROC ≈ 0.5). RFT graded rescore: pending at the time

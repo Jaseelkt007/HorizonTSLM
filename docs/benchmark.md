@@ -73,8 +73,10 @@ Use this table in the project tracker; only rows with completed predictions may 
 | OpenTSLM Flamingo, headline + 1 epoch RFT (`t1_flamingo_llama1b_evidence_rich_rft`) | 0.601* | 0.275 | Complete — `docs/results/t1_flamingo_llama1b_evidence_rich_rft/`; rejection-sampling fine-tune, reward = label correct + all numbers verified |
 
 Notes for the comparison (OpenTSLM rows): all scored with `turbine_tslm.eval.score` on the committed window tables,
-same records as the XGBoost rows (the XGBoost `v1` predictions re-scored with the same harness are in
-`docs/results/xgboost_{sensors_only,combined}/`: test-B AUROC 0.596 / 0.614, R@10 0.206 / 0.223). Paired bootstrap
+same records as the XGBoost rows. `docs/results/xgboost_{sensors_only,combined}/` holds a *laptop re-run* of the
+XGBoost script (same seed) scored with the same harness: test-B AUROC 0.596 / 0.614, R@10 0.206 / 0.223 — within
+±0.025 of the numbers above (bootstrap interval ±0.023). To make the final table use the original run, commit the
+`outputs/predictions/xgb_*_v1_test_{a,b}.jsonl` files from that run and re-score them. Paired bootstrap
 intervals on test-B (2,000 resamples, `scripts/bootstrap_ci.py`, `docs/results/bootstrap/test_b.json`): headline
 R@10 0.268 [0.238, 0.297] vs XGBoost sensors-only 0.206 [0.173, 0.238], paired difference −0.062 [−0.097, −0.027];
 RFT vs headline +0.007 [−0.019, +0.035] (not significant). With the graded headline score (`bootstrap/test_b_graded.json`):
