@@ -12,6 +12,44 @@ Built in 24 hours for the Temporal AI Challenge (Aionic Labs × ETH ASL × Nebiu
 
 ---
 
+## Example
+
+**Input.** The previous 24 hours of a turbine's 10-minute SCADA measurements, 19 channels (wind speed and direction,
+power, rotor speed, pitch angle, generator bearing and stator temperatures, gear-oil temperature and inlet pressure,
+main-bearing temperature, grid voltage and frequency, tower acceleration, …), plus one line of context (turbine
+type, month, producing or idle) and the question: *will a fault-related stop begin within the next 6 hours?* The
+alarm log is never shown to the model.
+
+**Output** (real case: Kelmarsh turbine 1, window ending 2019-03-15 09:10, a farm the model never saw):
+
+```
+Wind is steady around 11 m/s and the turbine is producing about 2041 kW. Stator temperature rose
+18 °C in the last 6 h to 90 °C while power rose from 1854 to 2041 kW. Wind is 13 m/s in the last
+hour (24 h maximum 16 m/s) with the rotor at 15.2 rpm and power at 2041 kW. This pattern precedes
+a structural or overspeed stop.
+Answer: yes, structural_overspeed
+```
+
+Structured fields the pipeline derives from that text and the window:
+
+```json
+{
+  "horizon_hours": 6,
+  "fault_probability": 0.95,
+  "predicted_fault": true,
+  "predicted_subsystem": "structural_overspeed",
+  "class_scores": {"structural_overspeed": 0.977, "gearbox_lubrication": 0.014},
+  "claims_verified": "6 of 6 numbers in the text match the window"
+}
+```
+
+**What happened.** The controller logged *Tower oscillation X level 2* (forced outage) at 12:13, three hours after
+the end of this window. On a quiet window the same model writes "… No sign of a developing fault. Answer: no" with a
+probability near 0.1.
+
+In plain language: from the previous 24 hours of sensor data, the model says whether the turbine will hit a fault
+stop within the chosen horizon, which subsystem, and why, and every number in the "why" is checked against the data.
+
 ## Results at a glance
 
 Test B is **Kelmarsh**, a wind farm and turbine model (Senvion MM92) the model never saw; training used Penmanshiel
