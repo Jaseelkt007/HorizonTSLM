@@ -1,0 +1,17 @@
+.grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 14px; }
+.card { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+.head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.head b { font: 600 18px/1.2 var(--fu); letter-spacing: -0.01em; }
+.head span { color: var(--ink-3); font-size: 12.5px; }
+.when { color: var(--ink-3); font-size: 12.5px; margin-top: -8px; }
+.risk { display: grid; grid-template-columns: auto 1fr; gap: 4px 14px; align-items: center; }
+.risk .v { font: 600 26px/1 var(--fu); letter-spacing: -0.02em; }
+.risk .meter { align-self: center; }
+.risk .l { grid-column: 1 / -1; color: var(--ink-3); font-size: 12px; }
+.line { font-size: 13px; color: var(--ink-2); display: flex; flex-wrap: wrap; gap: 4px 8px; align-items: center; }
+.hist { margin-top: 2px; }
+.hist svg { display: block; width: 100%; height: auto; }
+.cap { font-size: 12px; color: var(--ink-3); margin-top: 4px; display: flex; justify-content: space-between; gap: 8px; }
+.cap a { white-space: nowrap; display: inline-flex; align-items: center; gap: 4px; }
+.bar { cursor: pointer; }
+.bar:hover { opacity: 0.7; }

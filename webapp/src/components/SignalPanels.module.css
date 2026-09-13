@@ -1,0 +1,4 @@
+.wrap { width: 100%; position: relative; }
+.wrap svg { display: block; width: 100%; height: auto; }
+.wrap svg text { font-variant-numeric: tabular-nums; }
+.hit { cursor: crosshair; }

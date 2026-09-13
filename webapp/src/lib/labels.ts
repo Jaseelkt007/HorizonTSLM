@@ -107,3 +107,14 @@ export const SPLIT_NAME: Record<Split, string> = {
   test_a: "Test A · unseen years",
   test_b: "Test B · unseen farm",
 };
+
+/** Which channels to show first when a window opens: the ones the evidence rules quote, most specific first. */
+export const CHANNEL_PRIORITY: string[] = [
+  "stator_temperature", "gen_bearing_rear_temperature", "gen_bearing_front_temperature", "gear_oil_temperature", "main_bearing_temperature",
+  "gear_oil_inlet_pressure", "tower_acceleration_x", "grid_voltage", "grid_frequency", "yaw_misalignment", "power_curve_residual",
+  "wind_speed", "power", "rotor_speed", "pitch_angle", "ambient_temperature", "reactive_power", "wind_direction", "nacelle_position",
+];
+
+/** Series colours for pinned channels (validated all-pairs for colour-vision deficiency). */
+export const SERIES = ["var(--s1)", "var(--s2)", "var(--s3)"];
+export const MAX_PINNED = SERIES.length;

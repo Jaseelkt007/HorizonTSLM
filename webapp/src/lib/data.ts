@@ -63,3 +63,14 @@ export function showcaseId(): string {
     ) ?? ws[0];
   return show.id;
 }
+
+/** Previous / next sampled window of the same turbine, by date. */
+export function neighbors(id: string): { prev?: string; next?: string } {
+  const w = getWindow(id);
+  if (!w) return {};
+  const list = loadDemo()
+    .windows.filter((x) => x.farm === w.farm && x.turbine === w.turbine)
+    .sort((a, b) => a.anchor.localeCompare(b.anchor));
+  const i = list.findIndex((x) => x.id === id);
+  return { prev: list[i - 1]?.id, next: list[i + 1]?.id };
+}

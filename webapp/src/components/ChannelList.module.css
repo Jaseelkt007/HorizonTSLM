@@ -1,0 +1,15 @@
+.wrap { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 0; }
+.list { display: flex; flex-direction: column; overflow: auto; flex: 1 1 auto; min-height: 320px; max-height: 720px; }
+.grp { font: 500 11px var(--fu); letter-spacing: 0.05em; text-transform: uppercase; color: var(--ink-3); padding: 9px 14px 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.grp span { display: none; }
+.row { display: grid; grid-template-columns: 4px 1fr auto auto; align-items: center; gap: 10px; padding: 5px 14px 5px 10px; border: 0; background: none; text-align: left; cursor: pointer; width: 100%; border-top: 1px solid var(--line); }
+.row:hover { background: var(--hover); }
+.row .bar { width: 4px; height: 22px; border-radius: 2px; background: transparent; }
+.row.pinned .bar { background: var(--c); }
+.row .name { font: 500 13px var(--fu); color: var(--ink); display: flex; align-items: center; gap: 6px; min-width: 0; }
+.row .name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.row .cited { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); flex: none; }
+.row .val { font: 500 12.5px var(--fu); color: var(--ink-2); font-variant-numeric: tabular-nums; white-space: nowrap; min-width: 74px; text-align: right; }
+.row .val small { color: var(--ink-3); font-weight: 400; }
+.row.pinned .name { color: var(--ink); }
+.foot { padding: 9px 14px; border-top: 1px solid var(--line); font-size: 12px; color: var(--ink-3); display: flex; flex-wrap: wrap; gap: 6px 14px; flex: none; }

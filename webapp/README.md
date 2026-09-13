@@ -11,33 +11,40 @@ server, no GPU, no API calls at runtime.
 
 Node ≥ 20. `out/` can be dropped on any static host (Vercel, GitHub Pages, S3, `python -m http.server`).
 
-## Routes
+## Pages
 
-- `/` — **Farm board**: one row per turbine of the chosen farm (Kelmarsh = unseen farm, Penmanshiel 2020–21 = unseen
-  years): the model's P(fault stop) on its latest sampled window, the subsystem it named, what the alarm log says
-  followed, and a strip of every sampled window in time order (bar = score, dot = a fault stop really followed).
-- `/window/<id>/` — one held-out window (160 static pages; `/window/` opens the showcase): the question, the
-  explanation with every number marked verified / wrong against the window, the parseable `Answer:` line, P(fault) and
-  subsystem probabilities, "what actually happened" as a timeline (window → horizon → stop at its lead time), and the 19
-  channels as small multiples grouped by subsystem (last hour shaded, cited channels outlined). `?q=t3` opens the same
-  window asked the post-hoc question (available for the 1 h positives); `?turbine=<farm>|<n>` pre-filters the list.
-- `/results/` — every run under `docs/results/` and the XGBoost baselines on the same splits (pooled or per horizon),
-  recall per subsystem with class counts, faithfulness per split, and the headline model's Kelmarsh confusion matrix.
+An app shell (sidebar navigation, light theme by default, dark follows the OS or the toggle):
 
-Theme follows the OS; the header toggle overrides it (saved in `localStorage`).
+- `/` — **Overview**: what the data is and how the model is used, told with real numbers from the JSON: a showcase
+  window's signals, the four steps (input → question → answer → checked), the two farms with their sampled turbines,
+  the 19 channels grouped by subsystem, and how the alarm log becomes the labels.
+- `/farms/kelmarsh/`, `/farms/penmanshiel/` — **Farm board**: one card per turbine — the model's P(fault stop) on its
+  latest sampled window, the subsystem it named, what the alarm log says followed, and every sampled window in time
+  order (bar = score, dot = a fault stop really followed).
+- `/windows/` — **Windows**: the 160 held-out windows as a filterable table (farm, turbine, outcome, subsystem,
+  right/wrong; sort by date, verification or risk). `?turbine=<farm>|<n>` pre-filters.
+- `/window/<id>/` — **Signals & answer** (160 static pages; `/window/` opens the showcase): a stacked, synchronized
+  chart of up to three channels on one real-clock time axis — the last hour shaded, the asked horizon to the right of
+  "now", and the stop that followed drawn where it began — with a channel list (click any of the 19 to chart it; the
+  ones the explanation cites are flagged); then the model's answer with every number marked verified / wrong, the
+  `Answer:` line, P(fault), subsystem probabilities and what actually happened. `?q=t3` shows the same window asked
+  the post-hoc question (1 h positives only); earlier / later step through the turbine's sampled windows.
+- `/results/` — **Results**: every run under `docs/results/` and the XGBoost baselines on the same splits (pooled or
+  per horizon), recall per subsystem with class counts, faithfulness per split, and the Kelmarsh confusion matrix.
 
 ## Layout
 
     data/            demo_data.json, results_summary.json  (generated — see below)
-    src/app/         layout + routes: page.tsx (farm), window/[id]/page.tsx, results/page.tsx
-    src/components/  FarmBoard, HistoryStrip, WindowRail, WindowDetail, Explanation, Timeline, ChannelWall,
-                     ChannelChart, ResultsView, TopBar/NavTabs/ThemeToggle, Footer  (+ CSS Modules)
-    src/lib/         types.ts (JSON shapes), data.ts (build-time loading, server only), labels.ts (naming,
-                     channel groups, cite heuristics), format.ts (formatting, answer parsing)
-    src/app/globals.css   design tokens (light/dark) and the few shared primitives (.chip, .seg, .panel, .meter)
+    src/app/         layout.tsx (shell) · page.tsx (overview) · farms/[farm] · windows · window/[id] · results
+    src/components/  Sidebar, SignalPanels (the chart engine), ChannelList, WindowView, WindowsTable, FarmView,
+                     HistoryStrip, Explanation, ResultsView, ThemeToggle  (+ CSS Modules)
+    src/lib/         types.ts (JSON shapes) · data.ts (build-time loading, server only) · labels.ts (naming,
+                     channel groups, cite heuristics) · format.ts · time.ts (clock ticks, nice axes) · pins.ts
+    src/app/globals.css   design tokens (light/dark) and the shared primitives (.card, .chip, .seg, .kpi, table.data)
 
-Server components read the JSON with `fs` (`src/lib/data.ts`); client components get typed props only. Fonts
-(Barlow, Barlow Semi Condensed, Source Serif 4, JetBrains Mono) are self-hosted through `next/font`.
+Server components read the JSON with `fs` (`src/lib/data.ts`); client components get typed props only. Fonts (Inter,
+JetBrains Mono) are self-hosted through `next/font`. `SignalPanels` is plain SVG rendered at the measured container
+width — no chart library, so every chart is in the static HTML.
 
 ## Data
 

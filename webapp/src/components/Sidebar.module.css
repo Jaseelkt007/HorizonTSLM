@@ -1,0 +1,26 @@
+.side { background: var(--side-bg); color: var(--side-ink); display: flex; flex-direction: column; position: sticky; top: 0; height: 100vh; padding: 18px 14px; gap: 18px; }
+.brand { display: flex; align-items: center; gap: 10px; color: var(--side-ink-strong); padding: 4px 8px; text-decoration: none; }
+.brand:hover { text-decoration: none; }
+.brand svg { width: 28px; height: 28px; flex: none; color: #7fb0ff; }
+.brand b { font: 600 13.5px/1.2 var(--fu); letter-spacing: -0.01em; display: block; white-space: nowrap; }
+.brand small { font: 400 11.5px var(--fu); color: var(--side-ink); display: block; }
+.nav { display: flex; flex-direction: column; gap: 2px; }
+.nav a { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 8px; color: var(--side-ink); font: 500 13.5px var(--fu); text-decoration: none; }
+.nav a:hover { background: var(--side-active); color: var(--side-ink-strong); text-decoration: none; }
+.nav a[aria-current="page"] { background: var(--side-active); color: var(--side-ink-strong); }
+.nav a svg { width: 16px; height: 16px; flex: none; opacity: 0.9; }
+.nav .sub { padding-left: 36px; font-size: 13px; }
+.grp { font: 500 11px var(--fu); letter-spacing: 0.06em; text-transform: uppercase; color: var(--side-ink); opacity: 0.7; padding: 10px 10px 4px; }
+.foot { margin-top: auto; border-top: 1px solid var(--side-line); padding-top: 12px; font: 400 11.5px/1.5 var(--fu); color: var(--side-ink); display: flex; flex-direction: column; gap: 8px; }
+.foot code { font: 500 11px var(--fm); color: var(--side-ink-strong); word-break: break-all; }
+.theme { display: inline-flex; align-items: center; gap: 8px; border: 1px solid var(--side-line); background: transparent; color: var(--side-ink); padding: 6px 10px; border-radius: 8px; cursor: pointer; font: 500 12.5px var(--fu); }
+.theme:hover { color: var(--side-ink-strong); background: var(--side-active); }
+.theme svg { width: 14px; height: 14px; }
+@media (max-width: 900px) {
+  .side { position: static; height: auto; flex-direction: row; flex-wrap: wrap; align-items: center; padding: 10px 12px; gap: 8px 14px; }
+  .nav { flex-direction: row; flex-wrap: wrap; gap: 2px; }
+  .nav .sub { display: none; }
+  .grp { display: none; }
+  .foot { display: none; }
+  .brand small { display: none; }
+}

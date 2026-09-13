@@ -1,0 +1,25 @@
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) 340px; gap: 16px; align-items: start; }
+.grid.stretch { align-items: stretch; }
+.chanCard { display: flex; flex-direction: column; min-height: 0; max-height: 100%; }
+@media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }
+.q { color: var(--ink-2); font-size: 13.5px; padding: 12px 18px; background: var(--card-2); border-bottom: 1px solid var(--line); }
+.q b { color: var(--ink); font-weight: 600; }
+.prose { font: 400 16px/1.65 var(--fu); max-width: 72ch; color: var(--ink); }
+.ans { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin-top: 14px; }
+.ans code { font: 500 13.5px var(--fm); background: var(--card-2); border: 1px solid var(--line); padding: 6px 10px; border-radius: 7px; color: var(--ink); }
+.tally { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13px; color: var(--ink-2); }
+.tally b { font-weight: 600; color: var(--ink); }
+.side { display: flex; flex-direction: column; gap: 18px; }
+.big { font: 600 30px/1 var(--fu); letter-spacing: -0.02em; }
+.probs { display: grid; grid-template-columns: auto minmax(60px, 1fr) 36px; gap: 6px 10px; align-items: center; font-size: 13px; }
+.probs .l { color: var(--ink-2); white-space: nowrap; }
+.probs .gold { color: var(--ink); font-weight: 600; }
+.probs .bar { height: 6px; background: var(--card-2); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.probs .bar i { display: block; height: 100%; background: var(--accent); }
+.probs .n { text-align: right; color: var(--ink-2); }
+.note { font: 400 12px/1.45 var(--fu); color: var(--ink-3); }
+.outcome { font-size: 14px; line-height: 1.55; }
+.msg { font: 500 12.5px var(--fm); background: var(--card-2); border: 1px solid var(--line); padding: 1px 6px; border-radius: 5px; white-space: nowrap; }
+.kv { display: grid; grid-template-columns: auto 1fr; gap: 6px 14px; font-size: 13px; }
+.kv dt { color: var(--ink-3); }
+.kv dd { margin: 0; font-weight: 500; }

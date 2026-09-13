@@ -1,0 +1,9 @@
+.filters { display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: flex-end; padding: 14px 18px; border-bottom: 1px solid var(--line); }
+.filters label { flex: 1 1 130px; max-width: 210px; }
+.count { margin-left: auto; font-size: 13px; color: var(--ink-3); display: flex; gap: 10px; align-items: center; }
+.tbl { max-height: 70vh; overflow: auto; }
+.t { font-weight: 600; }
+.sub { color: var(--ink-3); font-size: 12.5px; }
+.ver { display: inline-grid; grid-template-columns: 56px auto; gap: 8px; align-items: center; }
+.ver .track { height: 6px; background: var(--card-2); border: 1px solid var(--line); border-radius: 3px; overflow: hidden; }
+.ver .track i { display: block; height: 100%; background: var(--good); }
