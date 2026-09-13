@@ -1,14 +1,14 @@
 """Export a curated subset of held-out windows + the headline model's explanations for the demo page (webapp/).
 
     uv run python scripts/build_demo_data.py docs/results/t1_flamingo_llama1b_evidence_rich/predictions.jsonl.gz \\
-        --out webapp/demo_data.json --n 160
+        --n 160
 
 Picks Kelmarsh (unseen farm) and 2020-21 Penmanshiel (unseen years) windows: correct positives with well-verified
 claims, correct negatives, and a few honest misses; attaches per-claim verdicts (verified / wrong spans) for the
 early-warning text and the post-hoc (T3) text, facts, the gold outcome (message, lead time) and the raw 24 h
 channels (rounded).
 
-Also writes webapp/results_summary.json (every run under docs/results/ + the XGBoost table in docs/benchmark.md),
+Also writes webapp/data/results_summary.json (every run under docs/results/ + the XGBoost table in docs/benchmark.md),
 so nothing on the Results tab is hand-typed.
 """
 
@@ -225,12 +225,12 @@ def build_results_summary(results_dir: Path, benchmark_md: Path) -> dict:
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("predictions")
-    ap.add_argument("--out", default="webapp/demo_data.json")
+    ap.add_argument("--out", default="webapp/data/demo_data.json")
     ap.add_argument("--n", type=int, default=160)
     ap.add_argument("--windows", nargs="+", default=list(DEFAULT_WINDOWS))
     ap.add_argument("--results-dir", default="docs/results")
     ap.add_argument("--benchmark", default="docs/benchmark.md")
-    ap.add_argument("--results-out", default="webapp/results_summary.json")
+    ap.add_argument("--results-out", default="webapp/data/results_summary.json")
     a = ap.parse_args()
     opener = gzip.open if a.predictions.endswith(".gz") else open
     with opener(a.predictions, "rt", encoding="utf-8") as fh:
@@ -251,7 +251,8 @@ def main() -> int:
         r = df.loc[wid]
         series = {c: np.asarray(r[c], dtype=np.float32) for c in CHANNEL_NAMES}
         facts = extract_facts(series)
-        spans = claim_spans(p["text"].strip(), facts)  # offsets into the stripped text below
+        # offsets index the stripped text, which is what gets written out
+        spans = claim_spans(p["text"].strip(), facts)
         n_ok = sum(s["ok"] for s in spans)
         rows.append((wid, p, r, series, facts, spans, n_ok, len(spans)))
     rng = random.Random(0)
