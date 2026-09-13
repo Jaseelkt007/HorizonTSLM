@@ -1,0 +1,2635 @@
+{
+ "coverage": {
+  "n_predictions": 5332,
+  "n_unknown_window_ids": 0,
+  "n_windows": 7215,
+  "n_scored": 5332,
+  "missing_per_split": {
+   "train": 1883
+  }
+ },
+ "results": {
+  "test_a": {
+   "1": {
+    "n": 567,
+    "n_pos": 170,
+    "n_neg": 397,
+    "auroc": 0.7619943695362276,
+    "ap": 0.6696128723709114,
+    "recall_at_10far": 0.5,
+    "recall_at_10far_threshold": 0.9999997615814209,
+    "recall_at_5far": 0.3235294117647059,
+    "recall_at_5far_threshold": 0.9999999403953552,
+    "hard": {
+     "precision": 0.6142131979695431,
+     "recall": 0.711764705882353,
+     "f1": 0.659400544959128,
+     "alarm_rate": 0.3474426807760141,
+     "far": 0.19143576826196473
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 26,
+      "recall_at_10far": 0.038461538461538464,
+      "hard_recall": 0.2692307692307692,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 3,
+      "recall_at_10far": 0.3333333333333333,
+      "hard_recall": 0.6666666666666666,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 6,
+      "recall_at_10far": 0.16666666666666666,
+      "hard_recall": 0.5,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 15,
+      "recall_at_10far": 0.13333333333333333,
+      "hard_recall": 0.2,
+      "subsystem_acc": 0.06666666666666667
+     },
+     "gearbox_lubrication": {
+      "n": 12,
+      "recall_at_10far": 0.6666666666666666,
+      "hard_recall": 0.8333333333333334,
+      "subsystem_acc": 0.0
+     },
+     "yaw_cable": {
+      "n": 13,
+      "recall_at_10far": 0.23076923076923078,
+      "hard_recall": 0.46153846153846156,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 95,
+      "recall_at_10far": 0.7263157894736842,
+      "hard_recall": 0.9473684210526315,
+      "subsystem_acc": 0.9368421052631579
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.13825530212084833,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.09523809523809522,
+      "gearbox_lubrication": 0.0,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.8725490196078431
+     },
+     "accuracy_over_positives": 0.5294117647058824
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       5,
+       19
+      ],
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       1
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       2,
+       0,
+       1,
+       3
+      ],
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       1,
+       12
+      ],
+      [
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       8,
+       2
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       5,
+       7
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       89,
+       5
+      ],
+      [
+       9,
+       0,
+       0,
+       7,
+       6,
+       4,
+       50,
+       321
+      ]
+     ]
+    }
+   },
+   "3": {
+    "n": 581,
+    "n_pos": 192,
+    "n_neg": 389,
+    "auroc": 0.6994831833761782,
+    "ap": 0.570567182392224,
+    "recall_at_10far": 0.3854166666666667,
+    "recall_at_10far_threshold": 0.9999998211860657,
+    "recall_at_5far": 0.0,
+    "recall_at_5far_threshold": 1.0,
+    "hard": {
+     "precision": 0.5774647887323944,
+     "recall": 0.640625,
+     "f1": 0.6074074074074073,
+     "alarm_rate": 0.36660929432013767,
+     "far": 0.23136246786632392
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 32,
+      "recall_at_10far": 0.03125,
+      "hard_recall": 0.1875,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 3,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.3333333333333333,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 9,
+      "recall_at_10far": 0.1111111111111111,
+      "hard_recall": 0.2222222222222222,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 15,
+      "recall_at_10far": 0.06666666666666667,
+      "hard_recall": 0.26666666666666666,
+      "subsystem_acc": 0.06666666666666667
+     },
+     "gearbox_lubrication": {
+      "n": 12,
+      "recall_at_10far": 0.3333333333333333,
+      "hard_recall": 0.6666666666666666,
+      "subsystem_acc": 0.0
+     },
+     "yaw_cable": {
+      "n": 13,
+      "recall_at_10far": 0.15384615384615385,
+      "hard_recall": 0.3076923076923077,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 108,
+      "recall_at_10far": 0.6018518518518519,
+      "hard_recall": 0.9074074074074074,
+      "subsystem_acc": 0.8611111111111112
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.1348743000119147,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.09090909090909091,
+      "gearbox_lubrication": 0.0,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.8532110091743119
+     },
+     "accuracy_over_positives": 0.4895833333333333
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       5,
+       26
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       2
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       7
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       2,
+       1,
+       11
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       7,
+       4
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       3,
+       9
+      ],
+      [
+       0,
+       0,
+       0,
+       4,
+       0,
+       1,
+       93,
+       10
+      ],
+      [
+       6,
+       0,
+       1,
+       9,
+       7,
+       3,
+       64,
+       299
+      ]
+     ]
+    }
+   },
+   "6": {
+    "n": 593,
+    "n_pos": 215,
+    "n_neg": 378,
+    "auroc": 0.6719269102990033,
+    "ap": 0.5481805421551162,
+    "recall_at_10far": 0.19534883720930232,
+    "recall_at_10far_threshold": 0.9999999403953552,
+    "recall_at_5far": 0.0,
+    "recall_at_5far_threshold": 1.0,
+    "hard": {
+     "precision": 0.6237623762376238,
+     "recall": 0.586046511627907,
+     "f1": 0.60431654676259,
+     "alarm_rate": 0.3406408094435076,
+     "far": 0.20105820105820105
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 33,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.15151515151515152,
+      "subsystem_acc": 0.030303030303030304
+     },
+     "brake_hydraulics": {
+      "n": 3,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.3333333333333333,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 10,
+      "recall_at_10far": 0.1,
+      "hard_recall": 0.1,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 22,
+      "recall_at_10far": 0.045454545454545456,
+      "hard_recall": 0.2727272727272727,
+      "subsystem_acc": 0.18181818181818182
+     },
+     "gearbox_lubrication": {
+      "n": 15,
+      "recall_at_10far": 0.13333333333333333,
+      "hard_recall": 0.6,
+      "subsystem_acc": 0.0
+     },
+     "yaw_cable": {
+      "n": 15,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.4,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 117,
+      "recall_at_10far": 0.3247863247863248,
+      "hard_recall": 0.8376068376068376,
+      "subsystem_acc": 0.7264957264957265
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.14803239573881774,
+     "f1_per_class": {
+      "generator_cooling": 0.05128205128205128,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.20512820512820512,
+      "gearbox_lubrication": 0.0,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.7798165137614679
+     },
+     "accuracy_over_positives": 0.4186046511627907
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       3,
+       28
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       9
+      ],
+      [
+       1,
+       0,
+       0,
+       4,
+       1,
+       0,
+       0,
+       16
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       8,
+       6
+      ],
+      [
+       1,
+       0,
+       1,
+       0,
+       0,
+       0,
+       4,
+       9
+      ],
+      [
+       1,
+       0,
+       0,
+       12,
+       0,
+       0,
+       85,
+       19
+      ],
+      [
+       4,
+       0,
+       1,
+       6,
+       5,
+       1,
+       59,
+       302
+      ]
+     ]
+    }
+   },
+   "all": {
+    "n": 1741,
+    "n_pos": 577,
+    "n_neg": 1164,
+    "auroc": 0.7084680805445872,
+    "ap": 0.5846598316321849,
+    "recall_at_10far": 0.39168110918544197,
+    "recall_at_10far_threshold": 0.9999998211860657,
+    "recall_at_5far": 0.0,
+    "recall_at_5far_threshold": 1.0,
+    "hard": {
+     "precision": 0.6045751633986928,
+     "recall": 0.6412478336221837,
+     "f1": 0.6223717409587889,
+     "alarm_rate": 0.35152211372774267,
+     "far": 0.20790378006872853
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 91,
+      "recall_at_10far": 0.03296703296703297,
+      "hard_recall": 0.1978021978021978,
+      "subsystem_acc": 0.01098901098901099
+     },
+     "brake_hydraulics": {
+      "n": 9,
+      "recall_at_10far": 0.1111111111111111,
+      "hard_recall": 0.4444444444444444,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 25,
+      "recall_at_10far": 0.12,
+      "hard_recall": 0.24,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 52,
+      "recall_at_10far": 0.09615384615384616,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.11538461538461539
+     },
+     "gearbox_lubrication": {
+      "n": 39,
+      "recall_at_10far": 0.358974358974359,
+      "hard_recall": 0.6923076923076923,
+      "subsystem_acc": 0.0
+     },
+     "yaw_cable": {
+      "n": 41,
+      "recall_at_10far": 0.17073170731707318,
+      "hard_recall": 0.3902439024390244,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 320,
+      "recall_at_10far": 0.603125,
+      "hard_recall": 0.89375,
+      "subsystem_acc": 0.834375
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.14287627702039848,
+     "f1_per_class": {
+      "generator_cooling": 0.01941747572815534,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.14634146341463417,
+      "gearbox_lubrication": 0.0,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.834375
+     },
+     "accuracy_over_positives": 0.4748700173310225
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       0,
+       4,
+       0,
+       0,
+       13,
+       73
+      ],
+      [
+       2,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       5
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       2,
+       0,
+       3,
+       19
+      ],
+      [
+       2,
+       0,
+       0,
+       6,
+       1,
+       2,
+       2,
+       39
+      ],
+      [
+       2,
+       0,
+       0,
+       2,
+       0,
+       0,
+       23,
+       12
+      ],
+      [
+       3,
+       0,
+       1,
+       0,
+       0,
+       0,
+       12,
+       25
+      ],
+      [
+       1,
+       0,
+       0,
+       16,
+       1,
+       1,
+       267,
+       34
+      ],
+      [
+       19,
+       0,
+       2,
+       22,
+       18,
+       8,
+       173,
+       922
+      ]
+     ]
+    }
+   }
+  },
+  "test_b": {
+   "1": {
+    "n": 878,
+    "n_pos": 279,
+    "n_neg": 599,
+    "auroc": 0.6218877340370151,
+    "ap": 0.4882702930579711,
+    "recall_at_10far": 0.3010752688172043,
+    "recall_at_10far_threshold": 0.0012783408164978027,
+    "recall_at_5far": 0.26523297491039427,
+    "recall_at_5far_threshold": 0.9999986886978149,
+    "hard": {
+     "precision": 0.6,
+     "recall": 0.3010752688172043,
+     "f1": 0.40095465393794744,
+     "alarm_rate": 0.15945330296127563,
+     "far": 0.09348914858096828
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 15,
+      "recall_at_10far": 0.13333333333333333,
+      "hard_recall": 0.13333333333333333,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 5,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 2,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 139,
+      "recall_at_10far": 0.11510791366906475,
+      "hard_recall": 0.11510791366906475,
+      "subsystem_acc": 0.02158273381294964
+     },
+     "yaw_cable": {
+      "n": 28,
+      "recall_at_10far": 0.39285714285714285,
+      "hard_recall": 0.39285714285714285,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 90,
+      "recall_at_10far": 0.6111111111111112,
+      "hard_recall": 0.6111111111111112,
+      "subsystem_acc": 0.6
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.12154623325280034,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.04137931034482759,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.6878980891719745
+     },
+     "accuracy_over_positives": 0.20430107526881722
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       13
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       5
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      [
+       6,
+       0,
+       0,
+       3,
+       3,
+       0,
+       4,
+       123
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       2,
+       0,
+       0,
+       0,
+       0,
+       0,
+       9,
+       17
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       54,
+       35
+      ],
+      [
+       15,
+       0,
+       1,
+       13,
+       8,
+       0,
+       19,
+       543
+      ]
+     ]
+    }
+   },
+   "3": {
+    "n": 886,
+    "n_pos": 294,
+    "n_neg": 592,
+    "auroc": 0.6233108108108109,
+    "ap": 0.5215266888039914,
+    "recall_at_10far": 0.3197278911564626,
+    "recall_at_10far_threshold": 0.00018137693405151367,
+    "recall_at_5far": 0.24489795918367346,
+    "recall_at_5far_threshold": 0.999995768070221,
+    "hard": {
+     "precision": 0.6296296296296297,
+     "recall": 0.2891156462585034,
+     "f1": 0.3962703962703963,
+     "alarm_rate": 0.1523702031602709,
+     "far": 0.08445945945945946
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 25,
+      "recall_at_10far": 0.16,
+      "hard_recall": 0.12,
+      "subsystem_acc": 0.04
+     },
+     "brake_hydraulics": {
+      "n": 5,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 4,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 142,
+      "recall_at_10far": 0.15492957746478872,
+      "hard_recall": 0.11971830985915492,
+      "subsystem_acc": 0.035211267605633804
+     },
+     "yaw_cable": {
+      "n": 28,
+      "recall_at_10far": 0.4642857142857143,
+      "hard_recall": 0.4642857142857143,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 90,
+      "recall_at_10far": 0.6111111111111112,
+      "hard_recall": 0.5777777777777777,
+      "subsystem_acc": 0.5444444444444444
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.1286682615629984,
+     "f1_per_class": {
+      "generator_cooling": 0.06060606060606061,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.06666666666666668,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.644736842105263
+     },
+     "accuracy_over_positives": 0.1870748299319728
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       1,
+       0,
+       1,
+       0,
+       0,
+       22
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       5
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       4
+      ],
+      [
+       4,
+       0,
+       0,
+       5,
+       4,
+       0,
+       4,
+       125
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       2,
+       0,
+       0,
+       2,
+       0,
+       0,
+       9,
+       15
+      ],
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       1,
+       49,
+       38
+      ],
+      [
+       10,
+       0,
+       3,
+       13,
+       13,
+       0,
+       11,
+       542
+      ]
+     ]
+    }
+   },
+   "6": {
+    "n": 891,
+    "n_pos": 304,
+    "n_neg": 587,
+    "auroc": 0.5544752532950775,
+    "ap": 0.43619218530522674,
+    "recall_at_10far": 0.2236842105263158,
+    "recall_at_10far_threshold": 0.9997040629386902,
+    "recall_at_5far": 0.18092105263157895,
+    "recall_at_5far_threshold": 0.9999994039535522,
+    "hard": {
+     "precision": 0.518796992481203,
+     "recall": 0.22697368421052633,
+     "f1": 0.3157894736842105,
+     "alarm_rate": 0.14927048260381592,
+     "far": 0.10902896081771721
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 30,
+      "recall_at_10far": 0.1,
+      "hard_recall": 0.1,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 5,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 5,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.2,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 145,
+      "recall_at_10far": 0.10344827586206896,
+      "hard_recall": 0.10344827586206896,
+      "subsystem_acc": 0.006896551724137931
+     },
+     "yaw_cable": {
+      "n": 28,
+      "recall_at_10far": 0.2857142857142857,
+      "hard_recall": 0.2857142857142857,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 91,
+      "recall_at_10far": 0.46153846153846156,
+      "hard_recall": 0.46153846153846156,
+      "subsystem_acc": 0.4175824175824176
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.0914241001564945,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.013333333333333332,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.5352112676056338
+     },
+     "accuracy_over_positives": 0.12828947368421054
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       1,
+       1,
+       0,
+       1,
+       27
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       5
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       4
+      ],
+      [
+       3,
+       0,
+       1,
+       1,
+       6,
+       0,
+       4,
+       130
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       8,
+       20
+      ],
+      [
+       0,
+       0,
+       0,
+       3,
+       0,
+       1,
+       38,
+       49
+      ],
+      [
+       13,
+       0,
+       4,
+       17,
+       14,
+       0,
+       16,
+       523
+      ]
+     ]
+    }
+   },
+   "all": {
+    "n": 2655,
+    "n_pos": 877,
+    "n_neg": 1778,
+    "auroc": 0.6012639597359338,
+    "ap": 0.4794007417805264,
+    "recall_at_10far": 0.2748004561003421,
+    "recall_at_10far_threshold": 0.0007071495056152344,
+    "recall_at_5far": 0.2291904218928164,
+    "recall_at_5far_threshold": 0.9999986290931702,
+    "hard": {
+     "precision": 0.5833333333333334,
+     "recall": 0.27137970353477764,
+     "f1": 0.37042801556420235,
+     "alarm_rate": 0.1536723163841808,
+     "far": 0.09561304836895389
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 70,
+      "recall_at_10far": 0.12857142857142856,
+      "hard_recall": 0.11428571428571428,
+      "subsystem_acc": 0.014285714285714285
+     },
+     "brake_hydraulics": {
+      "n": 15,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 11,
+      "recall_at_10far": 0.09090909090909091,
+      "hard_recall": 0.09090909090909091,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 426,
+      "recall_at_10far": 0.11502347417840375,
+      "hard_recall": 0.11267605633802817,
+      "subsystem_acc": 0.02112676056338028
+     },
+     "yaw_cable": {
+      "n": 84,
+      "recall_at_10far": 0.38095238095238093,
+      "hard_recall": 0.38095238095238093,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 271,
+      "recall_at_10far": 0.5535055350553506,
+      "hard_recall": 0.5498154981549815,
+      "subsystem_acc": 0.5202952029520295
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.11465813704783284,
+     "f1_per_class": {
+      "generator_cooling": 0.02222222222222222,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.04044943820224719,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.6252771618625277
+     },
+     "accuracy_over_positives": 0.17217787913340935
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       1,
+       3,
+       2,
+       0,
+       1,
+       62
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       15
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       10
+      ],
+      [
+       13,
+       0,
+       1,
+       9,
+       13,
+       0,
+       12,
+       378
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       4,
+       0,
+       0,
+       2,
+       0,
+       0,
+       26,
+       52
+      ],
+      [
+       1,
+       0,
+       0,
+       5,
+       0,
+       2,
+       141,
+       122
+      ],
+      [
+       38,
+       0,
+       8,
+       43,
+       35,
+       0,
+       46,
+       1608
+      ]
+     ]
+    }
+   }
+  },
+  "val": {
+   "1": {
+    "n": 143,
+    "n_pos": 43,
+    "n_neg": 100,
+    "auroc": 0.7409302325581395,
+    "ap": 0.6979368709424568,
+    "recall_at_10far": 0.5581395348837209,
+    "recall_at_10far_threshold": 0.00016629695892333984,
+    "recall_at_5far": 0.5116279069767442,
+    "recall_at_5far_threshold": 0.9999995827674866,
+    "hard": {
+     "precision": 0.71875,
+     "recall": 0.5348837209302325,
+     "f1": 0.6133333333333333,
+     "alarm_rate": 0.22377622377622378,
+     "far": 0.09
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 7,
+      "recall_at_10far": 0.14285714285714285,
+      "hard_recall": 0.14285714285714285,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 1,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 7,
+      "recall_at_10far": 0.14285714285714285,
+      "hard_recall": 0.14285714285714285,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 6,
+      "recall_at_10far": 0.5,
+      "hard_recall": 0.5,
+      "subsystem_acc": 0.16666666666666666
+     },
+     "yaw_cable": {
+      "n": 4,
+      "recall_at_10far": 0.25,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.25
+     },
+     "structural_overspeed": {
+      "n": 18,
+      "recall_at_10far": 1.0,
+      "hard_recall": 0.9444444444444444,
+      "subsystem_acc": 0.9444444444444444
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.2657407407407408,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.25,
+      "yaw_cable": 0.4,
+      "structural_overspeed": 0.9444444444444444
+     },
+     "accuracy_over_positives": 0.4418604651162791
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       6
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       6
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       1,
+       0,
+       1,
+       3
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       3
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       17,
+       1
+      ],
+      [
+       1,
+       0,
+       1,
+       1,
+       1,
+       0,
+       5,
+       91
+      ]
+     ]
+    }
+   },
+   "3": {
+    "n": 149,
+    "n_pos": 50,
+    "n_neg": 99,
+    "auroc": 0.6664646464646464,
+    "ap": 0.6131725951881845,
+    "recall_at_10far": 0.46,
+    "recall_at_10far_threshold": 0.9999379515647888,
+    "recall_at_5far": 0.4,
+    "recall_at_5far_threshold": 0.9999995231628418,
+    "hard": {
+     "precision": 0.6764705882352942,
+     "recall": 0.46,
+     "f1": 0.5476190476190477,
+     "alarm_rate": 0.22818791946308725,
+     "far": 0.1111111111111111
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 9,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "brake_hydraulics": {
+      "n": 1,
+      "recall_at_10far": 0.0,
+      "hard_recall": 0.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 10,
+      "recall_at_10far": 0.3,
+      "hard_recall": 0.3,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 8,
+      "recall_at_10far": 0.25,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.25
+     },
+     "yaw_cable": {
+      "n": 4,
+      "recall_at_10far": 0.25,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.25
+     },
+     "structural_overspeed": {
+      "n": 18,
+      "recall_at_10far": 0.9444444444444444,
+      "hard_recall": 0.9444444444444444,
+      "subsystem_acc": 0.9444444444444444
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.2841269841269842,
+     "f1_per_class": {
+      "generator_cooling": 0.0,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.3333333333333333,
+      "yaw_cable": 0.4,
+      "structural_overspeed": 0.9714285714285714
+     },
+     "accuracy_over_positives": 0.4
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       9
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       1
+      ],
+      [
+       0,
+       0,
+       0,
+       2,
+       1,
+       0,
+       0,
+       7
+      ],
+      [
+       0,
+       0,
+       0,
+       2,
+       0,
+       0,
+       0,
+       6
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       3
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       17,
+       1
+      ],
+      [
+       2,
+       0,
+       1,
+       2,
+       3,
+       0,
+       3,
+       88
+      ]
+     ]
+    }
+   },
+   "6": {
+    "n": 152,
+    "n_pos": 55,
+    "n_neg": 97,
+    "auroc": 0.7163074039362699,
+    "ap": 0.6549316669861172,
+    "recall_at_10far": 0.4909090909090909,
+    "recall_at_10far_threshold": 0.9991649985313416,
+    "recall_at_5far": 0.3090909090909091,
+    "recall_at_5far_threshold": 0.9999995827674866,
+    "hard": {
+     "precision": 0.7368421052631579,
+     "recall": 0.509090909090909,
+     "f1": 0.6021505376344085,
+     "alarm_rate": 0.25,
+     "far": 0.10309278350515463
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 11,
+      "recall_at_10far": 0.09090909090909091,
+      "hard_recall": 0.09090909090909091,
+      "subsystem_acc": 0.09090909090909091
+     },
+     "brake_hydraulics": {
+      "n": 1,
+      "recall_at_10far": 0.0,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 12,
+      "recall_at_10far": 0.16666666666666666,
+      "hard_recall": 0.16666666666666666,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 8,
+      "recall_at_10far": 0.625,
+      "hard_recall": 0.625,
+      "subsystem_acc": 0.375
+     },
+     "gearbox_lubrication": {
+      "n": 1,
+      "recall_at_10far": 1.0,
+      "hard_recall": 1.0,
+      "subsystem_acc": 1.0
+     },
+     "yaw_cable": {
+      "n": 4,
+      "recall_at_10far": 0.25,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 18,
+      "recall_at_10far": 0.9444444444444444,
+      "hard_recall": 0.9444444444444444,
+      "subsystem_acc": 0.8888888888888888
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.28751500600240093,
+     "f1_per_class": {
+      "generator_cooling": 0.14285714285714288,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.42857142857142855,
+      "gearbox_lubrication": 0.5,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.9411764705882353
+     },
+     "accuracy_over_positives": 0.38181818181818183
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       10
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       1,
+       0,
+       0,
+       10
+      ],
+      [
+       1,
+       0,
+       0,
+       3,
+       1,
+       0,
+       0,
+       3
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       3
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       16,
+       1
+      ],
+      [
+       2,
+       0,
+       1,
+       3,
+       1,
+       0,
+       3,
+       87
+      ]
+     ]
+    }
+   },
+   "all": {
+    "n": 444,
+    "n_pos": 148,
+    "n_neg": 296,
+    "auroc": 0.706446311176041,
+    "ap": 0.6514851610444452,
+    "recall_at_10far": 0.5067567567567568,
+    "recall_at_10far_threshold": 0.9971979260444641,
+    "recall_at_5far": 0.4189189189189189,
+    "recall_at_5far_threshold": 0.9999995231628418,
+    "hard": {
+     "precision": 0.7115384615384616,
+     "recall": 0.5,
+     "f1": 0.5873015873015872,
+     "alarm_rate": 0.23423423423423423,
+     "far": 0.10135135135135136
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 27,
+      "recall_at_10far": 0.07407407407407407,
+      "hard_recall": 0.07407407407407407,
+      "subsystem_acc": 0.037037037037037035
+     },
+     "brake_hydraulics": {
+      "n": 3,
+      "recall_at_10far": 0.3333333333333333,
+      "hard_recall": 0.3333333333333333,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 29,
+      "recall_at_10far": 0.20689655172413793,
+      "hard_recall": 0.20689655172413793,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 22,
+      "recall_at_10far": 0.45454545454545453,
+      "hard_recall": 0.45454545454545453,
+      "subsystem_acc": 0.2727272727272727
+     },
+     "gearbox_lubrication": {
+      "n": 1,
+      "recall_at_10far": 1.0,
+      "hard_recall": 1.0,
+      "subsystem_acc": 1.0
+     },
+     "yaw_cable": {
+      "n": 12,
+      "recall_at_10far": 0.25,
+      "hard_recall": 0.25,
+      "subsystem_acc": 0.16666666666666666
+     },
+     "structural_overspeed": {
+      "n": 54,
+      "recall_at_10far": 0.9629629629629629,
+      "hard_recall": 0.9444444444444444,
+      "subsystem_acc": 0.9259259259259259
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.27763105242096836,
+     "f1_per_class": {
+      "generator_cooling": 0.06666666666666667,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.3529411764705882,
+      "gearbox_lubrication": 0.2857142857142857,
+      "yaw_cable": 0.2857142857142857,
+      "structural_overspeed": 0.9523809523809523
+     },
+     "accuracy_over_positives": 0.40540540540540543
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       25
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       2
+      ],
+      [
+       0,
+       0,
+       0,
+       3,
+       3,
+       0,
+       0,
+       23
+      ],
+      [
+       1,
+       0,
+       0,
+       6,
+       2,
+       0,
+       1,
+       12
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       2,
+       0,
+       9
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       50,
+       3
+      ],
+      [
+       5,
+       0,
+       3,
+       6,
+       5,
+       0,
+       11,
+       266
+      ]
+     ]
+    }
+   }
+  },
+  "t3/test_a": {
+   "all": {
+    "n": 170,
+    "n_pos": 170,
+    "n_neg": 0,
+    "auroc": null,
+    "ap": 1.0,
+    "recall_at_10far": null,
+    "recall_at_10far_threshold": null,
+    "recall_at_5far": null,
+    "recall_at_5far_threshold": null,
+    "hard": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "alarm_rate": 1.0,
+     "far": null
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 26,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.15384615384615385
+     },
+     "brake_hydraulics": {
+      "n": 3,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 6,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 15,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.3333333333333333
+     },
+     "gearbox_lubrication": {
+      "n": 12,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.08333333333333333
+     },
+     "yaw_cable": {
+      "n": 13,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "structural_overspeed": {
+      "n": 95,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.9894736842105263
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.20536807134114357,
+     "f1_per_class": {
+      "generator_cooling": 0.2,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.26315789473684204,
+      "gearbox_lubrication": 0.1,
+      "yaw_cable": 0.0,
+      "structural_overspeed": 0.8744186046511628
+     },
+     "accuracy_over_positives": 0.611764705882353
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       4,
+       0,
+       0,
+       11,
+       2,
+       0,
+       9,
+       0
+      ],
+      [
+       1,
+       0,
+       0,
+       0,
+       1,
+       0,
+       1,
+       0
+      ],
+      [
+       2,
+       0,
+       0,
+       0,
+       2,
+       1,
+       1,
+       0
+      ],
+      [
+       4,
+       0,
+       0,
+       5,
+       2,
+       3,
+       1,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       3,
+       1,
+       0,
+       8,
+       0
+      ],
+      [
+       3,
+       0,
+       0,
+       4,
+       0,
+       0,
+       6,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       1,
+       94,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   }
+  },
+  "t3/test_b": {
+   "all": {
+    "n": 279,
+    "n_pos": 279,
+    "n_neg": 0,
+    "auroc": null,
+    "ap": 1.0,
+    "recall_at_10far": null,
+    "recall_at_10far_threshold": null,
+    "recall_at_5far": null,
+    "recall_at_5far_threshold": null,
+    "hard": {
+     "precision": 1.0,
+     "recall": 0.992831541218638,
+     "f1": 0.9964028776978416,
+     "alarm_rate": 0.992831541218638,
+     "far": null
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 15,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.4666666666666667
+     },
+     "brake_hydraulics": {
+      "n": 5,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 2,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 139,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.4676258992805755
+     },
+     "yaw_cable": {
+      "n": 28,
+      "recall_at_10far": null,
+      "hard_recall": 0.9642857142857143,
+      "subsystem_acc": 0.10714285714285714
+     },
+     "structural_overspeed": {
+      "n": 90,
+      "recall_at_10far": null,
+      "hard_recall": 0.9888888888888889,
+      "subsystem_acc": 0.6555555555555556
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.2607262619627131,
+     "f1_per_class": {
+      "generator_cooling": 0.17721518987341772,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.5555555555555555,
+      "yaw_cable": 0.125,
+      "structural_overspeed": 0.7065868263473054
+     },
+     "accuracy_over_positives": 0.48028673835125446
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "gearbox_lubrication",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       7,
+       0,
+       0,
+       6,
+       1,
+       0,
+       1,
+       0
+      ],
+      [
+       1,
+       0,
+       0,
+       3,
+       1,
+       0,
+       0,
+       0
+      ],
+      [
+       1,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       38,
+       0,
+       1,
+       65,
+       15,
+       15,
+       5,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ],
+      [
+       6,
+       0,
+       0,
+       6,
+       0,
+       3,
+       12,
+       1
+      ],
+      [
+       11,
+       0,
+       0,
+       14,
+       3,
+       2,
+       59,
+       1
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   }
+  },
+  "t3/val": {
+   "all": {
+    "n": 43,
+    "n_pos": 43,
+    "n_neg": 0,
+    "auroc": null,
+    "ap": 1.0,
+    "recall_at_10far": null,
+    "recall_at_10far_threshold": null,
+    "recall_at_5far": null,
+    "recall_at_5far_threshold": null,
+    "hard": {
+     "precision": 1.0,
+     "recall": 1.0,
+     "f1": 1.0,
+     "alarm_rate": 1.0,
+     "far": null
+    },
+    "per_class": {
+     "generator_cooling": {
+      "n": 7,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.2857142857142857
+     },
+     "brake_hydraulics": {
+      "n": 1,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "pitch_system": {
+      "n": 7,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.0
+     },
+     "converter_grid": {
+      "n": 6,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.5
+     },
+     "yaw_cable": {
+      "n": 4,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 0.25
+     },
+     "structural_overspeed": {
+      "n": 18,
+      "recall_at_10far": null,
+      "hard_recall": 1.0,
+      "subsystem_acc": 1.0
+     }
+    },
+    "subsystem": {
+     "macro_f1_over_positives": 0.31900584795321635,
+     "f1_per_class": {
+      "generator_cooling": 0.26666666666666666,
+      "brake_hydraulics": 0.0,
+      "pitch_system": 0.0,
+      "converter_grid": 0.3,
+      "yaw_cable": 0.4,
+      "structural_overspeed": 0.9473684210526316
+     },
+     "accuracy_over_positives": 0.5581395348837209
+    },
+    "confusion": {
+     "index": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "columns": [
+      "generator_cooling",
+      "brake_hydraulics",
+      "pitch_system",
+      "converter_grid",
+      "yaw_cable",
+      "structural_overspeed",
+      "none"
+     ],
+     "data": [
+      [
+       2,
+       0,
+       0,
+       5,
+       0,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       1,
+       0,
+       0,
+       0
+      ],
+      [
+       2,
+       0,
+       0,
+       5,
+       0,
+       0,
+       0
+      ],
+      [
+       1,
+       0,
+       0,
+       3,
+       0,
+       2,
+       0
+      ],
+      [
+       3,
+       0,
+       0,
+       0,
+       1,
+       0,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       18,
+       0
+      ],
+      [
+       0,
+       0,
+       0,
+       0,
+       0,
+       0,
+       0
+      ]
+     ]
+    }
+   }
+  }
+ }
+}
