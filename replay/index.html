@@ -193,7 +193,7 @@ details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;fo
 .conf .lab{display:flex;justify-content:space-between;font-size:12.5px;color:var(--ink-2)}
 .conf .lab b{color:var(--ink);font-variant-numeric:tabular-nums}
 .conf .track{position:relative;height:9px;border-radius:5px;background:var(--line);margin-top:5px;overflow:visible}
-.conf .track i{display:block;height:100%;width:0;border-radius:5px;background:var(--accent);transition:width 1.1s cubic-bezier(.4,0,.2,1)}
+.conf .track i{display:block;height:100%;width:0;border-radius:5px;background:var(--accent);transition:width .8s cubic-bezier(.4,0,.2,1)}
 .conf .track i.hi{background:var(--crit)} .conf .track i.mid{background:var(--warn)}
 .conf .track em{position:absolute;top:-4px;left:80%;width:2px;height:17px;background:var(--crit);border-radius:1px}
 .conf .foot{font-size:11px;color:var(--ink-3);margin-top:4px}
@@ -370,13 +370,13 @@ async function run(){
   const {s,a,anchor}=cur();const pace=state.pace;const wait=ms=>waitOrSkip(ms*pace,tok);const cited=citedOf(a);
   $("#abody").innerHTML=`<div class="wait"><span>Waiting for the model…</span></div>`;$("#chkcard").hidden=true;
   // 1 input
-  state.stage=1;renderRail();renderInput(s,new Set(),true);if(await wait(1900))return;
+  state.stage=1;renderRail();renderInput(s,new Set(),true);if(await wait(1300))return;
   // 2 question
-  state.stage=2;renderRail();$("#qbox").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#q-hint").textContent=`asked at ${clock(anchor)}`;if(await wait(1300))return;
+  state.stage=2;renderRail();$("#qbox").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#q-hint").textContent=`asked at ${clock(anchor)}`;if(await wait(900))return;
   // 3 model
-  state.stage=3;renderRail();await animateModel(s,a,tok,cited);if(tok!==state.token)return;if(await wait(250))return;
+  state.stage=3;renderRail();await animateModel(s,a,tok,cited);if(tok!==state.token)return;if(await wait(150))return;
   // 4 answer
-  state.stage=4;renderRail();renderInput(s,cited,false);await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(500))return;
+  state.stage=4;renderRail();renderInput(s,cited,false);await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(300))return;
   // 5 check
   state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false;$("#col-out").scrollTo({top:$("#col-out").scrollHeight,behavior:"smooth"});
   state.running=false;$("#b-next").disabled=true;$("#b-run").disabled=false;$("#b-run").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run again`;$("#f-state").textContent="Done";
@@ -389,7 +389,7 @@ function renderInput(s,cited,animate){
   ORDER.forEach((n,k)=>{const m=D.channels.find(c=>c.name===n);const y=s.channels[n];if(!m||!y)return;
     const div=document.createElement("div");div.className="chr"+(animate?" dim":"")+(cited.has(n)?" cited":"");div.style.setProperty("--c",COLOR[n]);
     div.innerHTML=`<span class="dot"></span><span class="nm">${esc(SHORT[n]||m.label)}<small>${esc(m.unit)}${cited.has(n)?" · cited":""}</small></span>${spark(y,70,20,COLOR[n])}<span class="v">${fv(y[N-1])} <small>${esc(m.unit)}</small></span>`;
-    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),500*state.pace)},(60+70*k)*state.pace)});
+    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),400*state.pace)},(40+50*k)*state.pace)});
 }
 
 /* ---------- prompt ---------- */
@@ -428,23 +428,23 @@ async function animateModel(s,a,tok,cited){
   const step=async(ms)=>waitOrSkip(ms*pace,tok);
   const arrows=[...document.querySelectorAll("#flow .arrow")];
   // 1 inputs
-  stepsOn(0);live("fan",true);setProg("Processing… reading the 24 h window",6,"6%");if(await step(500))return;
+  stepsOn(0);live("fan",true);setProg("Processing… reading the 24 h window",6,"6%");if(await step(350))return;
   // 2 patches
   stepsOn(1);on("fb-patch",true);setProg("Encoding patches…",18,"18%");
-  const sq=[...document.querySelectorAll("#patches i")];sq.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*25*pace));
-  if(await step(36*25+250))return;live("fan",false);on("fb-patch",false);
+  const sq=[...document.querySelectorAll("#patches i")];sq.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*16*pace));
+  if(await step(36*16+180))return;live("fan",false);on("fb-patch",false);
   // 3 latents
   stepsOn(2);arrows[0].classList.add("live");on("fb-lat",true);setProg("Resampling into latent tokens…",38,"38%");
-  const lt=[...document.querySelectorAll("#lats i")];lt.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*65*pace));
-  if(await step(12*65+300))return;arrows[0].classList.remove("live");on("fb-lat",false);
+  const lt=[...document.querySelectorAll("#lats i")];lt.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*45*pace));
+  if(await step(12*45+200))return;arrows[0].classList.remove("live");on("fb-lat",false);
   // 4 transformer
   stepsOn(3);arrows[1].classList.add("live");on("llm",true);setProg("Reasoning… gated cross-attention over the latents",60,"60%");
-  const xa=[...document.querySelectorAll("#xa i")];xa.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},(120+i*110)*pace));
-  if(await step(1400))return;arrows[1].classList.remove("live");
+  const xa=[...document.querySelectorAll("#xa i")];xa.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},(80+i*80)*pace));
+  if(await step(950))return;arrows[1].classList.remove("live");
   // 5 generation
   stepsOn(4);arrows[2].classList.add("live");on("fb-gen",true);
   const {body,ans}=parseAnswer(a.text);const words=body.split(/\s+/);const gens=[...document.querySelectorAll("#gens i")];const st=$("#stream");
-  const per=Math.max(25,Math.round(70*pace));
+  const per=Math.max(18,Math.round(45*pace));
   for(let i=0;i<words.length;i++){if(tok!==state.token)return;const g=gens[i%gens.length];gens.forEach(x=>x.classList.remove("on"));g.classList.add("on");
     st.innerHTML=`<span class="tag">assessment</span>\n${esc(words.slice(0,i+1).join(" "))}<span class="caret"></span>`;st.scrollTop=st.scrollHeight;
     setProg("Generating tokens…",60+Math.round(35*(i+1)/words.length),`${60+Math.round(35*(i+1)/words.length)}%`);await sleep(per)}
@@ -472,8 +472,8 @@ async function renderAnswer(s,a,tok){
   $("#b-full").addEventListener("click",()=>{const f=$("#full");f.hidden=!f.hidden});
   $("#b-check").addEventListener("click",()=>{if(skipResolve)skipResolve();else if(state.stage<5){state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false}});
   await sleep(40);const pb=$("#pb");pb.style.width=`${Math.round(a.p_fault*100)}%`;pb.className=a.p_fault>=ALARM?"hi":a.p_fault>=WARM?"mid":"";
-  const pv=$("#pv");const t0=performance.now(),durMs=1100;const tick=()=>{const t=Math.min(1,(performance.now()-t0)/durMs);pv.textContent=fmt(a.p_fault*t,2);if(t<1&&tok===state.token)requestAnimationFrame(tick)};tick();
-  const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(260*state.pace);evs[i].classList.add("show")}
+  const pv=$("#pv");const t0=performance.now(),durMs=800;const tick=()=>{const t=Math.min(1,(performance.now()-t0)/durMs);pv.textContent=fmt(a.p_fault*t,2);if(t<1&&tok===state.token)requestAnimationFrame(tick)};tick();
+  const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(180*state.pace);evs[i].classList.add("show")}
 }
 
 /* ---------- check ---------- */
