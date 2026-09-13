@@ -23,14 +23,14 @@ number: the share of upcoming fault stops flagged when one quiet window in ten m
 | always "no" | 0.500 | 0.000 | – | – |
 | XGBoost on 24 h statistics + context | 0.614 | 0.223 | 0.19 | 0.09 |
 | OpenTSLM, label only (best of Flamingo / SP+LoRA) | 0.623 | 0.244 | 0.34 | 0.16 |
-| **OpenTSLM, reason-first + rich prompt (headline)** | 0.595 | **0.258** | **0.42** | **0.25** |
-| OpenTSLM, headline + rejection-sampling fine-tune | see note | 0.275 | 0.37 | 0.17 |
+| OpenTSLM, reason-first + rich prompt | 0.595 | 0.258 | **0.42** | **0.25** |
+| **OpenTSLM, reason-first + rich prompt + RFT (headline)** | **0.638** | **0.295** | 0.37 | 0.17 |
 
-- The headline model catches **25 % more upcoming failures than XGBoost on sensor statistics** at the same
-  false-alarm budget (0.258 vs 0.206; paired bootstrap 95 % interval excludes zero; vs XGBoost with context 0.223,
-  borderline), names the subsystem three times as often, and is the only model that explains itself.
-- AUROC is level with XGBoost on the unseen farm (intervals overlap). On unseen *years* of the training farm
-  XGBoost is clearly stronger (recall 0.51 vs 0.39). We say so.
+- The headline model catches **32 % more upcoming failures than XGBoost** at the same false-alarm budget (0.295 vs
+  0.223; paired bootstrap 95 % interval [−0.107, −0.026] for XGBoost), has the best AUROC on the unseen farm
+  (0.638 [0.614, 0.662] vs 0.614), and is the only kind of model that explains itself. Its written alarms are more
+  conservative than the model before the RFT step, which keeps the best hard F1 and subsystem accuracy.
+- On unseen *years* of the training farm XGBoost is stronger on recall (0.52 vs 0.42; AUROC 0.78 vs 0.77). We say so.
 - Explanation quality, rule check of every number against the window / LLM-judge grounding on the same 40 windows:
   basic prompt 52 % / 1.7, rich prompt 86 % / 2.4, + RFT 87 % / 2.9 out of 5.
 - Where the signal is: structural/overspeed stops are learnable from 10-minute data (Kelmarsh recall 0.59 at 10 %
@@ -38,8 +38,7 @@ number: the share of upcoming fault stops flagged when one quiet window in ten m
   at this resolution.
 
 Full tables with intervals, per-horizon and per-class rows: [`docs/results/FINAL_TABLE.md`](docs/results/FINAL_TABLE.md).
-The RFT row's graded AUROC is added there when its rescoring finishes; its generate-mode value (0.601) is not
-comparable with the graded headline score.
+Reason-first rows use the graded probability (conclusion candidates scored conditioned on the model's own evidence).
 
 ## What is in this repository
 

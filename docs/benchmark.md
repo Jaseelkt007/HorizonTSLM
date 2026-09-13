@@ -70,7 +70,7 @@ Use this table in the project tracker; only rows with completed predictions may 
 | OpenTSLM SP + LoRA, label only (`t1_sp_llama1b`) | 0.623 | 0.244 | Complete — `docs/results/t1_sp_llama1b/` |
 | OpenTSLM Flamingo, reason-first, basic channel text (`t1_flamingo_llama1b_evidence_fixed`) | 0.565* | 0.230 | Complete — `docs/results/t1_flamingo_llama1b_evidence_fixed/` (re-predicted with the left-padding fix) |
 | OpenTSLM Flamingo, reason-first + rich text (`t1_flamingo_llama1b_evidence_rich`, headline), graded score | 0.595 | 0.258 | Complete — `docs/results/t1_flamingo_llama1b_evidence_rich_rescore/` (conclusion-candidate rescoring); generate-mode score gives 0.589 / 0.268 (`…_rich/`) |
-| OpenTSLM Flamingo, headline + 1 epoch RFT (`t1_flamingo_llama1b_evidence_rich_rft`) | 0.601* | 0.275 | Complete — `docs/results/t1_flamingo_llama1b_evidence_rich_rft/`; rejection-sampling fine-tune, reward = label correct + all numbers verified |
+| OpenTSLM Flamingo, rich reason-first + 1 epoch RFT (`t1_flamingo_llama1b_evidence_rich_rft`), graded score — **headline** | 0.638 | 0.295 | Complete — `docs/results/t1_flamingo_llama1b_evidence_rich_rft_rescore/`; rejection-sampling fine-tune, reward = label correct + all numbers verified; generate-mode score 0.601 / 0.275 |
 
 Notes for the comparison (OpenTSLM rows): all scored with `turbine_tslm.eval.score` on the committed window tables,
 same records as the XGBoost rows. `docs/results/xgboost_{sensors_only,combined}/` holds a *laptop re-run* of the
@@ -79,9 +79,9 @@ XGBoost script (same seed) scored with the same harness: test-B AUROC 0.596 / 0.
 `outputs/predictions/xgb_*_v1_test_{a,b}.jsonl` files from that run and re-score them. Paired bootstrap
 intervals on test-B (2,000 resamples, `scripts/bootstrap_ci.py`, `docs/results/bootstrap/test_b.json`): headline
 R@10 0.268 [0.238, 0.297] vs XGBoost sensors-only 0.206 [0.173, 0.238], paired difference −0.062 [−0.097, −0.027];
-RFT vs headline +0.007 [−0.019, +0.035] (not significant). With the graded headline score (`bootstrap/test_b_graded.json`):
-R@10 0.258 [0.226, 0.288]; vs XGBoost sensors-only −0.052 [−0.087, −0.015] (significant), vs XGBoost + context −0.030
-[−0.069, +0.007] (P = 0.06); test-A: XGBoost is significantly better (+0.113 [+0.060, +0.165]). Hard-label metrics (written "yes"/"no" + subsystem),
+With graded scores (`bootstrap/test_b_rft_ref.json`): RFT R@10 0.295 [0.260, 0.328] vs XGBoost + context 0.223
+(−0.067 [−0.107, −0.026]) and vs sensors-only 0.206 (−0.089 [−0.127, −0.049]); RFT AUROC 0.638 [0.614, 0.662] vs
+0.614 [0.591, 0.637]. Test-A: XGBoost better on recall (+0.099 [+0.044, +0.162]), AUROC 0.779 vs 0.768. Hard-label metrics (written "yes"/"no" + subsystem),
 per-horizon and per-class rows, and the text faithfulness numbers are in each run's `report.md` / `results.json` /
 `faithfulness.json`; see `docs/results/README.md` for the columns. LLM-judge scores (gpt-5, 40 shared windows) for
 the three text models are in `docs/results/llm_judge/judge_n40.json` (grounded 1.7 / 2.4 / 2.9, coherent 3.3 / 3.4 /

@@ -40,14 +40,16 @@ those files. Suggested length: 8 slides + demo.*
 | model | recall @ 10 % false alarms | hard F1 | subsystem acc | explanation |
 |---|---|---|---|---|
 | always no | 0.00 | – | – | – |
-| XGBoost on 24 h statistics | 0.21 (0.22 with context) | 0.20 | 0.09 | none |
-| TSLM, label only | 0.24 | 0.24 | 0.08 | none |
-| **TSLM, reason-first + rich text** | **0.27** [0.24, 0.30] | **0.42** | **0.25** | **86 % of numbers verified** |
+| XGBoost on 24 h statistics + context | 0.22 | 0.19 | 0.09 | none |
+| TSLM, label only (best) | 0.24 | 0.34 | 0.16 | none |
+| TSLM, reason-first + rich text | 0.26 | **0.42** | **0.25** | 86 % of numbers verified |
+| **TSLM, reason-first + rich text + RFT** | **0.30** [0.26, 0.33] | 0.37 | 0.17 | 87 % verified, best judge score |
 
-- Paired bootstrap: the recall gain over XGBoost is significant (Δ = −0.06 for XGBoost, 95 % CI [−0.10, −0.03]).
+- Paired bootstrap: the RFT model's recall gain over XGBoost is significant (Δ = −0.067 for XGBoost, 95 % CI
+  [−0.107, −0.026]); AUROC 0.64 vs 0.61.
 - Reason-first training improved the *decision*, not just the text: hard F1 0.24 → 0.42, subsystem accuracy 3×.
-- On unseen years (test_a): recall 0.35, subsystem accuracy 0.48, post-hoc subsystem accuracy 0.65. XGBoost is
-  stronger there on AUROC (0.78 vs 0.67) — say it.
+- On unseen years (test_a): RFT recall 0.42, AUROC 0.77 vs XGBoost 0.52 / 0.78 — XGBoost stronger on recall there;
+  say it.
 
 ## 6. Where the signal is (30 s) — per subsystem, Kelmarsh, recall @ 10 % FAR
 

@@ -191,9 +191,9 @@ All numbers from `docs/results/<run>/results.json` and `faithfulness.json`; the 
 | Flamingo, label only | 0.747 · 0.53 | 0.698 · 0.25 · 0.35 · 0.19 | 0.613 · 0.24 · 0.24 · 0.08 |
 | SP + LoRA, label only | 0.787 · 0.55 | 0.707 · 0.40 · 0.55 · 0.48 | 0.623 · 0.24 · 0.34 · 0.16 |
 | Flamingo, reason-first (basic text) | 0.634 · 0.35 | 0.650 · 0.22 · 0.53 · 0.42 | 0.565 · 0.23 · 0.37 · 0.17 |
-| **Flamingo, reason-first + rich text (headline)**, graded score | **0.770 · 0.49** | **0.721 · 0.39** · 0.54 · 0.48 | 0.595 · **0.26** · **0.42** · **0.25** |
-| headline, generate-mode (near-binary) score | 0.720 · 0.49 | 0.672 · 0.35 · 0.54 · 0.48 | 0.589 · 0.27 · 0.42 · 0.25 |
-| headline + 1 epoch RFT, generate-mode score | 0.706 · 0.51 | 0.708 · 0.39 · 0.62 · 0.48 | 0.601 · 0.28 · 0.37 · 0.17 |
+| Flamingo, reason-first + rich text, graded score | 0.770 · 0.49 | 0.721 · 0.39 · 0.54 · 0.48 | 0.595 · 0.26 · **0.42** · **0.25** |
+| **Flamingo, reason-first + rich text + 1 epoch RFT, graded score (headline)** | 0.759 · **0.53** | **0.768 · 0.42 · 0.62** · 0.47 | **0.638 · 0.30** · 0.37 · 0.17 |
+| (same two checkpoints, generate-mode near-binary score) | 0.720 · 0.49 / 0.706 · 0.51 | 0.672 · 0.35 / 0.708 · 0.39 | 0.589 · 0.27 / 0.601 · 0.28 |
 
 "Graded score" = `predict_mode: rescore` (§ 7): conclusion candidates scored conditioned on the model's own evidence
 sentences; the plain teacher-forced loglik after the prompt gives AUROC ≈ 0.5 for reason-first models (off-
@@ -201,23 +201,24 @@ distribution) and is not used. The basic-text reason-first row is the generate-m
 3 h 0.32 / 0.27, 6 h 0.27 / 0.23 (test_a / test_b).
 
 **Confidence intervals (paired bootstrap, 2,000 resamples, `scripts/bootstrap_ci.py`, `docs/results/bootstrap/`).**
-Kelmarsh, graded headline score: recall at 10 % FAR 0.258 [0.226, 0.288] vs XGBoost sensors-only 0.206 [0.173,
-0.238], paired difference −0.052 [−0.087, −0.015] (P(XGBoost better) = 0.00); vs XGBoost + context 0.223, difference
-−0.030 [−0.069, +0.007] (P = 0.06, marginal); label-only Flamingo 0.241 and SP 0.244 within noise (P ≈ 0.25–0.29).
-AUROC on Kelmarsh: headline 0.595 [0.571, 0.620], XGBoost 0.596–0.614, label-only TSLMs 0.613–0.623 — all
-overlapping. Unseen years (test_a): XGBoost 0.508 recall vs headline 0.385, difference +0.113 [+0.060, +0.165]
-(XGBoost significantly better); headline vs label-only Flamingo 0.250, difference −0.141 [−0.208, −0.074]
-(reason-first significantly better). The rich channel text also helps the label: basic-text reason-first 0.230 vs
-headline 0.268 (generate-mode scores), difference −0.035 [−0.066, −0.003].
+Kelmarsh recall at 10 % FAR: RFT 0.295 [0.260, 0.328] vs XGBoost + context 0.223 (paired difference −0.067
+[−0.107, −0.026]), vs XGBoost sensors-only 0.206 (−0.089 [−0.127, −0.049]), vs label-only SP 0.244 (−0.048 [−0.090,
+−0.007]), vs the rich model before RFT 0.258 (+0.037 [+0.012, +0.062] for RFT). Kelmarsh AUROC: RFT 0.638 [0.614,
+0.662], XGBoost 0.596–0.614, label-only TSLMs 0.613–0.623. Unseen years (test_a): XGBoost 0.523 recall vs RFT 0.425
+(+0.099 [+0.044, +0.162], XGBoost better); AUROC 0.779 vs 0.768 (overlapping). Rich channel text vs basic text
+(generate-mode scores): 0.268 vs 0.230, −0.035 [−0.066, −0.003].
 
 **Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b;
 after RFT 0.56 / 0.61 / 0.48.
 
 **RFT outcome.** One round (3 samples per record at temperature 0.8; 1,308 of 1,883 records had a label-correct,
-fully verified sample, 1.38 passing samples per record on average) left faithfulness unchanged (0.87 vs 0.86), improved
-ranking (test_a recall at 10 % FAR 0.35 → 0.39, AUROC 0.67 → 0.71; Kelmarsh 0.268 → 0.275, within noise) and made the
-written alarms more conservative (Kelmarsh precision 0.39 → 0.58, recall 0.46 → 0.27) — the kept samples are, by
-construction, cases the model already got right. The headline checkpoint remains the demo model.
+fully verified sample, 1.38 passing samples per record on average) left faithfulness unchanged (0.87 vs 0.86) but,
+with the graded score, improved ranking on every split — Kelmarsh AUROC 0.595 → 0.638, recall at 10 % FAR 0.258 →
+0.295 (paired +0.037 [+0.012, +0.062]); unseen years 0.721 → 0.768, 0.38 → 0.42 — and made the written alarms more
+conservative (Kelmarsh precision 0.39 → 0.58, recall 0.46 → 0.27; subsystem accuracy 0.25 → 0.17): the kept samples
+are, by construction, cases the model already got right. The LLM judge also prefers its text (grounded 2.9 vs 2.4,
+supports-answer 57 % vs 48 %). It is therefore the headline model for the score and the text; the rich model before
+RFT keeps the best written-decision quality on Kelmarsh.
 
 **Per class, Kelmarsh, recall at 10 % FAR (headline model / XGBoost sensors-only):** structural_overspeed 0.59 / 0.40,
 yaw_cable 0.35 / 0.14, generator_cooling 0.13 / 0.17, pitch_system 0.09 / 0.09, converter_grid 0.09 / 0.11,
@@ -265,10 +266,10 @@ regularises. Curves: W&B project `turbine-tslm`, `docs/results/*/train_log.jsonl
 4. **Batched generation needs left padding.** 19–77 % of OpenTSLM's generations were mid-sentence garbage before
    the fix. Any evaluation of a TSLM's text should check the share of well-formed outputs first.
 5. **Cross-site generalisation is the honest test, and it is hard.** Everything drops from val to Kelmarsh; SP +
-   LoRA drops fastest. On Kelmarsh the TSLM's ranking number is at the gradient-boosting baseline's level (recall
-   0.27 vs 0.21–0.22 at 10 % FAR, AUROC 0.59 vs 0.60–0.61 on a near-binary score), its written decisions are far more
-   useful (hard recall 0.46 vs 0.11, subsystem accuracy 0.25 vs 0.09), and it is the only model with an explanation;
-   on unseen years the baseline is clearly stronger (AUROC 0.78 vs 0.67).
+   LoRA drops fastest. On Kelmarsh the RFT model beats the gradient-boosting baseline on both ranking numbers
+   (recall 0.30 vs 0.22 at 10 % FAR, AUROC 0.64 vs 0.61, paired intervals exclude zero for recall), its written
+   decisions are far more useful (subsystem accuracy 0.17–0.25 vs 0.09), and it is the only model with an
+   explanation; on unseen years the baseline is stronger on recall (0.52 vs 0.42) with equal AUROC.
 6. **Not every fault has a precursor.** Overspeed is learnable from 10-minute data; thermal classes only partly
    (83 and 54 training positives); grid, yaw, brake are at chance; warning escalation is not learnable at all here.
 

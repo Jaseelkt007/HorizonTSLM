@@ -1,0 +1,50 @@
+answer_mode: evidence
+answers_from: outputs/rft/kept.jsonl
+autocast_bf16: true
+batch_size: 4
+checkpoint_dir: /home/ubuntu/data/checkpoints/t1_flamingo_llama1b_evidence_rich_rft
+checkpoint_every_steps: 100
+dataset_ids:
+- cubico/penmanshiel
+- cubico/kelmarsh
+device: cuda
+early_stop_patience: 1
+epoch_loss_splits:
+- test_a
+- test_b
+epochs: 1
+eval_batch_size: 16
+eval_splits:
+- val
+- test_a
+- test_b
+evidence_sentences: 3
+grad_clip: 1.0
+gradient_checkpointing: false
+horizons: null
+init_checkpoint: /home/ubuntu/data/checkpoints/t1_flamingo_llama1b_evidence_rich/best.pt
+llm_id: meta-llama/Llama-3.2-1B
+log_every_steps: 10
+lora: false
+lr: 3.0e-05
+max_new_tokens: 160
+max_samples: null
+model_dtype: float32
+model_type: OpenTSLMFlamingo
+out_dir: outputs/t1_flamingo_llama1b_evidence_rich_rft_rescore
+predict_dtype: bfloat16
+predict_mode: rescore
+rescore_from: outputs/t1_flamingo_llama1b_evidence_rich_rft/predictions.jsonl
+resume: false
+run_name: t1_flamingo_llama1b_evidence_rich_rft
+score_batch_size: 32
+seed: 0
+series_stats: rich
+tasks:
+- t1
+- t3
+wandb_project: null
+warmup_frac: 0.05
+windows:
+- /home/ubuntu/data/interim/penmanshiel_windows.parquet
+- /home/ubuntu/data/interim/kelmarsh_windows.parquet
