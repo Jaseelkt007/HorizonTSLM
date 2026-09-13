@@ -190,6 +190,7 @@ All numbers from `docs/results/<run>/results.json` and `faithfulness.json`; the 
 | SP + LoRA, label only | 0.787 · 0.55 | 0.707 · 0.40 · 0.55 · 0.48 | 0.623 · 0.24 · 0.34 · 0.16 |
 | Flamingo, reason-first (basic text) | 0.634 · 0.35 | 0.650 · 0.22 · 0.53 · 0.42 | 0.565 · 0.23 · 0.37 · 0.17 |
 | **Flamingo, reason-first + rich text (headline)** | 0.720 · 0.49 | 0.672 · 0.35 · 0.54 · 0.48 | 0.589 · **0.27** · **0.42** · **0.25** |
+| headline + 1 epoch RFT | 0.706 · 0.51 | 0.708 · 0.39 · 0.62 · 0.48 | 0.601 · 0.28 · 0.37 · 0.17 |
 
 AUROC for the two reason-first rows is the near-binary generate-mode score (see § 7); the loglik re-score is
 recorded in the hand-off when available. Per horizon, headline model, recall at 10 % FAR: 1 h 0.45 / 0.30,
@@ -203,7 +204,14 @@ context 0.223, difference −0.040 [−0.076, −0.006]; label-only Flamingo 0.2
 the label, not only the text). AUROC intervals are ±0.023 for every model; the headline's generate-mode AUROC
 0.589 [0.565, 0.612] is below XGBoost's 0.596–0.614 because the score is near-binary (§ 7).
 
-**Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b.
+**Post-hoc explanation (T3), subsystem accuracy over 7 classes:** headline model 0.63 val, 0.65 test_a, 0.31 test_b;
+after RFT 0.56 / 0.61 / 0.48.
+
+**RFT outcome.** One round (3 samples per record at temperature 0.8; 1,308 of 1,883 records had a label-correct,
+fully verified sample, 1.38 passing samples per record on average) left faithfulness unchanged (0.87 vs 0.86), improved
+ranking (test_a recall at 10 % FAR 0.35 → 0.39, AUROC 0.67 → 0.71; Kelmarsh 0.268 → 0.275, within noise) and made the
+written alarms more conservative (Kelmarsh precision 0.39 → 0.58, recall 0.46 → 0.27) — the kept samples are, by
+construction, cases the model already got right. The headline checkpoint remains the demo model.
 
 **Per class, Kelmarsh, recall at 10 % FAR (headline model / XGBoost sensors-only):** structural_overspeed 0.59 / 0.40,
 yaw_cable 0.35 / 0.14, generator_cooling 0.13 / 0.17, pitch_system 0.09 / 0.09, converter_grid 0.09 / 0.11,
@@ -217,7 +225,7 @@ Kelmarsh at 1 h: 0.30 vs 0.28.
 |---|---|---|---|---|
 | reason-first, basic text | 0.52 (0.52 / 0.52 / 0.46) | 76 % | 1.00 | 100 % |
 | reason-first + rich text (headline) | **0.86** (0.88 / 0.87 / 0.85) | **28 %** | 1.00 | 100 % |
-| + RFT epoch | 0.89 on val (early read) | 25 % | 1.00 | 100 % |
+| + RFT epoch | 0.87 (0.89 / 0.88 / 0.86) | 26 % | 1.00 | 100 % |
 
 **Training dynamics.** Label-only models overfit after epoch 2 (val loss 0.145 → 0.217 for Flamingo); SP + LoRA
 fits fastest and its Kelmarsh loss rises from 0.16 to 0.50 by epoch 4 — the adapted backbone memorises the training
