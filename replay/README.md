@@ -5,8 +5,10 @@ windows through the headline checkpoint). No build, no server logic, no GPU or A
 
     cd replay && python -m http.server 8010      # open http://localhost:8010
 
-Choose the turbine-day, the window (hour) and the horizon, press **Run the pipeline**, and the page walks through the
-five stages at a presentation pace (slow / normal / quick; "Next step", → or the floating button skip ahead):
+One screen, no scrolling: the input on the left, the question / answer / check on the right, the model along the
+bottom, and Start / Next / Restart in the header. Choose the turbine-day, the window (hour) and the horizon, press
+**Start**, and the five stages play at a presentation pace (slow / normal / quick; **Next** or → skips ahead,
+Esc / Restart resets, Enter starts):
 
 1. **Input** — "The previous 24 hours of SCADA sensor measurements": wind speed, power, gearbox temperature and oil
    pressure, generator temperatures, pitch angle, rotor speed, grid voltage/frequency, tower acceleration, other
