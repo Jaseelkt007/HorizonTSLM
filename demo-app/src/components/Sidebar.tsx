@@ -9,6 +9,7 @@ import {
   BarChart2,
   ChevronDown,
   HelpCircle,
+  Sparkles,
 } from "lucide-react";
 import { ActiveView, Timeframe } from "../lib/types";
 
@@ -25,6 +26,11 @@ export function Sidebar() {
   const currentPlant = PLANTS.find((p) => p.id === selectedPlant) || PLANTS[0];
 
   const navItems: { id: ActiveView; label: string; icon: React.ReactNode }[] = [
+    {
+      id: "pipeline",
+      label: "TSLM Explainer",
+      icon: <Sparkles className="w-4 h-4" />,
+    },
     {
       id: "overview",
       label: "Dashboard",

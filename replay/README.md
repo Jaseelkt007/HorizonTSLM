@@ -24,5 +24,7 @@ Layout (everything on one screen at ≥ 1280 px; columns stack on phones):
   subsystem, labelled as such (not model output).
 
 Keys: Enter = Run, → = Next, Esc = Reset. Deep links: `#<case>&step=<0–12>&h=<1|3|6>`; `?autorun` opens the page
-already running; `?pace=1.6|1|0.5`. Every figure comes from the case JSON (`scripts/replay_case.py`, checkpoint
+already running; `?pace=1.5|1|0.6`; `?theme=dark|light` forces a theme; `?embed` hides the brand and footer (used
+when the page is embedded in `demo-app/` as the "TSLM Explainer" view — a copy lives in `demo-app/public/pipeline/`;
+re-copy after editing here). Every figure comes from the case JSON (`scripts/replay_case.py`, checkpoint
 `t1_flamingo_llama1b_evidence_rich`); schema in `docs/results/replay/README.md`. Light and dark themes.

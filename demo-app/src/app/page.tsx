@@ -7,6 +7,7 @@ import { Header } from "../components/Header";
 import { OverviewView } from "../components/OverviewView";
 import { TurbineDetailView } from "../components/TurbineDetailView";
 import { BaselineView } from "../components/BaselineView";
+import { PipelineView } from "../components/PipelineView";
 
 export default function DashboardPage() {
   const { activeView } = useStream();
@@ -21,6 +22,7 @@ export default function DashboardPage() {
         <Header />
 
         <main className="flex-1 overflow-y-auto">
+          {activeView === "pipeline" && <PipelineView />}
           {activeView === "overview" && <OverviewView />}
           {activeView === "turbine" && <TurbineDetailView />}
           {activeView === "baseline" && <BaselineView />}

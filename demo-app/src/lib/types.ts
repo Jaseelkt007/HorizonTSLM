@@ -127,7 +127,7 @@ export interface FleetKPIs {
 
 export type Timeframe = "24h" | "7d" | "30d";
 
-export type ActiveView = "overview" | "turbine" | "baseline";
+export type ActiveView = "pipeline" | "overview" | "turbine" | "baseline";
 
 export interface BenchmarkMetricRow {
   metric: string;

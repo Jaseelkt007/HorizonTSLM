@@ -1,5 +1,9 @@
 # Turbine Alarm Explainer demo
 
+The first menu entry, **TSLM Explainer**, is the end-to-end pipeline console from `replay/` (copied to
+`public/pipeline/`, embedded with `?embed&theme=dark`): pick a held-out Kelmarsh window, watch the 24 h of SCADA go
+through OpenTSLM-Flamingo, read the answer with every number checked against the window and the alarm log.
+
 Run the operator dashboard with `npm run dev` from this directory. Opening the
 dashboard and switching turbines never loads an ML model. OpenTSLM is started
 only when the Diagnostic Assistant's Send button is pressed.
