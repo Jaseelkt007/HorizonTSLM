@@ -234,6 +234,18 @@ Kelmarsh at 1 h: 0.30 vs 0.28.
 | reason-first + rich text (headline) | **0.86** (0.88 / 0.87 / 0.85) | **28 %** | 1.00 | 100 % |
 | + RFT epoch | 0.87 (0.89 / 0.88 / 0.86) | 26 % | 1.00 | 100 % |
 
+**Reward curve for RFT** (`docs/results/rft_reward.png`, `rft_reward.json`). RFT is one round of rejection sampling +
+fine-tune, so there is no per-step reward like an online-RL run; two curves are honest. (a) During sampling, the
+cumulative share of training records with at least one sample passing the reward (label correct ∧ every number verified
+∧ conclusion consistent ∧ well-formed) is flat at ≈ 69 % from the first 200 records to all 1,883 (1,308 pass). (b) The
+same reward function applied to each model's *held-out* texts — the quantity RFT optimises, measured where it counts:
+
+| reward pass rate on held-out windows | val | unseen years | Kelmarsh |
+|---|---|---|---|
+| reason-first, basic text | 0.22 | 0.16 | 0.17 |
+| rich text (before RFT) | 0.44 | 0.36 | 0.38 |
+| rich text + RFT | **0.56** | **0.51** | **0.52** |
+
 **LLM judge** (`scripts/llm_judge.py`, gpt-5, the same 40 held-out windows — 20 fault, 20 quiet — for every model;
 `docs/results/llm_judge/judge_n40.json`). Scores 1–5 for grounded (claims match the facts computed from the window),
 coherent, actionable, plus whether the reasoning supports the answer line:
