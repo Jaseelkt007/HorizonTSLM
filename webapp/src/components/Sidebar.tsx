@@ -12,6 +12,8 @@ const I = {
   list: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 4h10M3 8h10M3 12h10"/></svg>,
   chart: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 13h12"/><path d="M3 10l3-3 3 2 4-5"/></svg>,
   results: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"><path d="M3 13V8M8 13V3M13 13V6"/></svg>,
+  turbine: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="8" cy="8" r="3"/><path d="M8 1v4M8 11v4M1 8h4M11 8h4"/></svg>,
+  activity: <svg viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"><path d="M2 8.5h2.5l2-5 3 9 2-4h4.5"/></svg>,
 };
 
 export default function Sidebar({ model, nWindows }: { model: string; nWindows: number }) {
@@ -32,14 +34,16 @@ export default function Sidebar({ model, nWindows }: { model: string; nWindows: 
         <span><b>Turbine Alarm Explainer</b><small>Temporal AI Challenge</small></span>
       </Link>
       <nav className={styles.nav} aria-label="Main">
-        <Link href="/" aria-current={cur(p === "/")}>{I.home}Overview</Link>
-        <div className={styles.grp}>Data</div>
-        <Link href="/farms/kelmarsh/" aria-current={cur(p.startsWith("/farms/kelmarsh"))}>{I.farm}Kelmarsh</Link>
+        <div className={styles.grp}>Command Center</div>
+        <Link href="/" aria-current={cur(p === "/")}>{I.home}Farm Overview</Link>
+        <Link href="/turbines/kelmarsh/1" aria-current={cur(p.startsWith("/turbines"))}>{I.activity}Turbine Diagnostics</Link>
+        <div className={styles.grp}>Telemetry &amp; Windows</div>
+        <Link href="/farms/kelmarsh/" aria-current={cur(p.startsWith("/farms/kelmarsh"))}>{I.farm}Kelmarsh (Unseen)</Link>
         <Link href="/farms/penmanshiel/" aria-current={cur(p.startsWith("/farms/penmanshiel"))}>{I.farm}Penmanshiel</Link>
-        <Link href="/windows/" aria-current={cur(p.startsWith("/windows"))}>{I.list}Windows</Link>
-        <div className={styles.grp}>Model</div>
+        <Link href="/windows/" aria-current={cur(p.startsWith("/windows"))}>{I.list}Curated Windows</Link>
+        <div className={styles.grp}>Model Research</div>
         <Link href="/window/" aria-current={cur(p.startsWith("/window/"))}>{I.chart}Signals &amp; answer</Link>
-        <Link href="/results/" aria-current={cur(p.startsWith("/results"))}>{I.results}Results</Link>
+        <Link href="/results/" aria-current={cur(p.startsWith("/results"))}>{I.results}Benchmark Results</Link>
       </nav>
       <div className={styles.foot}>
         <span>Headline model<br /><code>{model}</code></span>

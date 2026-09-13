@@ -1,0 +1,176 @@
+.container {
+  position: relative;
+  width: 100%;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--card-bg, #0f172a);
+  border: 1px solid var(--line);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+}
+
+.canvasWrapper {
+  position: relative;
+  width: 100%;
+  height: 440px;
+  cursor: grab;
+}
+
+.canvasWrapper:active {
+  cursor: grabbing;
+}
+
+.overlayTop {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  right: 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  pointer-events: none;
+  z-index: 10;
+}
+
+.overlayTop > * {
+  pointer-events: auto;
+}
+
+.mapTitle {
+  background: var(--card-bg, rgba(15, 23, 42, 0.85));
+  backdrop-filter: blur(8px);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--ink);
+}
+
+.mapTitle h3 {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.mapTitle p {
+  margin: 2px 0 0;
+  font-size: 12px;
+  color: var(--ink-2);
+}
+
+.controlsHelp {
+  position: absolute;
+  bottom: 14px;
+  left: 16px;
+  background: var(--card-bg, rgba(15, 23, 42, 0.85));
+  backdrop-filter: blur(8px);
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  font-size: 11px;
+  color: var(--ink-3);
+  pointer-events: none;
+  z-index: 10;
+}
+
+.windBadge {
+  background: var(--card-bg, rgba(15, 23, 42, 0.85));
+  backdrop-filter: blur(8px);
+  padding: 8px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--ink);
+}
+
+.windArrow {
+  display: inline-block;
+  font-size: 15px;
+  color: var(--accent);
+}
+
+.previewCard {
+  position: absolute;
+  bottom: 14px;
+  right: 16px;
+  width: 320px;
+  background: var(--card-bg, rgba(15, 23, 42, 0.95));
+  backdrop-filter: blur(12px);
+  padding: 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+  z-index: 20;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.previewHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.previewHeader h4 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.previewStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.statBox {
+  background: var(--card-2, rgba(255, 255, 255, 0.04));
+  padding: 8px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+
+.statLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--ink-3);
+}
+
+.statVal {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--ink);
+  margin-top: 2px;
+}
+
+.previewAction {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 8px 14px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 6px;
+  background: var(--accent);
+  color: #ffffff;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.previewAction:hover {
+  opacity: 0.9;
+}
