@@ -46,8 +46,11 @@ def _get_signal_unit(canonical_name: str):
         "generator_rpm": ureg.rpm,
         "gear_oil_temp": ureg.degC,
         "gen_bearing_temp": ureg.degC,
-        "pitch_angle": ureg.degree,
+        "pitch_angle_a": ureg.degree,
+        "pitch_angle_b": ureg.degree,
+        "pitch_angle_c": ureg.degree,
         "drivetrain_accel": ureg.dimensionless,  # mm/s^2 handled dimensionlessly in Pint
+        "ambient_temp": ureg.degC,
     }
     return unit_map.get(canonical_name, ureg.dimensionless)
 
@@ -86,7 +89,7 @@ class KelmarshConnector(BaseConnector[Path]):
                 "rationale": w.rationale,
                 "action": w.action,
             }
-            # Flatten signals (72, 8) into individual channel lists
+            # Flatten signals (WINDOW_STEPS, 11) into individual channel lists
             for col_idx, sig in enumerate(SELECTED_SIGNALS):
                 row[sig.canonical_name] = w.signals[:, col_idx].tolist()
             rows.append(row)
@@ -110,7 +113,7 @@ class KelmarshConnector(BaseConnector[Path]):
             provider="Cubico Sustainable Investments",
         )
 
-        # Build specs for each of the 8 channels
+        # Build specs for each of the 11 channels
         specs = {}
         for sig in SELECTED_SIGNALS:
             specs[sig.canonical_name] = TimeSeriesSpec(

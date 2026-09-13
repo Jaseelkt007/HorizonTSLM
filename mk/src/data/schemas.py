@@ -14,7 +14,11 @@ class SignalSpec:
     max_val: float
 
 
-# Selected 8 high-signal channels for the TSLM model footprint
+# Selected 11 high-signal channels for the TSLM model footprint
+# Channels 0-5: aerodynamic/electrical/thermal core (unchanged)
+# Channels 6-8: per-blade pitch angles (A, B, C) — enables asymmetry detection
+# Channel 9:   drivetrain acceleration
+# Channel 10:  nacelle ambient temperature — thermal normalisation reference
 SELECTED_SIGNALS: list[SignalSpec] = [
     SignalSpec(
         greenbyte_id=1,
@@ -73,9 +77,27 @@ SELECTED_SIGNALS: list[SignalSpec] = [
     SignalSpec(
         greenbyte_id=80,
         csv_column_prefix="Blade angle (pitch position) A",
-        canonical_name="pitch_angle",
+        canonical_name="pitch_angle_a",
         unit="deg",
-        description="Blade 1 pitch angle",
+        description="Blade 1 (A) pitch angle",
+        min_val=-5.0,
+        max_val=95.0,
+    ),
+    SignalSpec(
+        greenbyte_id=81,
+        csv_column_prefix="Blade angle (pitch position) B",
+        canonical_name="pitch_angle_b",
+        unit="deg",
+        description="Blade 2 (B) pitch angle",
+        min_val=-5.0,
+        max_val=95.0,
+    ),
+    SignalSpec(
+        greenbyte_id=82,
+        csv_column_prefix="Blade angle (pitch position) C",
+        canonical_name="pitch_angle_c",
+        unit="deg",
+        description="Blade 3 (C) pitch angle",
         min_val=-5.0,
         max_val=95.0,
     ),
@@ -87,6 +109,15 @@ SELECTED_SIGNALS: list[SignalSpec] = [
         description="Nacelle drivetrain vibration acceleration",
         min_val=0.0,
         max_val=1000.0,
+    ),
+    SignalSpec(
+        greenbyte_id=24,
+        csv_column_prefix="Nacelle ambient temperature",
+        canonical_name="ambient_temp",
+        unit="degC",
+        description="Outdoor ambient temperature at nacelle",
+        min_val=-20.0,
+        max_val=50.0,
     ),
 ]
 
@@ -150,6 +181,14 @@ SUBSYSTEM_TO_COARSE_FAULT: dict[str, str] = {
     "manual_safety": "Turbine Trip / Forced Outage",
     "environmental_stop": "Normal Operation",
     "curtailment_external": "Normal Operation",
+}
+
+COARSE_FAULT_TO_SUBSYSTEM: dict[str, str] = {
+    "Normal Operation": "normal_operation",
+    "Gearbox Overheating": "gearbox_lubrication",
+    "Generator Bearing Anomaly": "generator_bearing",
+    "Pitch / Aerodynamic Fault": "pitch_system",
+    "Turbine Trip / Forced Outage": "manual_safety",
 }
 
 

@@ -1,6 +1,12 @@
-"""Interactive Streamlit visualizer to inspect wind turbine SCADA telemetry across both plants and model diagnostic outputs."""
+"""Wind Turbine SCADA & Diagnostic Visualizer.
 
-import random
+Interactive Streamlit application to inspect 8-channel SCADA telemetry
+across Penmanshiel and Kelmarsh wind farms and benchmark neural time-series
+models against verified ground truth.
+"""
+
+from __future__ import annotations
+
 import sys
 from pathlib import Path
 from typing import Any
@@ -9,10 +15,10 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.graph_objects as go
-import streamlit as st
 from plotly.subplots import make_subplots
+import streamlit as st
 
-# Dynamically locate repository root and mk subfolder
+# Locate repository root and mk subdirectory
 MK_DIR = Path(__file__).resolve().parent
 _curr = MK_DIR
 while not (_curr / "pyproject.toml").exists() and _curr.parent != _curr:
@@ -25,6 +31,7 @@ for p in [MK_DIR, REPO_ROOT]:
 
 try:
     from mk.src.data.schemas import (
+        COARSE_FAULT_TO_SUBSYSTEM,
         FAULT_CLASSES,
         IDX_TO_FAULT_CLASS,
         KELMARSH_DATASET_ID,
@@ -33,18 +40,17 @@ try:
         SIGNAL_NAMES,
         SUBSYSTEM_CLASSES,
         SUBSYSTEM_TO_COARSE_FAULT,
-        TRIAGE_CLASSES,
         WINDOW_STEPS,
         WINDOW_STEPS_12H,
-        WINDOW_STEPS_24H,
     )
-    from mk.src.data.preprocessor import classify_window_events
+    from mk.src.data.preprocessor import check_telemetry_anomalies, classify_window_events
     from mk.src.models.architecture import (
         OpenTSLMForTurbineDiagnosis,
         OpenTSLMSoftPromptForTurbineDiagnosis,
     )
 except ImportError:
     from src.data.schemas import (
+        COARSE_FAULT_TO_SUBSYSTEM,
         FAULT_CLASSES,
         IDX_TO_FAULT_CLASS,
         KELMARSH_DATASET_ID,
@@ -53,35 +59,33 @@ except ImportError:
         SIGNAL_NAMES,
         SUBSYSTEM_CLASSES,
         SUBSYSTEM_TO_COARSE_FAULT,
-        TRIAGE_CLASSES,
         WINDOW_STEPS,
         WINDOW_STEPS_12H,
-        WINDOW_STEPS_24H,
     )
-    from src.data.preprocessor import classify_window_events
+    from src.data.preprocessor import check_telemetry_anomalies, classify_window_events
     from src.models.architecture import (
         OpenTSLMForTurbineDiagnosis,
         OpenTSLMSoftPromptForTurbineDiagnosis,
     )
 
-# Diagnostic class styling
-FAULT_COLOR_MAP = {
-    "Normal Operation": "#10B981",  # Emerald green
-    "Gearbox Overheating": "#EF4444",  # Crimson red
-    "Generator Bearing Anomaly": "#F59E0B",  # Amber orange
-    "Pitch / Aerodynamic Fault": "#8B5CF6",  # Purple
-    "Turbine Trip / Forced Outage": "#EC4899",  # Pink
+# Visualizer styling constants
+SUBSYSTEM_ICONS: dict[str, str] = {
+    "gearbox_lubrication": "🔥",
+    "generator_cooling": "🌡️",
+    "generator_bearing": "⚙️",
+    "pitch_system": "📐",
+    "brake_hydraulics": "🛑",
+    "converter_grid": "⚡",
+    "yaw_cable": "🔄",
+    "structural_overspeed": "🌪️",
+    "sensor_comms": "📡",
+    "environmental_stop": "🍃",
+    "curtailment_external": "📉",
+    "manual_safety": "🚨",
+    "normal_operation": "✅",
 }
 
-FAULT_ICONS = {
-    "Normal Operation": "✅",
-    "Gearbox Overheating": "🔥",
-    "Generator Bearing Anomaly": "⚙️",
-    "Pitch / Aerodynamic Fault": "🌪️",
-    "Turbine Trip / Forced Outage": "🛑",
-}
-
-SUBSYSTEM_COLOR_MAP = {
+SUBSYSTEM_COLORS: dict[str, str] = {
     "gearbox_lubrication": "#EF4444",
     "generator_cooling": "#F97316",
     "generator_bearing": "#F59E0B",
@@ -97,38 +101,26 @@ SUBSYSTEM_COLOR_MAP = {
     "normal_operation": "#10B981",
 }
 
-SUBSYSTEM_ICONS = {
-    "gearbox_lubrication": "⚙️",
-    "generator_cooling": "❄️",
-    "generator_bearing": "🔄",
-    "pitch_system": "📐",
-    "brake_hydraulics": "🛑",
-    "converter_grid": "⚡",
-    "yaw_cable": "🔀",
-    "structural_overspeed": "🌪️",
-    "sensor_comms": "📡",
-    "environmental_stop": "🌬️",
-    "curtailment_external": "📉",
-    "manual_safety": "🚨",
-    "normal_operation": "✅",
-}
-
-TRIAGE_COLOR_MAP = {
-    "normal": "#10B981",
-    "benign_stop": "#3B82F6",
-    "fault": "#EF4444",
-}
-
-TRIAGE_ICONS = {
-    "normal": "🟢",
-    "benign_stop": "🔵",
-    "fault": "🔴",
-}
-
-SIGNAL_META = {s.canonical_name: s for s in SELECTED_SIGNALS}
+SIGNAL_ORDER = [
+    "wind_speed",
+    "power",
+    "rotor_speed",
+    "generator_rpm",
+    "gear_oil_temp",
+    "gen_bearing_temp",
+    "pitch_angle_a",
+    "pitch_angle_b",
+    "pitch_angle_c",
+    "drivetrain_accel",
+    "ambient_temp",
+]
 
 
-@st.cache_data(show_spinner="Loading wind farm static specifications...")
+# =====================================================================
+# DATA LOADING & CACHING
+# =====================================================================
+
+@st.cache_data(show_spinner="Loading wind farm metadata...")
 def load_static_metadata(farm: str = "penmanshiel") -> pd.DataFrame:
     """Load turbine static geographic and technical specifications."""
     if farm.lower() == "penmanshiel":
@@ -136,12 +128,11 @@ def load_static_metadata(farm: str = "penmanshiel") -> pd.DataFrame:
     else:
         static_path = REPO_ROOT / "data" / "kelmarsh" / "Kelmarsh_WT_static.csv"
     if static_path.exists():
-        df = pd.read_csv(static_path)
-        return df
+        return pd.read_csv(static_path)
     return pd.DataFrame()
 
 
-@st.cache_data(show_spinner="Loading and caching TimeNet SCADA telemetry...")
+@st.cache_data(show_spinner="Loading and caching SCADA telemetry...")
 def load_timenet_dataset(
     dataset_id: str = "energy/penmanshiel-wind-scada",
 ) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
@@ -186,11 +177,9 @@ def load_timenet_dataset(
             elif a.key == "wind_farm":
                 rec_data["wind_farm"] = a.value
 
-        # Ensure turbine_id fallback
         if "turbine_id" not in rec_data:
             rec_data["turbine_id"] = f"{farm_name} WT"
 
-        # Extract tasks
         tasks = [t for t in dataset.tasks if rec_id in t.record_ids]
         for t in tasks:
             if type(t).__name__ == "AnswerTask":
@@ -198,7 +187,6 @@ def load_timenet_dataset(
                 rec_data["target"] = getattr(t, "target", "")
                 rec_data["rationale"] = getattr(t, "rationale", "")
 
-        # Extract time series signals
         sig_map = {}
         for ts in r.time_series:
             sig_map[ts.signal] = ts.to_numpy()
@@ -208,7 +196,6 @@ def load_timenet_dataset(
             minutes=10 * n_steps
         )
 
-        # Build individual window dataframe
         timestamps = pd.date_range(
             start=rec_data["start_time"],
             periods=n_steps,
@@ -227,17 +214,20 @@ def load_timenet_dataset(
 
 @st.cache_data(show_spinner="Loading both wind farms (Penmanshiel & Kelmarsh)...")
 def load_all_wind_farms() -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
-    """Loads and combines all records from both Penmanshiel and Kelmarsh wind farms into a unified dataset."""
+    """Loads and combines all records from both Penmanshiel and Kelmarsh."""
     df_pen, tel_pen = load_timenet_dataset(PENMANSHIEL_DATASET_ID)
     df_kel, tel_kel = load_timenet_dataset(KELMARSH_DATASET_ID)
-
     df_combined = pd.concat([df_pen, df_kel], ignore_index=True)
     tel_combined = {**tel_pen, **tel_kel}
     return df_combined, tel_combined
 
 
+# =====================================================================
+# INFERENCE & MODEL WRAPPER
+# =====================================================================
+
 class ModelInferenceResult:
-    """Encapsulates discrete predictions, continuous probabilities, and generative CoT outputs."""
+    """Encapsulates discrete neural predictions and generative CoT outputs."""
 
     def __init__(
         self,
@@ -247,17 +237,19 @@ class ModelInferenceResult:
         model_type: str = "encoder",
         classes: list[str] | None = None,
         generated_text: str | None = None,
-        parsed_subsystem: str = "normal_operation",
+        parsed_subsystem: str | None = None,
         parsed_triage: str = "normal",
         parsed_answer: str = "",
     ):
         self.pred_idx = pred_idx
         self.pred_name = pred_name
         self.probs = probs
+        self.confidence = float(probs[pred_idx]) if len(probs) > pred_idx else 0.0
         self.model_type = model_type
         self.classes = classes or FAULT_CLASSES
-        self.generated_text = generated_text
-        self.parsed_subsystem = parsed_subsystem
+        self.generated_text = generated_text or ""
+        # The primary inferred subsystem is always grounded in the neural classifier head
+        self.parsed_subsystem = parsed_subsystem or pred_name
         self.parsed_triage = parsed_triage
         self.parsed_answer = parsed_answer
         self.coarse_fault = (
@@ -271,17 +263,16 @@ class ModelInferenceResult:
         yield self.pred_name
         yield self.probs
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx: int):
         return [self.pred_idx, self.pred_name, self.probs][idx]
 
 
 @st.cache_resource(show_spinner="Loading trained OpenTSLM model checkpoint...")
 def load_trained_model(preferred_type: str = "softprompt"):
-    """Loads the trained OpenTSLM model weights for real-time inference."""
+    """Loads trained OpenTSLM model weights for real-time inference."""
     try:
         import torch
 
-        # For Streamlit web interactive inference, CPU is fast (<80ms) and prevents Apple MPS command buffer race conditions
         device = torch.device("cpu")
 
         if preferred_type == "softprompt":
@@ -296,7 +287,7 @@ def load_trained_model(preferred_type: str = "softprompt"):
                 tok.pad_token = tok.eos_token
 
                 model = OpenTSLMSoftPromptForTurbineDiagnosis(
-                    in_channels=8,
+                    in_channels=11,
                     patch_size=4,
                     d_encoder=256,
                     d_llm=768,
@@ -321,7 +312,7 @@ def load_trained_model(preferred_type: str = "softprompt"):
                 }
                 return model, meta
 
-        # Default / encoder checkpoint
+        # Default / encoder checkpoint fallback
         checkpoint_path = REPO_ROOT / "mk" / "checkpoints" / "opentslm_best.pt"
         if not checkpoint_path.exists():
             checkpoint_path = REPO_ROOT / "checkpoints" / "opentslm_best.pt"
@@ -332,7 +323,7 @@ def load_trained_model(preferred_type: str = "softprompt"):
             checkpoint_path, map_location="cpu", weights_only=False
         )
         model = OpenTSLMForTurbineDiagnosis(
-            in_channels=8, patch_size=4, d_encoder=256, d_llm=512
+            in_channels=11, patch_size=4, d_encoder=256, d_llm=512
         )
         model.load_state_dict(checkpoint["model_state_dict"])
         model.to(device)
@@ -353,7 +344,7 @@ def load_trained_model(preferred_type: str = "softprompt"):
 def run_model_inference(
     model, telemetry_df: pd.DataFrame, meta_or_device: Any = "cpu"
 ) -> ModelInferenceResult:
-    """Runs model forward pass on telemetry window and returns ModelInferenceResult."""
+    """Runs forward pass on telemetry window and returns ModelInferenceResult."""
     import torch
 
     if isinstance(meta_or_device, dict):
@@ -364,17 +355,7 @@ def run_model_inference(
         meta = {"device": device_str, "type": "encoder"}
 
     device = torch.device(device_str)
-    sig_order = [
-        "wind_speed",
-        "power",
-        "rotor_speed",
-        "generator_rpm",
-        "gear_oil_temp",
-        "gen_bearing_temp",
-        "pitch_angle",
-        "drivetrain_accel",
-    ]
-    raw_mat = telemetry_df[sig_order].values.astype(np.float32)
+    raw_mat = telemetry_df[SIGNAL_ORDER].values.astype(np.float32)
     tensor_x = torch.from_numpy(raw_mat).unsqueeze(0).to(device)
 
     is_softprompt = (
@@ -389,22 +370,25 @@ def run_model_inference(
 
             tokenizer = GPT2Tokenizer.from_pretrained("openai-community/gpt2")
             tokenizer.pad_token = tokenizer.eos_token
+
         classes = meta.get("classes", SUBSYSTEM_CLASSES)
         with torch.no_grad():
-            ts_embeds = model.get_time_series_embeddings(tensor_x)
-            pooled = ts_embeds.mean(dim=1)
-            logits = model.classifier(pooled)
-            probs_np = torch.softmax(logits, dim=-1)[0].cpu().numpy()
-            pred_idx = int(np.argmax(probs_np))
-            pred_name = classes[pred_idx]
+            # 1. Calibrated time-series classification head
+            outputs = model(tensor_x)
+            probs_np = torch.softmax(outputs["cls_logits"], dim=-1)[0].cpu().numpy()
 
-            # Autoregressive generation conditioned on soft prompt
+            # 2. Autoregressive CoT diagnostic generation
             diag = model.generate_diagnosis(
                 time_series=tensor_x,
                 tokenizer=tokenizer,
                 max_new_tokens=140,
                 temperature=0.2,
             )
+
+            pred_idx = int(diag.get("cls_pred_idx", np.argmax(probs_np)))
+            pred_name = classes[pred_idx]
+            parsed_sub = diag.get("parsed_subsystem", pred_name)
+            parsed_triage = diag.get("parsed_triage", "normal" if pred_idx == 0 else "fault")
 
         return ModelInferenceResult(
             pred_idx=pred_idx,
@@ -413,8 +397,8 @@ def run_model_inference(
             model_type="softprompt",
             classes=classes,
             generated_text=diag.get("generated_text", ""),
-            parsed_subsystem=diag.get("parsed_subsystem", pred_name),
-            parsed_triage=diag.get("parsed_triage", "normal"),
+            parsed_subsystem=parsed_sub,
+            parsed_triage=parsed_triage,
             parsed_answer=diag.get("parsed_answer", ""),
         )
     else:
@@ -423,90 +407,21 @@ def run_model_inference(
 
         pred_idx = preds.item()
         pred_name = IDX_TO_FAULT_CLASS[pred_idx]
-        probs_np = probs[0].cpu().numpy()
+        probs_np = probs.cpu().numpy()[0]
         return ModelInferenceResult(
             pred_idx=pred_idx,
             pred_name=pred_name,
             probs=probs_np,
             model_type="encoder",
             classes=FAULT_CLASSES,
-            generated_text=None,
             parsed_subsystem=pred_name,
-            parsed_triage="fault" if pred_name != "Normal Operation" else "normal",
-            parsed_answer=pred_name,
+            parsed_triage="normal" if pred_name == "Normal Operation" else "fault",
         )
 
 
-def format_tslm_explanation(
-    rec_row: pd.Series, telemetry_df: pd.DataFrame
-) -> dict[str, str]:
-    """Formats the standardized 5-part TSLM diagnostic output (FINDING/EVIDENCE/CAUSE/IMPACT/ACTION)."""
-    mean_wind = float(telemetry_df["wind_speed"].mean())
-    mean_power = float(telemetry_df["power"].mean())
-    max_power = float(telemetry_df["power"].max())
-    mean_rotor = float(telemetry_df["rotor_speed"].mean())
-    mean_gen_rpm = float(telemetry_df["generator_rpm"].mean())
-    start_oil = float(telemetry_df["gear_oil_temp"].iloc[0])
-    end_oil = float(telemetry_df["gear_oil_temp"].iloc[-1])
-    oil_delta = end_oil - start_oil
-    max_bearing = float(telemetry_df["gen_bearing_temp"].max())
-    mean_pitch = float(telemetry_df["pitch_angle"].mean())
-    max_vibe = float(telemetry_df["drivetrain_accel"].max())
-
-    fc = rec_row["fault_class"]
-    turbine = rec_row["turbine_id"]
-
-    rationale = rec_row.get("rationale", "")
-    target = rec_row.get("target", "")
-
-    if fc == "Gearbox Overheating":
-        finding = f"Abnormal thermal excursion detected in mechanical drive train on {turbine} under steady generation."
-        evidence = f"Wind speed averaged {mean_wind:.1f} m/s with electrical power of {mean_power:.1f} kW. Gearbox oil temperature climbed from {start_oil:.1f}°C to {end_oil:.1f}°C (+{oil_delta:.1f}°C rise) despite steady electrical load, while bearing temperature reached {max_bearing:.1f}°C."
-        cause = "Degraded heat dissipation in gearbox lubrication loop, restricted radiator cooling airflow, or oil pump cavitation."
-        lost_kwh = max(0.0, (2050.0 - mean_power) * 0.5 * 12.0)
-        impact = f"Elevated risk of accelerated gear tooth micro-pitting and bearing raceway degradation. Potential curtailment energy loss: ~{lost_kwh:.0f} kWh."
-        action = "Curtail active power output to 50% rated capacity immediately. Dispatch maintenance crew to inspect oil radiator, verify pump pressure, and sample lubricant for metallic particulate contamination."
-    elif fc == "Generator Bearing Anomaly":
-        finding = f"High localized thermal friction anomaly identified on generator drive-end bearing of {turbine}."
-        evidence = f"Turbine operated at average generator speed of {mean_gen_rpm:.0f} RPM with electrical output of {mean_power:.1f} kW. Drive-end generator bearing front temperature rose to an elevated peak of {max_bearing:.1f}°C under normal ambient conditions."
-        cause = "Bearing lubricant degradation, grease starvation, or early-stage raceway spalling causing abnormal mechanical friction."
-        impact = "Elevated danger of catastrophic generator bearing seizure and unplanned nacelle replacement if bearing temperature exceeds 85°C."
-        action = "Schedule urgent off-peak vibration spectroscopy and high-frequency grease replenishment. Set automatic supervisory trip threshold at 85°C."
-    elif fc == "Pitch / Aerodynamic Fault":
-        finding = f"Aerodynamic rotor imbalance and asymmetric blade pitch dynamics observed on {turbine}."
-        evidence = f"Wind speed averaged {mean_wind:.1f} m/s, but blade pitch angle exhibited rapid oscillations (mean: {mean_pitch:.1f}°) strongly coupled with drivetrain vibration shocks peaking at {max_vibe:.1f} mm/s²."
-        cause = "Pitch actuator servo error, proportional valve stickiness, or hydraulic cylinder seal pressure leakage."
-        impact = "Severe cyclic mechanical fatigue on main shaft and low-speed gearbox stage; potential aerodynamic overspeed risk."
-        action = "Initiate automated blade pitch recalibration sequence. Inspect hydraulic pitch manifold, proportional valves, and accumulator pressure."
-    elif fc == "Turbine Trip / Forced Outage":
-        finding = f"Unscheduled emergency forced outage and rapid safety trip occurred on {turbine}."
-        evidence = f"Active power plunged abruptly from {max_power:.1f} kW down to 0.0 kW within a single 10-minute timestep. Rotor speed decelerated from {mean_rotor:.1f} RPM down to idle (~0 RPM), while blade pitch immediately feathered to 90°."
-        cause = "Hard safety chain trip, grid circuit breaker opening, or emergency stop button actuation."
-        impact = f"Complete loss of power production (~{max_power * 12:.0f} potential kWh during 12-hour window). Turbine currently idle awaiting clearance."
-        action = "Examine SCADA safety chain relay logs and 24V loop continuity. Confirm grid synchronization voltage and perform remote reset sequence."
-    else:  # Normal Operation
-        finding = f"Stable, healthy operating conditions observed across all mechanical, aerodynamic, and electrical subsystems on {turbine}."
-        evidence = f"Wind speed averaged {mean_wind:.1f} m/s yielding steady power output of {mean_power:.1f} kW. Gearbox oil temp ({end_oil:.1f}°C) and bearing temp ({max_bearing:.1f}°C) remained well within nominal thresholds. Drivetrain vibration remained calm at {max_vibe:.1f} mm/s²."
-        cause = "Normal turbine operation within certified IEC 61400-1 design envelope."
-        impact = "Zero lost production. Asset operating at optimal capacity factor."
-        action = "No corrective maintenance required. Maintain standard 10-minute SCADA supervisory telemetry monitoring."
-
-    # Use exact dataset rationale and target when available
-    if rationale and len(rationale) > 20:
-        evidence = rationale
-    if target and "Action:" in target:
-        parts = target.split("Action:")
-        action = parts[1].strip()
-
-    return {
-        "finding": finding,
-        "evidence": evidence,
-        "cause": cause,
-        "impact": impact,
-        "action": action,
-        "answer": fc,
-    }
-
+# =====================================================================
+# AERODYNAMICS & SUPERVISORY REPORT FORMATTERS
+# =====================================================================
 
 def compute_theoretical_power(
     wind_speeds: np.ndarray, model: str = "MM92"
@@ -527,10 +442,86 @@ def compute_theoretical_power(
     return np.clip(p, 0.0, rated_power)
 
 
+def format_tslm_explanation(
+    rec_row: pd.Series, telemetry_df: pd.DataFrame
+) -> dict[str, str]:
+    """Formats standardized 5-part TSLM report (FINDING/EVIDENCE/CAUSE/IMPACT/ACTION)."""
+    mean_wind = float(telemetry_df["wind_speed"].mean())
+    mean_power = float(telemetry_df["power"].mean())
+    max_power = float(telemetry_df["power"].max())
+    mean_rotor = float(telemetry_df["rotor_speed"].mean())
+    mean_gen_rpm = float(telemetry_df["generator_rpm"].mean())
+    start_oil = float(telemetry_df["gear_oil_temp"].iloc[0])
+    end_oil = float(telemetry_df["gear_oil_temp"].iloc[-1])
+    oil_delta = end_oil - start_oil
+    max_bearing = float(telemetry_df["gen_bearing_temp"].max())
+    if "pitch_angle_a" in telemetry_df:
+        mean_pitch = float(telemetry_df[["pitch_angle_a", "pitch_angle_b", "pitch_angle_c"]].mean().mean())
+    elif "pitch_angle" in telemetry_df:
+        mean_pitch = float(telemetry_df["pitch_angle"].mean())
+    else:
+        mean_pitch = 0.0
+    max_vibe = float(telemetry_df["drivetrain_accel"].max())
+
+    fc = rec_row["fault_class"]
+    turbine = rec_row["turbine_id"]
+    rationale = rec_row.get("rationale", "")
+    target = rec_row.get("target", "")
+
+    if fc == "Gearbox Overheating":
+        finding = f"Abnormal thermal excursion detected in mechanical drive train on {turbine}."
+        evidence = f"Wind speed averaged {mean_wind:.1f} m/s with power of {mean_power:.1f} kW. Gear oil temp rose from {start_oil:.1f}°C to {end_oil:.1f}°C (+{oil_delta:.1f}°C rise)."
+        cause = "Degraded heat dissipation in gearbox lubrication loop, restricted radiator airflow, or oil pump cavitation."
+        impact = "Elevated risk of gear tooth micro-pitting and bearing raceway degradation."
+        action = "Curtail active power to 50% immediately. Inspect oil radiator, pump pressure, and sample lubricant."
+    elif fc == "Generator Bearing Anomaly":
+        finding = f"High localized thermal friction identified on generator drive-end bearing of {turbine}."
+        evidence = f"Generator speed averaged {mean_gen_rpm:.0f} RPM with power of {mean_power:.1f} kW. Drive-end bearing temperature reached peak {max_bearing:.1f}°C."
+        cause = "Bearing lubricant degradation, grease starvation, or early raceway spalling."
+        impact = "Danger of catastrophic generator bearing seizure if temperature exceeds 85°C."
+        action = "Schedule urgent off-peak vibration spectroscopy and high-frequency grease replenishment."
+    elif fc == "Pitch / Aerodynamic Fault":
+        finding = f"Aerodynamic rotor imbalance and asymmetric blade pitch dynamics on {turbine}."
+        evidence = f"Wind speed averaged {mean_wind:.1f} m/s with oscillating blade pitch (mean: {mean_pitch:.1f}°) and vibration peaks at {max_vibe:.1f} mm/s²."
+        cause = "Pitch actuator servo error, proportional valve stickiness, or hydraulic cylinder seal leakage."
+        impact = "Severe cyclic mechanical fatigue on main shaft and low-speed gearbox stage."
+        action = "Initiate automated blade pitch recalibration sequence. Inspect hydraulic pitch manifold."
+    elif fc == "Turbine Trip / Forced Outage":
+        finding = f"Unscheduled emergency forced outage and rapid safety trip occurred on {turbine}."
+        evidence = f"Active power plunged abruptly from {max_power:.1f} kW to 0.0 kW within a single 10-min step. Rotor speed decelerated from {mean_rotor:.1f} RPM to idle, while blade pitch feathered to 90°."
+        cause = "Hard safety chain trip, grid circuit breaker opening, or emergency stop button actuation."
+        impact = f"Complete loss of power production (~{max_power * 12:.0f} potential kWh during 12h window)."
+        action = "Examine SCADA safety chain relay logs and 24V loop continuity. Confirm grid synchronization voltage."
+    else:  # Normal Operation
+        finding = f"Stable, healthy operating conditions observed across all subsystems on {turbine}."
+        evidence = f"Wind speed averaged {mean_wind:.1f} m/s yielding steady power output of {mean_power:.1f} kW. Temperatures and vibrations remained well within nominal envelopes."
+        cause = "Normal turbine operation within certified IEC 61400-1 design envelope."
+        impact = "Zero lost production. Asset operating at optimal capacity factor."
+        action = "No corrective maintenance required. Maintain standard supervisory telemetry monitoring."
+
+    if rationale and len(rationale) > 20:
+        evidence = rationale
+    if target and "Action:" in target:
+        action = target.split("Action:")[1].strip()
+
+    return {
+        "finding": finding,
+        "evidence": evidence,
+        "cause": cause,
+        "impact": impact,
+        "action": action,
+        "answer": fc,
+    }
+
+
+# =====================================================================
+# STREAMLIT UI APPLICATION
+# =====================================================================
+
 def main():
     try:
         st.set_page_config(
-            page_title="Wind Farm SCADA Visualizer | Penmanshiel & Kelmarsh",
+            page_title="Wind Farm SCADA Visualizer",
             page_icon="⚡",
             layout="wide",
             initial_sidebar_state="expanded",
@@ -538,1161 +529,360 @@ def main():
     except (AttributeError, RuntimeError):
         pass
 
-    # Custom styling
+    # Clean styling
     st.markdown(
         """
         <style>
-        .report-section {
-            background-color: var(--secondary-background-color);
-            border-radius: 8px;
-            padding: 14px 18px;
-            margin-bottom: 12px;
-            border-left: 4px solid #3B82F6;
-        }
-        .metric-badge {
-            display: inline-block;
-            padding: 4px 12px;
-            border-radius: 12px;
-            font-size: 0.85rem;
-            font-weight: 600;
-        }
-        .report-label {
-            font-weight: 700;
-            font-size: 0.8rem;
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: 4px;
-        }
-        .stTabs [data-baseweb="tab-list"] {
-            gap: 12px;
-        }
-        .stTabs [data-baseweb="tab"] {
-            font-size: 1.0rem;
-            font-weight: 600;
-        }
+        .block-container { padding-top: 1.5rem; padding-bottom: 2rem; }
+        .stMetric { background-color: var(--secondary-background-color); padding: 10px 14px; border-radius: 8px; }
+        .match-badge { font-weight: 700; padding: 2px 8px; border-radius: 4px; font-size: 0.8rem; }
+        .match-ok { background: #10B98122; color: #10B981; border: 1px solid #10B981; }
+        .match-fail { background: #EF444422; color: #EF4444; border: 1px solid #EF4444; }
         </style>
         """,
         unsafe_allow_html=True,
     )
 
-    # ------------------ LOAD DATA & MODEL ------------------
-    df_all_records, telemetry_dict = load_all_wind_farms()
-    load_static_metadata("penmanshiel")
-    load_static_metadata("kelmarsh")
-
     # ------------------ SIDEBAR CONTROLS ------------------
-    st.sidebar.image("https://img.icons8.com/fluency/96/wind-turbine.png", width=56)
-    st.sidebar.title("Fleet SCADA Visualizer")
-    st.sidebar.caption("Penmanshiel & Kelmarsh Wind Farms | OpenTSLM")
+    st.sidebar.title("⚡ SCADA Visualizer")
+    st.sidebar.caption("Unified Fleet Diagnostics & Neural Benchmark")
 
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("1. Wind Farm Selection")
-    farm_filter = st.sidebar.radio(
-        "Select Wind Farm Scope:",
-        [
-            "🌐 Both Wind Farms (20 Turbines)",
-            "🏴󠁧󠁢󠁳󠁣󠁴󠁿 Penmanshiel Wind Farm (14 Turbines)",
-            "🇬🇧 Kelmarsh Wind Farm (6 Turbines)",
-        ],
-        index=0,
+    df_all, telemetry_data = load_all_wind_farms()
+
+    # Model checkpoint loading
+    model_type_choice = st.sidebar.radio(
+        "Active Model",
+        ["softprompt", "encoder"],
+        format_func=lambda x: "OpenTSLM-SoftPrompt (LoRA GPT-2)" if x == "softprompt" else "OpenTSLM Encoder (5-Class)",
     )
-
-    # Filter dataframe by farm
-    if "Penmanshiel" in farm_filter and "Both" not in farm_filter:
-        df_farm = df_all_records[df_all_records["wind_farm"] == "Penmanshiel"].copy()
-    elif "Kelmarsh" in farm_filter and "Both" not in farm_filter:
-        df_farm = df_all_records[df_all_records["wind_farm"] == "Kelmarsh"].copy()
-    else:
-        df_farm = df_all_records.copy()
-
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("2. Turbine Selection")
-
-    # Get available turbines
-    all_turbines_in_scope = sorted(df_farm["turbine_id"].unique().tolist())
-    turbine_options = ["All Turbines in Scope"] + all_turbines_in_scope
-
-    selected_turbine_option = st.sidebar.selectbox(
-        "Choose Turbine:",
-        turbine_options,
-        index=0,
-        help="Select any of the 14 Penmanshiel or 6 Kelmarsh turbines",
-    )
-
-    # Filter by turbine
-    if selected_turbine_option != "All Turbines in Scope":
-        df_turbine_filtered = df_farm[
-            df_farm["turbine_id"] == selected_turbine_option
-        ].copy()
-    else:
-        df_turbine_filtered = df_farm.copy()
-
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("3. Operational State Filter")
-    fault_categories = ["All Categories"] + sorted(
-        df_turbine_filtered["fault_class"].unique().tolist()
-    )
-    selected_category = st.sidebar.selectbox(
-        "Fault / Event Class:", fault_categories, index=0
-    )
-
-    if selected_category != "All Categories":
-        filtered_records = df_turbine_filtered[
-            df_turbine_filtered["fault_class"] == selected_category
-        ].copy()
-    else:
-        filtered_records = df_turbine_filtered.copy()
-
-    if filtered_records.empty:
-        st.sidebar.warning("No records match the selected filters.")
-        st.warning(
-            "No telemetry windows found for the selected turbine and category filters."
+    model, model_meta = load_trained_model(preferred_type=model_type_choice)
+    if isinstance(model_meta, dict):
+        st.sidebar.success(
+            f"Loaded: Epoch {model_meta.get('epoch', 1)} (Val F1: {model_meta.get('val_f1', 0.0):.3f})"
         )
+    else:
+        st.sidebar.warning(f"Model unavailable: {model_meta}")
+
+    st.sidebar.markdown("---")
+    st.sidebar.subheader("Asset & Timeframe Filter")
+
+    # Farm filter
+    farm_filter = st.sidebar.selectbox("Wind Farm", ["All", "Penmanshiel", "Kelmarsh"])
+    filtered_df = df_all if farm_filter == "All" else df_all[df_all["wind_farm"] == farm_filter]
+
+    # Fault class filter
+    classes_avail = ["All"] + sorted(filtered_df["fault_class"].unique().tolist())
+    fault_filter = st.sidebar.selectbox("Fault Category", classes_avail)
+    if fault_filter != "All":
+        filtered_df = filtered_df[filtered_df["fault_class"] == fault_filter]
+
+    # Turbine filter
+    turbines_avail = ["All"] + sorted(filtered_df["turbine_id"].unique().tolist())
+    turbine_filter = st.sidebar.selectbox("Turbine Asset", turbines_avail)
+    if turbine_filter != "All":
+        filtered_df = filtered_df[filtered_df["turbine_id"] == turbine_filter]
+
+    if filtered_df.empty:
+        st.warning("No records match the active filter criteria.")
         return
 
-    st.sidebar.info(
-        f"**{len(filtered_records)}** of **{len(df_all_records)}** windows match filters "
-        f"({filtered_records['turbine_id'].nunique()} turbine(s))."
+    # Record selector
+    record_options = filtered_df["record_id"].tolist()
+    record_format = {
+        r: f"{r} | {filtered_df[filtered_df['record_id'] == r]['turbine_id'].iloc[0]} | {filtered_df[filtered_df['record_id'] == r]['fault_class'].iloc[0]}"
+        for r in record_options
+    }
+    selected_rec_id = st.sidebar.selectbox(
+        "Monitored Record ID",
+        record_options,
+        format_func=lambda r: record_format.get(r, r),
     )
 
-    # ------------------ TIMEFRAME SELECTOR ------------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("4. Timeframe / Window Selector")
+    rec_row = df_all[df_all["record_id"] == selected_rec_id].iloc[0]
+    cur_telemetry = telemetry_data[selected_rec_id]
 
-    window_records = filtered_records.sort_values("start_time").to_dict("records")
-    window_ids = [r["record_id"] for r in window_records]
+    # ------------------ GROUND TRUTH CALCULATION ------------------
+    raw_signals = cur_telemetry[SIGNAL_ORDER].values
+    gt_fault_class = str(rec_row["fault_class"])
 
-    # Quick Navigation Buttons
-    nav_col1, nav_col2, nav_col3, nav_col4, nav_col5 = st.sidebar.columns(5)
-    curr_idx = st.session_state.get("nav_window_idx", 0)
-    if curr_idx >= len(window_ids):
-        curr_idx = 0
-
-    with nav_col1:
-        if st.button("⏮️", help="First window"):
-            curr_idx = 0
-            st.session_state["nav_window_idx"] = curr_idx
-    with nav_col2:
-        if st.button("◀️", help="Previous window"):
-            curr_idx = max(0, curr_idx - 1)
-            st.session_state["nav_window_idx"] = curr_idx
-    with nav_col3:
-        if st.button("🎲", help="Random window"):
-            curr_idx = random.randint(0, len(window_ids) - 1)
-            st.session_state["nav_window_idx"] = curr_idx
-    with nav_col4:
-        if st.button("▶️", help="Next window"):
-            curr_idx = min(len(window_ids) - 1, curr_idx + 1)
-            st.session_state["nav_window_idx"] = curr_idx
-    with nav_col5:
-        if st.button("⏭️", help="Last window"):
-            curr_idx = len(window_ids) - 1
-            st.session_state["nav_window_idx"] = curr_idx
-
-    # Format window selector dropdown
-    def format_window_label(rec_id: str) -> str:
-        row = filtered_records[filtered_records["record_id"] == rec_id].iloc[0]
-        start_str = row["start_time"].strftime("%Y-%m-%d %H:%M")
-        fc_icon = FAULT_ICONS.get(row["fault_class"], "📌")
-        return f"{rec_id} | {row['turbine_id']} | {start_str} | {fc_icon} {row['fault_class']}"
-
-    selected_record_id = st.sidebar.selectbox(
-        "Select Specific Timeframe:",
-        window_ids,
-        index=curr_idx,
-        format_func=format_window_label,
-    )
-    st.session_state["nav_window_idx"] = window_ids.index(selected_record_id)
-
-    # Signal visualization options
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("5. Signal Options")
-    unit_mode = st.sidebar.radio(
-        "Telemetry Scaling:",
-        [
-            "Physical Engineering Units",
-            "Normalized (Z-Score)",
-            "Min-Max Normalized [0, 1]",
-        ],
-        index=0,
-    )
-    visible_signals = st.sidebar.multiselect(
-        "Active Sensor Channels:",
-        SIGNAL_NAMES,
-        default=SIGNAL_NAMES,
-        format_func=lambda s: f"{s} ({SIGNAL_META[s].unit})",
-    )
-
-    # ------------------ OPEN-TSLM INFERENCE ENGINE ------------------
-    st.sidebar.markdown("---")
-    st.sidebar.subheader("6. OpenTSLM Model Engine")
-    model_choice = st.sidebar.selectbox(
-        "Active Diagnostic Architecture:",
-        [
-            "OpenTSLM-SoftPrompt (LoRA GPT-2 + Subsystem Triage)",
-            "OpenTSLM Encoder Baseline (5-Class)",
-        ],
-        index=0,
-        help="Toggle between the generative OpenTSLM-SoftPrompt dual-head model (with autoregressive natural language explanation & 12-subsystem triage) and the 5-class encoder baseline.",
-    )
-    pref_type = "softprompt" if "SoftPrompt" in model_choice else "encoder"
-    model, model_meta = load_trained_model(preferred_type=pref_type)
-
-    if model is not None and isinstance(model_meta, dict):
-        st.sidebar.success(
-            f"Active: **{model_meta.get('type', 'encoder').upper()}** (Epoch {model_meta.get('epoch', 1)}, Val F1: {model_meta.get('val_f1', 0.0):.3f})"
-        )
+    # Directly map canonical fault class from TimeNet record annotations to subsystem and triage
+    if gt_fault_class in COARSE_FAULT_TO_SUBSYSTEM:
+        gt_subsystem = COARSE_FAULT_TO_SUBSYSTEM[gt_fault_class]
+    elif gt_fault_class in SUBSYSTEM_CLASSES:
+        gt_subsystem = gt_fault_class
     else:
-        st.sidebar.warning(f"Model checkpoint status: {model_meta}")
+        gt_subsystem = "normal_operation"
 
-    # ------------------ CURRENT WINDOW DATA ------------------
-    rec_row = filtered_records[
-        filtered_records["record_id"] == selected_record_id
-    ].iloc[0]
-    cur_telemetry = telemetry_dict[selected_record_id]
+    gt_triage = "normal" if gt_subsystem == "normal_operation" else "fault"
 
-    # Ground Truth Extraction via canonical rules and physical telemetry cross-validation
-    sig_order = [
-        "wind_speed",
-        "power",
-        "rotor_speed",
-        "generator_rpm",
-        "gear_oil_temp",
-        "gen_bearing_temp",
-        "pitch_angle",
-        "drivetrain_accel",
+    telemetry_flags = check_telemetry_anomalies(raw_signals)
+    active_flags = [
+        k.replace("_", " ").title()
+        for k, v in telemetry_flags.items()
+        if isinstance(v, bool) and v is True
     ]
-    raw_signals = cur_telemetry[sig_order].values
 
-    gt_events = []
-    if rec_row.get("rationale"):
-        gt_events.append(
-            {
-                "description": str(rec_row["rationale"]),
-                "event_code": 0,
-                "status_category": str(rec_row["fault_class"]),
-            }
-        )
-
-    gt_res = classify_window_events(
-        events_in_window=gt_events,
-        signals_arr=raw_signals,
-        mode="subsystem",
-    )
-    gt_subsystem = gt_res.subsystem
-    gt_triage = gt_res.triage
-    gt_severity = gt_res.severity
-    gt_telemetry_flags = gt_res.telemetry_flags
-
-    # Model inference (discrete + generative)
+    # ------------------ MODEL INFERENCE ------------------
     model_inference = None
-    model_pred_name = None
-    model_probs = None
-    model_confidence = 0.0
     if model is not None and isinstance(model_meta, dict):
         model_inference = run_model_inference(
             model=model,
             telemetry_df=cur_telemetry,
             meta_or_device=model_meta,
         )
-        pred_idx = model_inference.pred_idx
-        model_pred_name = model_inference.pred_name
-        model_probs = model_inference.probs
-        model_confidence = float(model_probs[pred_idx])
-
-    # Structured TSLM supervisory target output
-    tslm_report = format_tslm_explanation(rec_row, cur_telemetry)
 
     # ------------------ HEADER DASHBOARD ------------------
-    st.title("⚡ Wind Turbine SCADA & Diagnostic Visualizer")
+    st.title("⚡ Wind Turbine SCADA Diagnostic Visualizer")
     st.caption(
-        f"**Active Fleet Asset:** `{rec_row['turbine_id']}` ({rec_row['wind_farm']} Wind Farm, {rec_row['turbine_model']}) &nbsp;|&nbsp; "
-        f"**Monitored Window:** `{selected_record_id}` &nbsp;|&nbsp; "
+        f"**Asset:** `{rec_row['turbine_id']}` ({rec_row['wind_farm']} Wind Farm, {rec_row['turbine_model']}) &nbsp;|&nbsp; "
+        f"**Window ID:** `{selected_rec_id}` &nbsp;|&nbsp; "
         f"**Timespan:** `{rec_row['start_time'].strftime('%Y-%m-%d %H:%M')}` to `{rec_row['end_time'].strftime('%Y-%m-%d %H:%M')} UTC` (12 Hours)"
     )
 
-    # ------------------ TABS ------------------
-    tab_diag, tab_telemetry, tab_power, tab_compare, tab_fleet, tab_raw = st.tabs(
-        [
-            "🧠 Timeframe Diagnosis & Model Output",
-            "📈 Multi-Sensor Telemetry (8 Channels)",
-            "🌪️ Power Curve & Aerodynamics",
-            "⚖️ Baseline Comparison",
-            "🛰️ Fleet & Farm Overview",
-            "💾 Raw Telemetry & Export",
-        ]
-    )
+    # Top KPI summary bar
+    kpi1, kpi2, kpi3, kpi4 = st.columns(4)
+    with kpi1:
+        st.metric("Wind Speed (Mean)", f"{cur_telemetry['wind_speed'].mean():.1f} m/s", f"Max {cur_telemetry['wind_speed'].max():.1f} m/s")
+    with kpi2:
+        st.metric("Active Power (Mean)", f"{cur_telemetry['power'].mean():.1f} kW", f"Peak {cur_telemetry['power'].max():.1f} kW")
+    with kpi3:
+        st.metric("Gearbox Oil Temp", f"{cur_telemetry['gear_oil_temp'].iloc[-1]:.1f} °C", f"Δ {cur_telemetry['gear_oil_temp'].iloc[-1] - cur_telemetry['gear_oil_temp'].iloc[0]:+.1f} °C")
+    with kpi4:
+        st.metric("Generator Bearing Temp", f"{cur_telemetry['gen_bearing_temp'].max():.1f} °C", f"Max vibe: {cur_telemetry['drivetrain_accel'].max():.1f} mm/s²")
 
-    # ==================== TAB 1: TIMEFRAME DIAGNOSIS & MODEL PIPELINE ====================
-    with tab_diag:
-        st.subheader("🔬 Diagnostic Pipeline: Data ➔ Processing ➔ Model Output")
-        st.caption(
-            "Clear breakdown of the three stages: (1) What is in the raw SCADA data, "
-            "(2) What the neural network ingested and processed, and (3) What the model output."
-        )
+    st.markdown("---")
 
-        # High-level pipeline stage summary banner
-        st.markdown(
-            """
-            <div style="background: linear-gradient(90deg, rgba(59,130,246,0.12) 0%, rgba(139,92,246,0.12) 50%, rgba(16,185,129,0.12) 100%); border: 1px solid rgba(148, 163, 184, 0.25); border-radius: 12px; padding: 16px; margin-bottom: 24px;">
-                <div style="display: grid; grid-template-columns: 1fr auto 1fr auto 1fr; align-items: center; gap: 8px; text-align: center;">
-                    <div style="padding: 8px;">
-                        <span style="font-size: 1.3rem;">📥</span>
-                        <div style="font-weight: 800; font-size: 0.85rem; color: #3B82F6; text-transform: uppercase;">1. In the Data</div>
-                        <div style="font-size: 0.75rem; color: gray; margin-top: 2px;">Raw 10-min SCADA + Ground Truth Operator Event</div>
-                    </div>
-                    <div style="font-size: 1.4rem; color: gray;">➔</div>
-                    <div style="padding: 8px;">
-                        <span style="font-size: 1.3rem;">⚙️</span>
-                        <div style="font-weight: 800; font-size: 0.85rem; color: #8B5CF6; text-transform: uppercase;">2. Processed by Model</div>
-                        <div style="font-size: 0.75rem; color: gray; margin-top: 2px;">(1, 72, 8) Z-Score Normalized Tensor + Patch Tokens</div>
-                    </div>
-                    <div style="font-size: 1.4rem; color: gray;">➔</div>
-                    <div style="padding: 8px;">
-                        <span style="font-size: 1.3rem;">📤</span>
-                        <div style="font-weight: 800; font-size: 0.85rem; color: #10B981; text-transform: uppercase;">3. Output from Model</div>
-                        <div style="font-size: 0.75rem; color: gray; margin-top: 2px;">Softmax Predictions + 5-Part TSLM Diagnostic Report</div>
-                    </div>
-                </div>
-            </div>
-            """,
-            unsafe_allow_html=True,
-        )
+    # ------------------ STAGE 1: BENCHMARK COMPARISON ------------------
+    st.subheader("🎯 Ground Truth vs Neural Model Benchmark")
 
-        # ------------------ STAGE 1: IN THE DATA ------------------
-        st.markdown("### 📥 Stage 1: What is in the Data?")
-        st.caption(
-            "Raw physical observations and historical SCADA operator logs recorded for this timeframe."
-        )
+    col_gt, col_pred = st.columns(2)
 
-        gt_color = FAULT_COLOR_MAP.get(rec_row["fault_class"], "#3B82F6")
-        gt_icon = FAULT_ICONS.get(rec_row["fault_class"], "📌")
+    with col_gt:
+        st.markdown("##### 🏷️ Verified Historical Ground Truth")
+        st.caption("Derived from verified SCADA fault log records and domain physics:")
 
-        subsystem_color = SUBSYSTEM_COLOR_MAP.get(gt_subsystem, "#3B82F6")
-        subsystem_icon = SUBSYSTEM_ICONS.get(gt_subsystem, "⚙️")
-        triage_color = TRIAGE_COLOR_MAP.get(gt_triage, "#10B981")
-        triage_icon = TRIAGE_ICONS.get(gt_triage, "🟢")
+        gt_sub_icon = SUBSYSTEM_ICONS.get(gt_subsystem, "⚙️")
+        sub_c1, sub_c2 = st.columns(2)
+        with sub_c1:
+            st.metric("Target Subsystem", f"{gt_sub_icon} {gt_subsystem}")
+        with sub_c2:
+            st.metric("Target Triage", gt_triage.upper())
 
-        col_d1, col_d2 = st.columns([1.1, 0.9])
-        with col_d1:
-            st.markdown(
-                f"""
-                <div style="background-color: var(--secondary-background-color); border-left: 5px solid #3B82F6; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px;">
-                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: #3B82F6;">Raw Telemetry Signals Recorded ({len(cur_telemetry)} Timesteps &middot; 8 Channels)</div>
-                    <div style="font-size: 0.85rem; margin-top: 6px; line-height: 1.5;">
-                        &bull; <b>Asset</b>: <code>{rec_row["turbine_id"]}</code> ({rec_row["wind_farm"]} Wind Farm)<br/>
-                        &bull; <b>Hardware Specification</b>: {rec_row["turbine_model"]} (Rated: 2,050 kW, Hub Ht: 59&ndash;70m)<br/>
-                        &bull; <b>Time Window</b>: <code>{rec_row["start_time"].strftime("%Y-%m-%d %H:%M")}</code> to <code>{rec_row["end_time"].strftime("%Y-%m-%d %H:%M")} UTC</code> ({len(cur_telemetry) * 10 / 60:.1f} Hours @ 10-min cadence)<br/>
-                        &bull; <b>Continuous Channels</b>: Wind Speed (m/s), Power (kW), Rotor RPM, Gen RPM, Gear Oil Temp (&deg;C), Bearing Temp (&deg;C), Pitch Angle (&deg;), Vibration (mm/s&sup2;)
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
+        st.markdown(f"**Operator Fault Category**: `{gt_fault_class}`")
+        if rec_row.get("rationale"):
+            st.markdown(f"**Alarm Log / Narrative**: *\"{rec_row['rationale']}\"*")
 
-        with col_d2:
-            st.markdown(
-                f"""
-                <div style="background-color: var(--secondary-background-color); border-left: 5px solid {subsystem_color}; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px;">
-                    <div style="font-size: 0.75rem; text-transform: uppercase; font-weight: 700; color: gray;">Verified SCADA Operator Ground Truth</div>
-                    <div style="display: flex; gap: 8px; align-items: center; margin-top: 4px;">
-                        <span style="font-size: 1.2rem; font-weight: 800; color: {subsystem_color};">{subsystem_icon} {gt_subsystem}</span>
-                        <span style="background-color: {triage_color}22; border: 1px solid {triage_color}; color: {triage_color}; font-size: 0.75rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
-                            {triage_icon} {gt_triage.upper()}
-                        </span>
-                    </div>
-                    <div style="font-size: 0.78rem; color: gray; margin-top: 6px; line-height: 1.4;">
-                        <b>Operator Category</b>: {gt_icon} {rec_row["fault_class"]}<br/>
-                        <b>Logged Alarm / Rationale</b>: <code>{rec_row.get("rationale") or "Nominal generation (No active alarm)"}</code>
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        st.info(
-            "🔒 **Strict Zero-Leakage Challenge Rule**: The alarm message, error code, and status category are "
-            "historical ground truth from the SCADA log. **They are NEVER fed into the model as inputs** — "
-            "they serve strictly as the evaluation answer that the model must discover from the sensors alone."
-        )
-
-        st.markdown("---")
-
-        # ------------------ STAGE 2: PROCESSED BY THE MODEL ------------------
-        st.markdown("### ⚙️ Stage 2: What Was Processed by the Model?")
-        st.caption(
-            "The continuous numerical feature space, patch tokenizer representations, and prompt context ingested by OpenTSLM."
-        )
-
-        p1, p2, p3 = st.columns(3)
-        with p1:
-            st.metric(
-                "Input Tensor Dimensions",
-                f"1 × {len(cur_telemetry)} × 8",
-                "Batch × Steps × Physical Channels",
-            )
-        with p2:
-            st.metric(
-                "Temporal Patch Tokens",
-                f"{len(cur_telemetry) // 4} Tokens",
-                "Conv1d (k=4, s=4, d=256)",
-            )
-        with p3:
-            proj_dim = (
-                768
-                if (model_meta and model_meta.get("type") == "softprompt")
-                else 512
-            )
-            proj_label = (
-                "LLM Soft Prompt Prefix"
-                if (model_meta and model_meta.get("type") == "softprompt")
-                else "LLM Latent Projection"
-            )
-            st.metric(
-                proj_label,
-                f"{proj_dim} Dimensions",
-                "MLP Projector -> GPT-2 Backbone"
-                if (model_meta and model_meta.get("type") == "softprompt")
-                else "2-layer MLP Projector",
-            )
-
-        # Telemetry channel summary table
-        sig_order = [
-            "wind_speed",
-            "power",
-            "rotor_speed",
-            "generator_rpm",
-            "gear_oil_temp",
-            "gen_bearing_temp",
-            "pitch_angle",
-            "drivetrain_accel",
-        ]
-        channel_summary = []
-        for s in sig_order:
-            series = cur_telemetry[s]
-            mu = series.mean()
-            sigma = series.std() + 1e-6
-            channel_summary.append(
-                {
-                    "Sensor Channel": s,
-                    "Unit": SIGNAL_META[s].unit,
-                    "Window Mean": round(float(mu), 2),
-                    "Window Std Dev": round(float(sigma), 2),
-                    "Observed Range [Min, Max]": f"[{series.min():.1f}, {series.max():.1f}]",
-                    "Description": SIGNAL_META[s].description,
-                }
-            )
-
-        with st.expander(
-            "🔍 Inspect Channel Statistics Processed by the Neural Network"
-        ):
-            st.dataframe(
-                pd.DataFrame(channel_summary), use_container_width=True, hide_index=True
-            )
-            st.caption(
-                "Continuous 10-minute SCADA measurements across the 12-hour observation window."
-            )
-
-        if rec_row.get("prompt"):
-            with st.expander(
-                "💬 Inspect Natural Language Prompt Context Ingested with the Tensor"
-            ):
-                st.code(rec_row["prompt"], language="markdown")
-
-        with st.expander(
-            "🔢 Inspect Exact Numerical Tensor Matrix (72 × 8) Fed into PyTorch"
-        ):
-            raw_mat = cur_telemetry[sig_order].values.astype(np.float32)
-            st.dataframe(
-                pd.DataFrame(
-                    raw_mat, columns=sig_order, index=cur_telemetry.index
-                ).round(2),
-                use_container_width=True,
-            )
-
-        st.markdown("---")
-
-        # ------------------ STAGE 3: OUTPUT FROM THE MODEL & TARGET ------------------
-        st.markdown("### 📤 Stage 3: Ground Truth Benchmark vs Live Neural Model Output")
-        st.caption(
-            "Clear, transparent demarcation between verified historical SCADA ground truth and the neural network's live inferences."
-        )
-
-        st.info(
-            "💡 **Demarcation & Zero-Leakage Protocol**:\n\n"
-            "• 🏷️ **Ground Truth (Left Column)**: Derived strictly from Greenbyte operator alarm records and physical SCADA formulas. Specifies what actually happened on the turbine.\n\n"
-            "• 🤖 **Neural Model Live Output (Right Column)**: Generated exclusively from continuous numerical sensor measurements ($1 \\times N \\times 8$). OpenTSLM outputs discrete subsystem predictions, operational triage, and autoregressive Chain-of-Thought diagnostic explanations in real time without seeing any alarm text."
-        )
-
-        col_gt, col_model = st.columns([1.05, 0.95], gap="medium")
-
-        with col_gt:
-            st.markdown(
-                f"""
-                <div style="background-color: var(--secondary-background-color); border: 2px solid #3B82F6; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
-                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                        <span style="font-size: 0.8rem; font-weight: 800; color: #3B82F6; text-transform: uppercase;">
-                            🏷️ Verified Historical Ground Truth
-                        </span>
-                        <span style="background: rgba(59, 130, 246, 0.15); color: #3B82F6; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
-                            SCADA Log + Physics Rules
-                        </span>
-                    </div>
-                    <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                        <div style="background: var(--background-color); padding: 8px 12px; border-radius: 6px; border-left: 4px solid {subsystem_color};">
-                            <div style="font-size: 0.7rem; color: gray; text-transform: uppercase; font-weight: 600;">Ground Truth Subsystem</div>
-                            <div style="font-size: 0.95rem; font-weight: 800; color: {subsystem_color};">{subsystem_icon} {gt_subsystem}</div>
-                        </div>
-                        <div style="background: var(--background-color); padding: 8px 12px; border-radius: 6px; border-left: 4px solid {triage_color};">
-                            <div style="font-size: 0.7rem; color: gray; text-transform: uppercase; font-weight: 600;">Operational Triage</div>
-                            <div style="font-size: 0.95rem; font-weight: 800; color: {triage_color};">{triage_icon} {gt_triage.upper()}</div>
-                        </div>
-                    </div>
-                    <div style="font-size: 0.8rem; line-height: 1.4; color: var(--text-color);">
-                        &bull; <b>Operator Fault Category</b>: {gt_icon} {rec_row["fault_class"]}<br/>
-                        &bull; <b>Historical Alarm / Rationale</b>: <code>{rec_row.get("rationale") or "Nominal generation (No active alarm)"}</code><br/>
-                        &bull; <b>Telemetry Verification Flags</b>: {', '.join(f'<code>{f}</code>' for f in gt_telemetry_flags) if gt_telemetry_flags else '<em>Nominal physical envelope (No sensor flags)</em>'}
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            # Supervisory Target Report (5-line)
-            st.markdown("#### 📋 Rule-Grounded Supervisory Target (Task T1 Standard)")
-            st.caption(
-                "🏷️ **Deterministic Target Specification — NOT generated by model.** "
-                "Defines the engineering rationale benchmark that models are trained to emulate:"
-            )
-            st.markdown(
-                f"""
-                <div style="background-color: var(--secondary-background-color); border: 1px solid rgba(128, 128, 128, 0.2); border-radius: 8px; padding: 14px; margin-bottom: 16px; font-size: 0.85rem;">
-                    <div style="margin-bottom: 10px;">
-                        <span style="color: #3B82F6; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">1. FINDING (Target)</span>
-                        <div style="padding-left: 8px; border-left: 2px solid #3B82F6; margin-top: 2px;">{tslm_report["finding"]}</div>
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <span style="color: #8B5CF6; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">2. EVIDENCE (Target)</span>
-                        <div style="padding-left: 8px; border-left: 2px solid #8B5CF6; margin-top: 2px;">{tslm_report["evidence"]}</div>
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <span style="color: #EF4444; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">3. CAUSE (Target)</span>
-                        <div style="padding-left: 8px; border-left: 2px solid #EF4444; margin-top: 2px;">{tslm_report["cause"]}</div>
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <span style="color: #F59E0B; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">4. IMPACT (Target)</span>
-                        <div style="padding-left: 8px; border-left: 2px solid #F59E0B; margin-top: 2px;">{tslm_report["impact"]}</div>
-                    </div>
-                    <div style="margin-bottom: 10px;">
-                        <span style="color: #10B981; font-weight: 700; text-transform: uppercase; font-size: 0.72rem;">5. ACTION (Target)</span>
-                        <div style="padding-left: 8px; border-left: 2px solid #10B981; margin-top: 2px; font-weight: 500;">{tslm_report["action"]}</div>
-                    </div>
-                    <div style="padding-top: 8px; border-top: 1px dashed rgba(128, 128, 128, 0.3); font-family: monospace; font-weight: 700; color: {subsystem_color};">
-                        Target Answer: <b>{gt_subsystem}</b> ({rec_row['fault_class']})
-                    </div>
-                </div>
-                """,
-                unsafe_allow_html=True,
-            )
-
-        with col_model:
-            if model_inference is not None and model_meta is not None:
-                model_type_label = (
-                    "OpenTSLM-SoftPrompt (LoRA GPT-2)"
-                    if model_inference.model_type == "softprompt"
-                    else "OpenTSLM Encoder (5-Class)"
-                )
-                model_color = (
-                    "#8B5CF6"
-                    if model_inference.model_type == "softprompt"
-                    else "#3B82F6"
-                )
-
-                pred_subsystem = model_inference.parsed_subsystem
-                pred_triage = model_inference.parsed_triage
-                pred_sub_color = SUBSYSTEM_COLOR_MAP.get(
-                    pred_subsystem, "#8B5CF6"
-                )
-                pred_sub_icon = SUBSYSTEM_ICONS.get(pred_subsystem, "🤖")
-                pred_tri_color = TRIAGE_COLOR_MAP.get(pred_triage, "#10B981")
-                pred_tri_icon = TRIAGE_ICONS.get(pred_triage, "🟢")
-
-                is_sub_match = (pred_subsystem == gt_subsystem) or (
-                    model_inference.coarse_fault == rec_row["fault_class"]
-                )
-                sub_badge = "🎯 ACCURATE" if is_sub_match else "⚠️ DISCREPANCY"
-                sub_badge_color = "#10B981" if is_sub_match else "#EF4444"
-
-                is_tri_match = pred_triage.lower() == gt_triage.lower()
-                tri_badge = "🎯 CONCORDANT" if is_tri_match else "⚠️ DIVERGENT"
-                tri_badge_color = "#10B981" if is_tri_match else "#EF4444"
-
-                st.markdown(
-                    f"""
-                    <div style="background-color: var(--secondary-background-color); border: 2px solid {model_color}; border-radius: 10px; padding: 16px; margin-bottom: 16px;">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
-                            <span style="font-size: 0.8rem; font-weight: 800; color: {model_color}; text-transform: uppercase;">
-                                🤖 Live Neural Network Inference
-                            </span>
-                            <span style="background: {model_color}22; color: {model_color}; font-size: 0.72rem; font-weight: 700; padding: 2px 8px; border-radius: 4px;">
-                                {model_type_label} &middot; Epoch {model_meta.get('epoch', 1)}
-                            </span>
-                        </div>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px;">
-                            <div style="background: var(--background-color); padding: 8px 12px; border-radius: 6px; border-left: 4px solid {pred_sub_color};">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="font-size: 0.7rem; color: gray; text-transform: uppercase; font-weight: 600;">Inferred Subsystem</span>
-                                    <span style="font-size: 0.65rem; color: {sub_badge_color}; font-weight: 700;">{sub_badge}</span>
-                                </div>
-                                <div style="font-size: 0.95rem; font-weight: 800; color: {pred_sub_color};">{pred_sub_icon} {pred_subsystem}</div>
-                            </div>
-                            <div style="background: var(--background-color); padding: 8px 12px; border-radius: 6px; border-left: 4px solid {pred_tri_color};">
-                                <div style="display: flex; justify-content: space-between;">
-                                    <span style="font-size: 0.7rem; color: gray; text-transform: uppercase; font-weight: 600;">Inferred Triage</span>
-                                    <span style="font-size: 0.65rem; color: {tri_badge_color}; font-weight: 700;">{tri_badge}</span>
-                                </div>
-                                <div style="font-size: 0.95rem; font-weight: 800; color: {pred_tri_color};">{pred_tri_icon} {pred_triage.upper()}</div>
-                            </div>
-                        </div>
-                        <div style="font-size: 0.78rem; color: gray;">
-                            Classifier Confidence: <b>{model_confidence * 100:.1f}%</b> &nbsp;|&nbsp; Device: <code>{model_meta.get('device', 'cpu')}</code>
-                        </div>
-                    </div>
-                    """,
-                    unsafe_allow_html=True,
-                )
-
-                # Softmax Probability Distribution Bar Chart
-                st.markdown("##### 📊 Neural Softmax Probability Distribution (Live)")
-                prob_classes = model_inference.classes
-                prob_df = pd.DataFrame(
-                    {
-                        "Class": prob_classes,
-                        "Probability": model_inference.probs,
-                    }
-                )
-                prob_df = prob_df.sort_values("Probability", ascending=True).tail(6)
-                fig_prob = px.bar(
-                    prob_df,
-                    x="Probability",
-                    y="Class",
-                    orientation="h",
-                    text=prob_df["Probability"].apply(lambda p: f"{p * 100:.1f}%"),
-                    color="Class",
-                )
-                fig_prob.update_layout(
-                    height=200,
-                    margin={"l": 10, "r": 10, "t": 5, "b": 5},
-                    xaxis={"range": [0, 1.05], "tickformat": ".0%"},
-                    showlegend=False,
-                )
-                st.plotly_chart(fig_prob, use_container_width=True)
-
-                # Live Autoregressively Generated Diagnosis
-                if model_inference.generated_text:
-                    st.markdown(
-                        "##### 💬 Autoregressive Chain-of-Thought Diagnosis (Live LLM)"
-                    )
-                    st.caption(
-                        "🧠 **Generated token-by-token by LoRA GPT-2 conditioned on continuous telemetry soft prompt embeddings:**"
-                    )
-                    st.markdown(
-                        f"""
-                        <div style="background-color: #0F172A; border: 1px solid #334155; border-radius: 8px; padding: 14px; font-family: monospace; font-size: 0.85rem; color: #E2E8F0; line-height: 1.5; white-space: pre-wrap; margin-bottom: 16px;">
-{model_inference.generated_text}
-                        </div>
-                        """,
-                        unsafe_allow_html=True,
-                    )
-                else:
-                    st.info(
-                        "ℹ️ **Discrete Encoder Baseline Active**: The encoder model outputs discrete logits without natural language generation. "
-                        "Select **'OpenTSLM-SoftPrompt'** in the sidebar to activate live autoregressive diagnostic text generation."
-                    )
-            else:
-                st.warning(
-                    "⚠️ No trained OpenTSLM model checkpoint loaded. Train the model using `mk/src/models/train.py`."
-                )
-
-    # ==================== TAB 2: MULTI-SENSOR TELEMETRY ====================
-    with tab_telemetry:
-        st.subheader(
-            f"📈 8-Channel SCADA Telemetry: {selected_record_id} ({rec_row['turbine_id']})"
-        )
-
-        plot_df = cur_telemetry.copy()
-        if unit_mode == "Normalized (Z-Score)":
-            plot_df = (plot_df - plot_df.mean()) / (plot_df.std() + 1e-6)
-        elif unit_mode == "Min-Max Normalized [0, 1]":
-            plot_df = (plot_df - plot_df.min()) / (plot_df.max() - plot_df.min() + 1e-6)
-
-        layout_mode = st.radio(
-            "Visualization Layout:",
-            [
-                "Subsystem Grouped (3 Panels)",
-                "Stacked (All Channels)",
-                "Unified Overlay",
-            ],
-            horizontal=True,
-        )
-
-        if layout_mode == "Subsystem Grouped (3 Panels)":
-            fig_sync = make_subplots(
-                rows=3,
-                cols=1,
-                shared_xaxes=True,
-                vertical_spacing=0.07,
-                subplot_titles=[
-                    "🌬️ Aerodynamics & Generation (Wind Speed, Power, Blade Pitch)",
-                    "⚙️ Mechanical Drive Train (Rotor RPM, Generator RPM, Vibration)",
-                    "🌡️ Thermal Circuits (Gear Oil Temp, Bearing Temp)",
-                ],
-            )
-
-            # Panel 1: Aero
-            for col_name, color in [
-                ("wind_speed", "#3B82F6"),
-                ("power", "#10B981"),
-                ("pitch_angle", "#8B5CF6"),
-            ]:
-                if col_name in visible_signals and col_name in plot_df:
-                    fig_sync.add_trace(
-                        go.Scatter(
-                            x=plot_df.index,
-                            y=plot_df[col_name],
-                            name=f"{col_name} ({SIGNAL_META[col_name].unit})",
-                            line={"color": color, "width": 2},
-                        ),
-                        row=1,
-                        col=1,
-                    )
-
-            # Panel 2: Mech
-            for col_name, color in [
-                ("rotor_speed", "#F59E0B"),
-                ("generator_rpm", "#EC4899"),
-                ("drivetrain_accel", "#EF4444"),
-            ]:
-                if col_name in visible_signals and col_name in plot_df:
-                    fig_sync.add_trace(
-                        go.Scatter(
-                            x=plot_df.index,
-                            y=plot_df[col_name],
-                            name=f"{col_name} ({SIGNAL_META[col_name].unit})",
-                            line={"color": color, "width": 2},
-                        ),
-                        row=2,
-                        col=1,
-                    )
-
-            # Panel 3: Thermal
-            for col_name, color in [
-                ("gear_oil_temp", "#DC2626"),
-                ("gen_bearing_temp", "#D97706"),
-            ]:
-                if col_name in visible_signals and col_name in plot_df:
-                    fig_sync.add_trace(
-                        go.Scatter(
-                            x=plot_df.index,
-                            y=plot_df[col_name],
-                            name=f"{col_name} ({SIGNAL_META[col_name].unit})",
-                            line={"color": color, "width": 2},
-                        ),
-                        row=3,
-                        col=1,
-                    )
-
-            fig_sync.update_layout(
-                height=720,
-                margin={"l": 30, "r": 20, "t": 40, "b": 30},
-                hovermode="x unified",
-            )
-            st.plotly_chart(fig_sync, use_container_width=True)
-
-        elif layout_mode == "Stacked (All Channels)":
-            channels_to_plot = [c for c in visible_signals if c in plot_df]
-            fig_stack = make_subplots(
-                rows=len(channels_to_plot),
-                cols=1,
-                shared_xaxes=True,
-                vertical_spacing=0.03,
-                subplot_titles=[
-                    f"{c} ({SIGNAL_META[c].unit})" for c in channels_to_plot
-                ],
-            )
-            for i, c in enumerate(channels_to_plot):
-                fig_stack.add_trace(
-                    go.Scatter(
-                        x=plot_df.index, y=plot_df[c], name=c, line={"width": 2}
-                    ),
-                    row=i + 1,
-                    col=1,
-                )
-            fig_stack.update_layout(
-                height=160 * len(channels_to_plot),
-                margin={"l": 30, "r": 20, "t": 30, "b": 30},
-                hovermode="x unified",
-            )
-            st.plotly_chart(fig_stack, use_container_width=True)
-
+        if active_flags:
+            flags_str = ", ".join(f"`{f}`" for f in active_flags)
+            st.markdown(f"**Active Physical Excursions**: {flags_str}")
         else:
-            fig_ov = go.Figure()
-            for c in visible_signals:
-                if c in plot_df:
-                    fig_ov.add_trace(
-                        go.Scatter(
-                            x=plot_df.index,
-                            y=plot_df[c],
-                            name=f"{c} ({SIGNAL_META[c].unit})",
-                            line={"width": 2},
-                        )
-                    )
-            fig_ov.update_layout(
-                height=480,
-                margin={"l": 30, "r": 20, "t": 30, "b": 30},
-                hovermode="x unified",
-                title=f"Unified Telemetry Overlay: {selected_record_id}",
-            )
-            st.plotly_chart(fig_ov, use_container_width=True)
+            st.markdown("**Active Physical Excursions**: *Nominal physical envelope (no sensor excursions)*")
 
-        # Statistical Metrics Table
-        st.markdown("#### 📐 Window Telemetry Statistical Metrics")
-        stats_rows = []
-        for c in visible_signals:
-            if c in cur_telemetry:
-                series = cur_telemetry[c]
-                start_v = series.iloc[0]
-                end_v = series.iloc[-1]
-                delta_v = end_v - start_v
-                stats_rows.append(
-                    {
-                        "Signal": c,
-                        "Unit": SIGNAL_META[c].unit,
-                        "Mean": round(float(series.mean()), 2),
-                        "Std Dev": round(float(series.std()), 2),
-                        "Min": round(float(series.min()), 2),
-                        "Median": round(float(series.median()), 2),
-                        "Max": round(float(series.max()), 2),
-                        "Start": round(float(start_v), 2),
-                        "End": round(float(end_v), 2),
-                        "Delta": f"{delta_v:+.2f}",
-                    }
+    with col_pred:
+        st.markdown("##### 🤖 Live Neural Network Inference")
+        if model_inference is not None:
+            pred_subsystem = model_inference.pred_name
+            pred_triage = model_inference.parsed_triage
+            coarse_pred = model_inference.coarse_fault
+
+            # Strict zero-fudge comparison
+            sub_match = pred_subsystem.strip().lower() == gt_subsystem.strip().lower()
+            tri_match = pred_triage.strip().lower() == gt_triage.strip().lower()
+            coarse_match = coarse_pred.strip().lower() == gt_fault_class.strip().lower()
+
+            st.caption(f"Evaluated with **{model_inference.model_type.upper()}** on continuous SCADA telemetry:")
+
+            p_c1, p_c2 = st.columns(2)
+            with p_c1:
+                st.metric(
+                    "Inferred Subsystem",
+                    f"{SUBSYSTEM_ICONS.get(pred_subsystem, '🤖')} {pred_subsystem}",
+                    "MATCH" if sub_match else "MISMATCH",
+                    delta_color="normal" if sub_match else "inverse",
                 )
-        st.dataframe(
-            pd.DataFrame(stats_rows), use_container_width=True, hide_index=True
-        )
-
-    # ==================== TAB 3: POWER CURVE & AERODYNAMICS ====================
-    with tab_power:
-        st.subheader("🌪️ Aerodynamic Performance & Power Curves")
-        st.caption(
-            "Evaluate aerodynamic conversion efficiency against the theoretical Senvion power curve."
-        )
-
-        turbine_model = rec_row["turbine_model"]
-        ws_ref = np.linspace(0, 25, 200)
-        p_ref = compute_theoretical_power(ws_ref, model=turbine_model)
-
-        col_curve, col_corr = st.columns([1.2, 0.8])
-
-        with col_curve:
-            st.markdown(f"#### SCADA Power Curve vs {turbine_model} Theoretical Model")
-            fig_power = go.Figure()
-            # Background cloud from filtered records
-            sample_rids = filtered_records["record_id"].tolist()[:30]
-            bg_dfs = [telemetry_dict[rid].assign(record_id=rid) for rid in sample_rids]
-            if bg_dfs:
-                bg_combined = pd.concat(bg_dfs, ignore_index=True)
-                fig_power.add_trace(
-                    go.Scatter(
-                        x=bg_combined["wind_speed"],
-                        y=bg_combined["power"],
-                        mode="markers",
-                        name="Fleet Context (Filtered)",
-                        marker={"size": 4, "color": "rgba(148, 163, 184, 0.3)"},
-                    )
+            with p_c2:
+                st.metric(
+                    "Inferred Triage",
+                    pred_triage.upper(),
+                    "CONCORDANT" if tri_match else "DIVERGENT",
+                    delta_color="normal" if tri_match else "inverse",
                 )
 
-            # Current window points
-            fig_power.add_trace(
-                go.Scatter(
-                    x=cur_telemetry["wind_speed"],
-                    y=cur_telemetry["power"],
-                    mode="markers+lines",
-                    name=f"Current Window ({rec_row['fault_class']})",
-                    marker={
-                        "size": 8,
-                        "color": FAULT_COLOR_MAP.get(rec_row["fault_class"], "#EF4444"),
-                    },
-                    line={
-                        "color": FAULT_COLOR_MAP.get(rec_row["fault_class"], "#EF4444"),
-                        "width": 1.5,
-                    },
-                )
+            st.markdown(
+                f"**Mapped Operator Class**: `{coarse_pred}` &nbsp; "
+                f"<span class='match-badge {'match-ok' if coarse_match else 'match-fail'}'>{'✅ MATCH' if coarse_match else '❌ MISMATCH'}</span>",
+                unsafe_allow_html=True,
             )
+            st.markdown(f"**Classifier Top-1 Confidence**: `{model_inference.confidence * 100:.1f}%`")
 
-            # Theoretical line
-            fig_power.add_trace(
-                go.Scatter(
-                    x=ws_ref,
-                    y=p_ref,
-                    mode="lines",
-                    name=f"Theoretical {turbine_model} (2050 kW)",
-                    line={"color": "#1E293B", "width": 3, "dash": "dash"},
-                )
-            )
+            # Softmax distribution bar chart
+            prob_df = pd.DataFrame(
+                {"Subsystem": model_inference.classes, "Probability": model_inference.probs}
+            ).sort_values("Probability", ascending=True).tail(5)
 
-            fig_power.update_layout(
-                xaxis_title="Wind Speed (m/s)",
-                yaxis_title="Electrical Active Power (kW)",
-                height=440,
-                margin={"l": 20, "r": 20, "t": 30, "b": 20},
-                legend={"orientation": "h", "y": -0.25, "x": 0.5, "xanchor": "center"},
+            fig_bar = px.bar(
+                prob_df,
+                x="Probability",
+                y="Subsystem",
+                orientation="h",
+                text=prob_df["Probability"].apply(lambda p: f"{p * 100:.1f}%"),
+                color="Subsystem",
+                color_discrete_map=SUBSYSTEM_COLORS,
             )
-            st.plotly_chart(fig_power, use_container_width=True)
-
-        with col_corr:
-            st.markdown("#### Sensor Cross-Correlation Heatmap")
-            corr_mat = cur_telemetry[SIGNAL_NAMES].corr()
-            fig_corr = px.imshow(
-                corr_mat,
-                text_auto=".2f",
-                color_continuous_scale="RdBu_r",
-                zmin=-1,
-                zmax=1,
-            )
-            fig_corr.update_layout(
-                height=440, margin={"l": 20, "r": 20, "t": 30, "b": 20}
-            )
-            st.plotly_chart(fig_corr, use_container_width=True)
-
-    # ==================== TAB 4: BASELINE COMPARISON ====================
-    with tab_compare:
-        st.subheader("⚖️ Selected Window vs Nominal Operating Baseline")
-        st.caption(
-            "Isolate anomalous sensor signatures by comparing against a healthy operating window on the same or sister turbine."
-        )
-
-        # Find healthy normal windows
-        normal_pool = df_all_records[
-            df_all_records["fault_class"] == "Normal Operation"
-        ]
-        same_turb_normals = normal_pool[
-            normal_pool["turbine_id"] == rec_row["turbine_id"]
-        ]
-        baseline_candidates = (
-            same_turb_normals if not same_turb_normals.empty else normal_pool
-        )
-
-        col_b1, col_b2 = st.columns([1.2, 0.8])
-        with col_b1:
-            baseline_rec_id = st.selectbox(
-                "Select Normal Baseline Window:",
-                baseline_candidates["record_id"].tolist(),
-                format_func=lambda rid: (
-                    f"{rid} | {df_all_records.loc[df_all_records['record_id'] == rid, 'turbine_id'].values[0]} | {df_all_records.loc[df_all_records['record_id'] == rid, 'start_time'].values[0]}"
-                ),
-            )
-        with col_b2:
-            comp_signal = st.selectbox("Signal to Compare:", SIGNAL_NAMES, index=0)
-
-        baseline_df = telemetry_dict[baseline_rec_id]
-        cur_vals = cur_telemetry[comp_signal].values
-        base_vals = baseline_df[comp_signal].values
-        residual = cur_vals - base_vals
-        elapsed_min = np.arange(len(cur_vals)) * 10
-
-        fig_comp = go.Figure()
-        fig_comp.add_trace(
-            go.Scatter(
-                x=elapsed_min,
-                y=cur_vals,
-                name=f"Current: {selected_record_id} ({rec_row['fault_class']})",
-                line={
-                    "color": FAULT_COLOR_MAP.get(rec_row["fault_class"], "#EF4444"),
-                    "width": 2.5,
-                },
-            )
-        )
-        fig_comp.add_trace(
-            go.Scatter(
-                x=elapsed_min,
-                y=base_vals,
-                name=f"Baseline: {baseline_rec_id} (Normal Operation)",
-                line={"color": "#10B981", "width": 2, "dash": "dash"},
-            )
-        )
-        fig_comp.add_trace(
-            go.Bar(
-                x=elapsed_min,
-                y=residual,
-                name="Residual Deviation (Current - Baseline)",
-                marker={"color": "rgba(148, 163, 184, 0.4)"},
-            )
-        )
-        fig_comp.update_layout(
-            title=f"12-Hour Trajectory Comparison: {SIGNAL_META[comp_signal].description} ({SIGNAL_META[comp_signal].unit})",
-            xaxis_title="Elapsed Time (Minutes)",
-            yaxis_title=f"{comp_signal} ({SIGNAL_META[comp_signal].unit})",
-            height=460,
-            hovermode="x unified",
-            margin={"l": 20, "r": 20, "t": 40, "b": 20},
-        )
-        st.plotly_chart(fig_comp, use_container_width=True)
-
-    # ==================== TAB 5: FLEET & FARM OVERVIEW ====================
-    with tab_fleet:
-        st.subheader("🛰️ Dual Wind Farm Fleet Overview (Penmanshiel & Kelmarsh)")
-
-        # Summary KPIs
-        k1, k2, k3, k4, k5, k6 = st.columns(6)
-        with k1:
-            st.metric("Total Turbines", "20 Assets", "14 Pen + 6 Kel")
-        with k2:
-            st.metric("Total Windows", f"{len(df_all_records):,}", "600 Windows")
-        with k3:
-            st.metric(
-                "Total Telemetry Time",
-                f"{len(df_all_records) * 12:,} Hours",
-                "7,200 Monitored Hrs",
-            )
-        with k4:
-            anom_count = len(
-                df_all_records[df_all_records["fault_class"] != "Normal Operation"]
-            )
-            st.metric(
-                "Fault Windows",
-                f"{anom_count}",
-                f"{anom_count / len(df_all_records) * 100:.1f}%",
-            )
-        with k5:
-            st.metric("SCADA Channels", "8 Continuous", "10-min Resolution")
-        with k6:
-            st.metric("Fault Classes", "5 Categories", "Zero-leakage split")
-
-        st.markdown("---")
-        col_f1, col_f2 = st.columns(2)
-
-        with col_f1:
-            st.markdown("#### 🏴󠁧󠁢󠁳󠁣󠁴󠁿 Penmanshiel Wind Farm (14 Turbines)")
-            st.caption(
-                "Training & In-Domain Testbed (Scottish Borders, UK) &middot; Senvion MM82 (2.05 MW)"
-            )
-            ct_pen = pd.crosstab(
-                df_all_records[df_all_records["wind_farm"] == "Penmanshiel"][
-                    "turbine_id"
-                ],
-                df_all_records[df_all_records["wind_farm"] == "Penmanshiel"][
-                    "fault_class"
-                ],
-            )
-            fig_pen = px.bar(
-                ct_pen.reset_index(),
-                x="turbine_id",
-                y=list(ct_pen.columns),
-                title="Penmanshiel Windows per Turbine",
-                color_discrete_map=FAULT_COLOR_MAP,
-                barmode="stack",
-            )
-            fig_pen.update_layout(
-                height=340,
-                margin={"l": 10, "r": 10, "t": 30, "b": 10},
+            fig_bar.update_layout(
+                height=160,
+                margin={"l": 10, "r": 10, "t": 5, "b": 5},
+                xaxis={"range": [0, 1.05], "tickformat": ".0%"},
                 showlegend=False,
             )
-            st.plotly_chart(fig_pen, use_container_width=True)
+            st.plotly_chart(fig_bar, use_container_width=True)
+        else:
+            st.info("No model loaded.")
 
-        with col_f2:
-            st.markdown("#### 🇬🇧 Kelmarsh Wind Farm (6 Turbines)")
-            st.caption(
-                "Unseen Cross-Farm Zero-Shot Demo (Northamptonshire, UK) &middot; Senvion MM92 (2.05 MW)"
-            )
-            ct_kel = pd.crosstab(
-                df_all_records[df_all_records["wind_farm"] == "Kelmarsh"]["turbine_id"],
-                df_all_records[df_all_records["wind_farm"] == "Kelmarsh"][
-                    "fault_class"
-                ],
-            )
-            fig_kel = px.bar(
-                ct_kel.reset_index(),
-                x="turbine_id",
-                y=list(ct_kel.columns),
-                title="Kelmarsh Windows per Turbine",
-                color_discrete_map=FAULT_COLOR_MAP,
-                barmode="stack",
-            )
-            fig_kel.update_layout(
-                height=340, margin={"l": 10, "r": 10, "t": 30, "b": 10}
-            )
-            st.plotly_chart(fig_kel, use_container_width=True)
-
-        # Static specifications table
+    # ------------------ STAGE 2: AUTOREGRESSIVE DIAGNOSTIC NARRATIVE ------------------
+    if model_inference is not None and model_inference.generated_text:
         st.markdown("---")
-        st.markdown("#### ⚙️ Fleet Technical Specifications")
-        fleet_specs = pd.DataFrame(
-            [
-                {
-                    "Wind Farm": "Penmanshiel",
-                    "Location": "Scottish Borders, UK",
-                    "Turbine Count": 14,
-                    "Turbine Model": "Senvion MM82",
-                    "Rotor Diameter": "82 meters",
-                    "Hub Height": "59 - 70 meters",
-                    "Rated Power": "2,050 kW (2.05 MW)",
-                    "Role": "Model Training & In-Domain Benchmark",
-                },
-                {
-                    "Wind Farm": "Kelmarsh",
-                    "Location": "Northamptonshire, UK",
-                    "Turbine Count": 6,
-                    "Turbine Model": "Senvion MM92",
-                    "Rotor Diameter": "92 meters",
-                    "Hub Height": "70 meters",
-                    "Rated Power": "2,050 kW (2.05 MW)",
-                    "Role": "Unseen Cross-Farm Zero-Shot Demo",
-                },
-            ]
+        st.subheader("💬 Autoregressive Chain-of-Thought Diagnosis (Live LLM)")
+        st.caption("Token-by-token narrative generated by LoRA GPT-2 conditioned on continuous telemetry soft prompt embeddings:")
+        st.code(model_inference.generated_text, language="yaml")
+
+    # 5-Part Supervisory Target Expander
+    with st.expander("📋 View Deterministic Supervisory Target Report (Task T1 Standard)"):
+        tslm_report = format_tslm_explanation(rec_row, cur_telemetry)
+        t_c1, t_c2 = st.columns([1, 4])
+        with t_c1:
+            st.write("**1. FINDING**")
+            st.write("**2. EVIDENCE**")
+            st.write("**3. CAUSE**")
+            st.write("**4. IMPACT**")
+            st.write("**5. ACTION**")
+        with t_c2:
+            st.write(tslm_report["finding"])
+            st.write(tslm_report["evidence"])
+            st.write(tslm_report["cause"])
+            st.write(tslm_report["impact"])
+            st.write(tslm_report["action"])
+
+    # ------------------ STAGE 3: SYNCHRONIZED SCADA TELEMETRY ------------------
+    st.markdown("---")
+    st.subheader("📈 Multi-Sensor SCADA Telemetry (8 Channels)")
+
+    fig_telem = make_subplots(
+        rows=4,
+        cols=1,
+        shared_xaxes=True,
+        vertical_spacing=0.06,
+        subplot_titles=[
+            "Active Power (kW) & Wind Speed (m/s)",
+            "Rotor Speed (RPM) & Generator RPM",
+            "Gearbox Oil & Generator Bearing Temperatures (°C)",
+            "Blade Pitch Angle (°) & Drivetrain Acceleration (mm/s²)",
+        ],
+    )
+
+    t_idx = cur_telemetry.index
+
+    # Subplot 1: Power & Wind
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["power"], name="Power (kW)", line=dict(color="#3B82F6", width=2)), row=1, col=1)
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["wind_speed"], name="Wind Speed (m/s)", line=dict(color="#10B981", dash="dash")), row=1, col=1)
+
+    # Subplot 2: Speeds
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["rotor_speed"], name="Rotor Speed (RPM)", line=dict(color="#8B5CF6")), row=2, col=1)
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["generator_rpm"], name="Generator RPM", line=dict(color="#06B6D4")), row=2, col=1)
+
+    # Subplot 3: Temperatures
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["gear_oil_temp"], name="Gear Oil Temp (°C)", line=dict(color="#EF4444", width=2)), row=3, col=1)
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["gen_bearing_temp"], name="Gen Bearing Temp (°C)", line=dict(color="#F59E0B")), row=3, col=1)
+
+    # Subplot 4: Pitch & Vibration
+    if "pitch_angle_a" in cur_telemetry:
+        fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["pitch_angle_a"], name="Blade A Pitch (°)", line=dict(color="#EC4899")), row=4, col=1)
+        fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["pitch_angle_b"], name="Blade B Pitch (°)", line=dict(color="#A855F7", dash="dot")), row=4, col=1)
+        fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["pitch_angle_c"], name="Blade C Pitch (°)", line=dict(color="#6366F1", dash="dash")), row=4, col=1)
+    elif "pitch_angle" in cur_telemetry:
+        fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["pitch_angle"], name="Pitch Angle (°)", line=dict(color="#EC4899")), row=4, col=1)
+    fig_telem.add_trace(go.Scatter(x=t_idx, y=cur_telemetry["drivetrain_accel"], name="Vibration (mm/s²)", line=dict(color="#64748B")), row=4, col=1)
+
+    fig_telem.update_layout(height=650, margin=dict(l=40, r=40, t=40, b=20), hovermode="x unified")
+    st.plotly_chart(fig_telem, use_container_width=True)
+
+    # ------------------ STAGE 4: EMPIRICAL POWER CURVE ------------------
+    st.markdown("---")
+    st.subheader("🌪️ Empirical Power Curve & Aerodynamic Envelope")
+
+    p_col1, p_col2 = st.columns([3, 2])
+    with p_col1:
+        # Generate theoretical reference
+        ws_ref = np.linspace(0.0, 25.0, 100)
+        p_ref = compute_theoretical_power(ws_ref, model=rec_row["turbine_model"])
+
+        pitch_series = cur_telemetry["pitch_angle_a"] if "pitch_angle_a" in cur_telemetry else cur_telemetry.get("pitch_angle", cur_telemetry["power"])
+
+        fig_pc = go.Figure()
+        fig_pc.add_trace(
+            go.Scatter(
+                x=ws_ref,
+                y=p_ref,
+                mode="lines",
+                name="Theoretical Curve (Senvion 2.05MW)",
+                line=dict(color="#64748B", dash="dash", width=2),
+            )
         )
-        st.dataframe(fleet_specs, use_container_width=True, hide_index=True)
-
-    # ==================== TAB 6: RAW DATA & EXPORT ====================
-    with tab_raw:
-        st.subheader("💾 Raw Telemetry Matrix & Annotation Metadata")
-
-        col_r1, col_r2 = st.columns([1, 1])
-
-        with col_r1:
-            st.markdown(
-                f"#### Telemetry Matrix: `{selected_record_id}` (72 timesteps × 8 sensors)"
+        fig_pc.add_trace(
+            go.Scatter(
+                x=cur_telemetry["wind_speed"],
+                y=cur_telemetry["power"],
+                mode="markers",
+                name="Observed 10-Min Telemetry",
+                marker=dict(
+                    size=7,
+                    color=pitch_series,
+                    colorscale="Viridis",
+                    colorbar=dict(title="Pitch (°)"),
+                    showscale=True,
+                ),
             )
-            st.dataframe(cur_telemetry, use_container_width=True)
+        )
+        fig_pc.update_layout(
+            xaxis_title="Wind Speed (m/s)",
+            yaxis_title="Active Power (kW)",
+            height=380,
+            margin=dict(l=40, r=40, t=20, b=20),
+        )
+        st.plotly_chart(fig_pc, use_container_width=True)
 
-            csv_bytes = cur_telemetry.to_csv().encode("utf-8")
-            st.download_button(
-                label=f"📥 Download {selected_record_id} SCADA CSV",
-                data=csv_bytes,
-                file_name=f"{selected_record_id}_telemetry.csv",
-                mime="text/csv",
-            )
+    with p_col2:
+        st.markdown("**Window Statistical Telemetry Distribution**")
+        channel_rows = [
+            ("Hub Wind Speed (m/s)", "wind_speed", ".1f"),
+            ("Active Power (kW)", "power", ".1f"),
+            ("Rotor Speed (RPM)", "rotor_speed", ".1f"),
+            ("Generator Speed (RPM)", "generator_rpm", ".0f"),
+            ("Gear Oil Temp (°C)", "gear_oil_temp", ".1f"),
+            ("Gen Bearing Temp (°C)", "gen_bearing_temp", ".1f"),
+        ]
+        if "pitch_angle_a" in cur_telemetry:
+            channel_rows.extend([
+                ("Blade A Pitch (°)", "pitch_angle_a", ".1f"),
+                ("Blade B Pitch (°)", "pitch_angle_b", ".1f"),
+                ("Blade C Pitch (°)", "pitch_angle_c", ".1f"),
+            ])
+        elif "pitch_angle" in cur_telemetry:
+            channel_rows.append(("Pitch Angle (°)", "pitch_angle", ".1f"))
 
-        with col_r2:
-            st.markdown("#### Record Annotations & Model Metadata")
-            st.json(
-                {
-                    "record_id": rec_row["record_id"],
-                    "wind_farm": rec_row["wind_farm"],
-                    "turbine_id": rec_row["turbine_id"],
-                    "turbine_model": rec_row["turbine_model"],
-                    "fault_class": rec_row["fault_class"],
-                    "start_time": str(rec_row["start_time"]),
-                    "end_time": str(rec_row["end_time"]),
-                    "sampling_frequency": "10 minutes",
-                    "steps": WINDOW_STEPS,
-                    "model_prediction": model_pred_name,
-                    "model_confidence": f"{model_confidence * 100:.1f}%",
-                    "prompt": rec_row.get("prompt"),
-                    "tslm_structured_output": tslm_report,
-                }
-            )
+        channel_rows.append(("Drivetrain Vibration (mm/s²)", "drivetrain_accel", ".1f"))
+        if "ambient_temp" in cur_telemetry:
+            channel_rows.append(("Ambient Temp (°C)", "ambient_temp", ".1f"))
+
+        stats_df = pd.DataFrame(
+            {
+                "SCADA Channel": [r[0] for r in channel_rows],
+                "Mean": [f"{cur_telemetry[r[1]].mean():{r[2]}}" for r in channel_rows],
+                "Min": [f"{cur_telemetry[r[1]].min():{r[2]}}" for r in channel_rows],
+                "Max": [f"{cur_telemetry[r[1]].max():{r[2]}}" for r in channel_rows],
+            }
+        )
+        st.dataframe(stats_df, hide_index=True, use_container_width=True)
 
 
 if __name__ == "__main__":

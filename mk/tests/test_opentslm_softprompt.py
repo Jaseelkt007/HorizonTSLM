@@ -142,3 +142,36 @@ def test_softprompt_data_collator(gpt2_tokenizer):
     assert batch["labels"].shape == batch["input_ids"].shape
     # Check that initial prompt tokens are masked to -100
     assert (batch["labels"][:, 0] == -100).all()
+
+
+def test_hierarchical_triage_gate(gpt2_tokenizer):
+    """Verify that hierarchical triage gate and anomaly threshold route predictions properly."""
+    model = OpenTSLMSoftPromptForTurbineDiagnosis(
+        in_channels=8,
+        patch_size=4,
+        d_encoder=64,
+        d_llm=768,
+        num_classes=len(SUBSYSTEM_CLASSES),
+        num_encoder_layers=2,
+        lora_r=4,
+        anomaly_threshold=0.35,
+    )
+
+    B = 3
+    x = torch.randn(B, WINDOW_STEPS_24H, 8)
+    labels = torch.tensor([0, 1, 4])  # Normal, Gearbox, Pitch
+
+    outputs = model(time_series=x, label_indices=labels)
+    assert "triage_logits" in outputs
+    assert "subsystem_logits" in outputs
+    assert outputs["triage_logits"].shape == (B, 2)
+    assert outputs["subsystem_logits"].shape == (B, len(SUBSYSTEM_CLASSES) - 1)
+    assert outputs["cls_logits"].shape == (B, len(SUBSYSTEM_CLASSES))
+    assert outputs["loss"] > 0.0
+
+    # Test generation routing
+    diag = model.generate_diagnosis(x[0], tokenizer=gpt2_tokenizer, max_new_tokens=10)
+    assert "parsed_subsystem" in diag
+    assert "parsed_triage" in diag
+    assert diag["parsed_triage"] in ["normal", "fault"]
+

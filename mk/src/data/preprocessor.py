@@ -164,24 +164,41 @@ def extract_scada_features(df: pd.DataFrame) -> tuple[pd.DataFrame, pd.DatetimeI
                     extracted["gear_oil_temp"] = vals
                     break
 
-    # 2. Pitch angle fallback: check Blade angle B, C, or estimate aerodynamic pitch from wind speed
-    if extracted["pitch_angle"].isna().all() or (extracted["pitch_angle"] == 0.0).all():
-        pitch_found = False
-        for alt in ["Blade angle (pitch position) B", "Blade angle (pitch position) C", "Pitch angle"]:
+    # 2. Pitch angle fallbacks: Blade A primary, B and C filled from available alternatives
+    for pitch_col, alts in [
+        ("pitch_angle_a", ["Blade angle (pitch position) B", "Blade angle (pitch position) C", "Pitch angle"]),
+        ("pitch_angle_b", ["Blade angle (pitch position) A", "Blade angle (pitch position) C", "Pitch angle"]),
+        ("pitch_angle_c", ["Blade angle (pitch position) A", "Blade angle (pitch position) B", "Pitch angle"]),
+    ]:
+        if extracted[pitch_col].isna().all() or (extracted[pitch_col] == 0.0).all():
+            found = False
+            for alt in alts:
+                alt_col = next((c for c in df.columns if c.startswith(alt) and "Max" not in c and "Min" not in c and "Std" not in c), None)
+                if alt_col is not None:
+                    vals = pd.to_numeric(df[alt_col], errors="coerce").to_numpy()
+                    if not np.isnan(vals).all() and not (vals == 0.0).all():
+                        extracted[pitch_col] = vals
+                        found = True
+                        break
+            if not found:
+                # Aerodynamic control curve estimate
+                w = extracted["wind_speed"].to_numpy()
+                p = extracted["power"].to_numpy()
+                est_pitch = np.where(w > 12.0, (w - 12.0) * 3.5, 0.5)
+                est_pitch = np.where((w > 4.0) & (p < 5.0), 88.0, est_pitch)
+                extracted[pitch_col] = est_pitch
+
+    # 3. Ambient temperature fallback: use nacelle interior or a constant 12°C if unavailable
+    if "ambient_temp" in extracted.columns and (extracted["ambient_temp"].isna().all() or (extracted["ambient_temp"] == 0.0).all()):
+        for alt in ["Nacelle temperature", "Ambient temperature (converter)"]:
             alt_col = next((c for c in df.columns if c.startswith(alt) and "Max" not in c and "Min" not in c and "Std" not in c), None)
             if alt_col is not None:
                 vals = pd.to_numeric(df[alt_col], errors="coerce").to_numpy()
-                if not np.isnan(vals).all() and not (vals == 0.0).all():
-                    extracted["pitch_angle"] = vals
-                    pitch_found = True
+                if not np.isnan(vals).all():
+                    extracted["ambient_temp"] = vals
                     break
-        if not pitch_found:
-            # Aerodynamic control curve estimate
-            w = extracted["wind_speed"].to_numpy()
-            p = extracted["power"].to_numpy()
-            est_pitch = np.where(w > 12.0, (w - 12.0) * 3.5, 0.5)
-            est_pitch = np.where((w > 4.0) & (p < 5.0), 88.0, est_pitch)
-            extracted["pitch_angle"] = est_pitch
+        else:
+            extracted["ambient_temp"] = 12.0  # temperate-climate default
 
     # Forward fill missing values then backward fill
     extracted = extracted.ffill().bfill().fillna(0.0)
@@ -559,37 +576,61 @@ def check_telemetry_anomalies(signals_arr: np.ndarray | None) -> dict[str, Any]:
         "high_gen_bearing_temp": False,
         "high_vibration": False,
         "power_trip": False,
+        "high_pitch_asymmetry": False,
         "max_gear_oil_temp": 0.0,
         "max_gen_bearing_temp": 0.0,
         "max_vibe": 0.0,
         "gear_temp_delta": 0.0,
+        "max_pitch_spread": 0.0,
+        "ambient_temp": 12.0,
+        "gear_oil_over_ambient": 0.0,
     }
     if signals_arr is None or signals_arr.size == 0 or signals_arr.shape[-1] < 8:
         return flags
 
-    # Channels: 0: wind, 1: power, 2: rotor, 3: gen_rpm, 4: gear_oil, 5: gen_bearing, 6: pitch, 7: vibe
+    # Channels: 0:wind, 1:power, 2:rotor, 3:gen_rpm, 4:gear_oil, 5:gen_bearing,
+    #           6:pitch_a, 7:pitch_b, 8:pitch_c, 9:vibe, 10:ambient_temp
+    n_ch = signals_arr.shape[-1]
     wind = signals_arr[:, 0]
     power = signals_arr[:, 1]
     gear_oil = signals_arr[:, 4]
     gen_bearing = signals_arr[:, 5]
-    pitch = signals_arr[:, 6]
-    vibe = signals_arr[:, 7]
+    pitch_a = signals_arr[:, 6]
+    # Use channels 7/8 if present (11-channel), else fall back to pitch_a
+    pitch_b = signals_arr[:, 7] if n_ch > 7 else pitch_a
+    pitch_c = signals_arr[:, 8] if n_ch > 8 else pitch_a
+    vibe = signals_arr[:, 9] if n_ch > 9 else signals_arr[:, 7]
+    ambient = signals_arr[:, 10] if n_ch > 10 else np.full_like(gear_oil, 12.0)
 
     flags["max_gear_oil_temp"] = float(np.nanmax(gear_oil))
     flags["max_gen_bearing_temp"] = float(np.nanmax(gen_bearing))
     flags["max_vibe"] = float(np.nanmax(vibe))
     flags["gear_temp_delta"] = float(gear_oil[-1] - gear_oil[0])
+    flags["ambient_temp"] = float(np.nanmean(ambient))
 
-    if flags["max_gear_oil_temp"] > 65.0 or flags["gear_temp_delta"] > 18.0:
+    # Thermal anomaly thresholds adjusted relative to ambient (removes seasonal aliasing)
+    ambient_mean = flags["ambient_temp"]
+    gear_over_ambient = flags["max_gear_oil_temp"] - ambient_mean
+    flags["gear_oil_over_ambient"] = gear_over_ambient
+
+    if flags["max_gear_oil_temp"] > 65.0 or flags["gear_temp_delta"] > 18.0 or gear_over_ambient > 52.0:
         flags["high_gear_oil_temp"] = True
     if flags["max_gen_bearing_temp"] > 70.0:
         flags["high_gen_bearing_temp"] = True
     if flags["max_vibe"] > 120.0:
         flags["high_vibration"] = True
 
-    # Detect power collapse: wind > 4 m/s while power < 5 kW and pitch > 75 deg in trailing steps
+    # Inter-blade pitch asymmetry: max spread across A/B/C blades at each timestep
+    pitch_stack = np.stack([pitch_a, pitch_b, pitch_c], axis=0)  # (3, T)
+    pitch_spread = np.nanmax(pitch_stack, axis=0) - np.nanmin(pitch_stack, axis=0)  # (T,)
+    max_spread = float(np.nanmax(pitch_spread))
+    flags["max_pitch_spread"] = max_spread
+    if max_spread > 5.0:  # >5° inter-blade divergence is abnormal
+        flags["high_pitch_asymmetry"] = True
+
+    # Detect power collapse: wind > 4 m/s while power < 5 kW and pitch_a > 75 deg in trailing steps
     if len(wind) >= 6:
-        if np.nanmean(wind[-6:]) > 4.0 and np.nanmean(power[-6:]) < 5.0 and np.nanmean(pitch[-6:]) > 75.0:
+        if np.nanmean(wind[-6:]) > 4.0 and np.nanmean(power[-6:]) < 5.0 and np.nanmean(pitch_a[-6:]) > 75.0:
             if np.nanmax(power[: max(1, len(power) // 2)]) > 100.0:  # previously generating
                 flags["power_trip"] = True
 
@@ -606,7 +647,7 @@ def classify_window_events(
 
     Parameters:
         events_in_window: List of status event dictionaries occurring in the window (or via events kwarg).
-        signals_arr: Optional (N, 8) array of continuous telemetry channels.
+        signals_arr: Optional (N, 11) array of continuous telemetry channels.
         mode: Label space for primary (label_idx, label_name): "coarse" (5 classes) or "subsystem" (13 classes).
         events: Alias for events_in_window for flexible keyword invocation.
 
@@ -631,6 +672,11 @@ def classify_window_events(
             severity = "WARNING"
         elif telemetry_flags.get("high_vibration"):
             subsystem = "structural_overspeed"
+            coarse_name = "Pitch / Aerodynamic Fault"
+            triage = "fault"
+            severity = "WARNING"
+        elif telemetry_flags.get("high_pitch_asymmetry"):
+            subsystem = "pitch_system"
             coarse_name = "Pitch / Aerodynamic Fault"
             triage = "fault"
             severity = "WARNING"
@@ -911,8 +957,18 @@ def build_cot_narrative(
     end_gear_temp = float(signals_arr[-1, 4])
     gear_temp_delta = end_gear_temp - start_gear_temp
     max_gen_bearing = float(np.max(signals_arr[:, 5]))
-    mean_pitch = float(np.mean(signals_arr[:, 6]))
-    max_vibe = float(np.max(signals_arr[:, 7]))
+    n_ch = signals_arr.shape[-1]
+    # Pitch: mean of A/B/C when available; channel indices 6/7/8
+    pitch_a = signals_arr[:, 6]
+    pitch_b = signals_arr[:, 7] if n_ch > 7 else pitch_a
+    pitch_c = signals_arr[:, 8] if n_ch > 8 else pitch_a
+    mean_pitch = float(np.mean((pitch_a + pitch_b + pitch_c) / 3.0))
+    pitch_spread = float(np.nanmax(np.max(np.stack([pitch_a, pitch_b, pitch_c], axis=0), axis=0) -
+                                   np.min(np.stack([pitch_a, pitch_b, pitch_c], axis=0), axis=0)))
+    vibe = signals_arr[:, 9] if n_ch > 9 else signals_arr[:, 7]
+    max_vibe = float(np.max(vibe))
+    ambient = signals_arr[:, 10] if n_ch > 10 else np.full_like(pitch_a, 12.0)
+    mean_ambient = float(np.mean(ambient))
 
     # Determine canonical subsystem, coarse fault, and triage
     if label_name in SUBSYSTEM_CLASSES:
@@ -1123,43 +1179,76 @@ def generate_synthetic_scada_windows(
             # Synthesize realistic time series
             duration_hrs = WINDOW_STEPS * 10.0 / 60.0
             t = np.linspace(0, duration_hrs, WINDOW_STEPS)
+
+            # Ambient temperature: seasonal sine + diurnal variation + noise
+            day_of_year = ((start_t - base_time).days % 365)
+            seasonal_offset = 10.0 * np.sin(2 * np.pi * day_of_year / 365)  # +/-10°C seasonal
+            diurnal = 3.0 * np.sin(2 * np.pi * t / 24.0)
+            ambient_temp = 12.0 + seasonal_offset + diurnal + np.random.normal(0, 0.5, WINDOW_STEPS)
+
             wind_speed = np.clip(np.random.normal(8.0, 2.0) + np.sin(t / 2) * 1.5 + np.random.normal(0, 0.3, WINDOW_STEPS), 2.0, 22.0)
 
-            # Power curve: P approx 0.5 * rho * A * Cp * v^3 capped at 2050 kW (Senvion MM82/MM92)
+            # Power curve: P ≈ 0.5 * rho * A * Cp * v^3 capped at 2050 kW (Senvion MM82/MM92)
             power = np.clip(np.where(wind_speed < 3.0, 0.0, np.minimum(2050.0, (wind_speed / 11.5) ** 3 * 2050.0)), 0, 2050)
             power += np.random.normal(0, 25.0, WINDOW_STEPS)
 
             rotor_speed = np.where(power > 50, 10.0 + (power / 2050.0) * 5.0 + np.random.normal(0, 0.2, WINDOW_STEPS), 2.0)
             gen_rpm = rotor_speed * 105.0 + np.random.normal(0, 5.0, WINDOW_STEPS)
 
-            # Thermal models with time lag
-            base_temp = 55.0 + (power / 2050.0) * 15.0
-            gear_oil_temp = base_temp + np.random.normal(0, 0.5, WINDOW_STEPS)
-            gen_bearing_temp = 50.0 + (power / 2050.0) * 20.0 + np.random.normal(0, 0.5, WINDOW_STEPS)
+            # Thermal models with time lag, referenced to ambient for thermal aliasing removal
+            base_excess = 43.0 + (power / 2050.0) * 15.0  # gear_oil excess above ambient
+            gear_oil_temp = ambient_temp + base_excess + np.random.normal(0, 0.5, WINDOW_STEPS)
+            gen_bearing_temp = ambient_temp + 38.0 + (power / 2050.0) * 20.0 + np.random.normal(0, 0.5, WINDOW_STEPS)
 
-            pitch_angle = np.where(wind_speed > 12.0, (wind_speed - 12.0) * 3.5, 0.5) + np.random.normal(0, 0.1, WINDOW_STEPS)
+            # Aerodynamic pitch control curve: all 3 blades nominally identical + small independent noise
+            pitch_base = np.where(wind_speed > 12.0, (wind_speed - 12.0) * 3.5, 0.5)
+            pitch_angle_a = pitch_base + np.random.normal(0, 0.15, WINDOW_STEPS)
+            pitch_angle_b = pitch_base + np.random.normal(0, 0.15, WINDOW_STEPS)
+            pitch_angle_c = pitch_base + np.random.normal(0, 0.15, WINDOW_STEPS)
+
             drivetrain_accel = 15.0 + (rotor_speed / 15.0) * 25.0 + np.random.normal(0, 2.0, WINDOW_STEPS)
 
             events = []
-            if label_idx == 1:  # Gearbox Overheating
-                gear_oil_temp += np.linspace(0, 28.0, WINDOW_STEPS)  # temperature ramps up to 88C
+            if label_idx == 1:  # Gearbox Overheating — progressive lubrication degradation
+                gear_oil_temp += np.linspace(0, 35.0, WINDOW_STEPS)  # ramp to ~+35°C excess
+                # Add subtle oscillation to mimic oil circulation pump cycling
+                gear_oil_temp += 2.0 * np.sin(t * 0.8) * np.linspace(0.5, 1.0, WINDOW_STEPS)
                 events.append({"start": end_t - datetime.timedelta(hours=2), "message": "High gearbox oil temperature warning", "status": "Warning", "code": "1910"})
-            elif label_idx == 2:  # Generator Bearing Anomaly
-                gen_bearing_temp += np.linspace(0, 32.0, WINDOW_STEPS)
+            elif label_idx == 2:  # Generator Bearing Anomaly — thermal runaway
+                gen_bearing_temp += np.linspace(0, 38.0, WINDOW_STEPS)
+                # Slight vibration increase as bearing degrades
+                drivetrain_accel += np.linspace(0, 15.0, WINDOW_STEPS) + np.random.exponential(5.0, WINDOW_STEPS)
                 events.append({"start": end_t - datetime.timedelta(hours=1), "message": "Generator bearing temperature trip warning", "status": "Warning", "code": "2910"})
-            elif label_idx == 3:  # Pitch fault
-                pitch_angle += np.sin(t * 5) * 8.0
-                drivetrain_accel += np.random.exponential(45.0, WINDOW_STEPS)
+            elif label_idx == 3:  # Pitch System Fault — blade asymmetry (one blade runs away)
+                # Pick one faulty blade; others stay normal — creates clear inter-blade spread
+                faulty_blade = np.random.choice([0, 1, 2])
+                asymmetry_start = int(WINDOW_STEPS * 0.3)  # fault develops partway through window
+                runaway_profile = np.zeros(WINDOW_STEPS)
+                runaway_profile[asymmetry_start:] = np.linspace(0, np.random.uniform(8.0, 18.0), WINDOW_STEPS - asymmetry_start)
+                runaway_profile += np.random.normal(0, 0.3, WINDOW_STEPS)
+                if faulty_blade == 0:
+                    pitch_angle_a += runaway_profile
+                elif faulty_blade == 1:
+                    pitch_angle_b += runaway_profile
+                else:
+                    pitch_angle_c += runaway_profile
+                # Resulting power dip and vibration from rotor imbalance
+                power[asymmetry_start:] *= np.linspace(1.0, 0.85, WINDOW_STEPS - asymmetry_start)
+                drivetrain_accel[asymmetry_start:] += np.random.exponential(30.0, WINDOW_STEPS - asymmetry_start)
                 events.append({"start": end_t - datetime.timedelta(minutes=30), "message": "Pitch symmetry error / high vibration", "status": "Warning", "code": "3100"})
             elif label_idx == 4:  # Trip / Outage
                 cut = int(WINDOW_STEPS * 0.7)
                 power[cut:] = 0.0
                 rotor_speed[cut:] = 0.5
                 gen_rpm[cut:] = 0.0
-                pitch_angle[cut:] = 89.0
+                pitch_angle_a[cut:] = 89.0
+                pitch_angle_b[cut:] = 89.0
+                pitch_angle_c[cut:] = 89.0
                 events.append({"start": start_t + datetime.timedelta(minutes=cut * 10), "message": "Emergency stop nacelle", "status": "Stop", "code": "20", "iec_category": "Forced outage"})
 
-            # Pack 8 channels: shape (72, 8)
+            # Pack 11 channels: shape (WINDOW_STEPS, 11)
+            # Order: wind(0), power(1), rotor(2), gen_rpm(3), gear_oil(4), gen_bearing(5),
+            #        pitch_a(6), pitch_b(7), pitch_c(8), drivetrain_accel(9), ambient_temp(10)
             signals_mat = np.stack(
                 [
                     wind_speed,
@@ -1168,8 +1257,11 @@ def generate_synthetic_scada_windows(
                     gen_rpm,
                     gear_oil_temp,
                     gen_bearing_temp,
-                    pitch_angle,
+                    pitch_angle_a,
+                    pitch_angle_b,
+                    pitch_angle_c,
                     drivetrain_accel,
+                    ambient_temp,
                 ],
                 axis=-1,
             ).astype(np.float32)

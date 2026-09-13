@@ -625,13 +625,21 @@ def main():
             )
 
             # Aero
-            for col_name, color in [("wind_speed", "#3B82F6"), ("power", "#10B981"), ("pitch_angle", "#8B5CF6")]:
+            for col_name, color in [
+                ("wind_speed", "#3B82F6"),
+                ("power", "#10B981"),
+                ("pitch_angle_a", "#8B5CF6"),
+                ("pitch_angle_b", "#A855F7"),
+                ("pitch_angle_c", "#6366F1"),
+                ("pitch_angle", "#8B5CF6"),
+            ]:
                 if col_name in visible_signals and col_name in plot_df:
+                    unit_str = SIGNAL_META[col_name].unit if col_name in SIGNAL_META else "deg"
                     fig_sync.add_trace(
                         go.Scatter(
                             x=plot_df.index,
                             y=plot_df[col_name],
-                            name=f"{col_name} ({SIGNAL_META[col_name].unit})",
+                            name=f"{col_name} ({unit_str})",
                             line={"color": color, "width": 2},
                         ),
                         row=1,
@@ -827,14 +835,21 @@ def main():
             )
             fig_alarm_time.add_hline(y=70.0, line_dash="dash", line_color="orange", annotation_text="70°C Threshold")
         elif rec_row["fault_class"] == "Pitch / Aerodynamic Fault":
-            fig_alarm_time.add_trace(
-                go.Scatter(
-                    x=telemetry_df.index,
-                    y=telemetry_df["pitch_angle"],
-                    name="Pitch Angle (°)",
-                    line={"color": "#8B5CF6", "width": 2},
-                )
-            )
+            for p_col, p_name, p_clr in [
+                ("pitch_angle_a", "Pitch Blade A (°)", "#8B5CF6"),
+                ("pitch_angle_b", "Pitch Blade B (°)", "#A855F7"),
+                ("pitch_angle_c", "Pitch Blade C (°)", "#6366F1"),
+                ("pitch_angle", "Pitch Angle (°)", "#8B5CF6"),
+            ]:
+                if p_col in telemetry_df:
+                    fig_alarm_time.add_trace(
+                        go.Scatter(
+                            x=telemetry_df.index,
+                            y=telemetry_df[p_col],
+                            name=p_name,
+                            line={"color": p_clr, "width": 2},
+                        )
+                    )
             fig_alarm_time.add_trace(
                 go.Scatter(
                     x=telemetry_df.index,

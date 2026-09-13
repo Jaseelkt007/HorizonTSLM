@@ -11,6 +11,7 @@ from torch.utils.data import DataLoader, Dataset, Sampler, WeightedRandomSampler
 try:
     from mk.src.data.preprocessor import TelemetryWindow
     from mk.src.data.schemas import (
+        COARSE_FAULT_TO_SUBSYSTEM,
         FAULT_CLASS_TO_IDX,
         FAULT_CLASSES,
         IDX_TO_FAULT_CLASS,
@@ -24,11 +25,13 @@ try:
         SELECTED_SIGNALS,
         SUBSYSTEM_CLASS_TO_IDX,
         SUBSYSTEM_CLASSES,
+        SUBSYSTEM_TO_COARSE_FAULT,
         StructuredLMTarget,
     )
 except ImportError:
     from src.data.preprocessor import TelemetryWindow
     from src.data.schemas import (
+        COARSE_FAULT_TO_SUBSYSTEM,
         FAULT_CLASS_TO_IDX,
         FAULT_CLASSES,
         IDX_TO_FAULT_CLASS,
@@ -40,6 +43,7 @@ except ImportError:
         PENMANSHIEL_VAL_TURBINES,
         SUBSYSTEM_CLASS_TO_IDX,
         SUBSYSTEM_CLASSES,
+        SUBSYSTEM_TO_COARSE_FAULT,
     )
 
 
@@ -88,11 +92,20 @@ class OpenTSLMWindDataset(Dataset):
                 # Cache label for rapid balanced sampling
                 label_name = "Normal Operation" if target_mode == "coarse" else "normal_operation"
                 for task in sample.get("tasks", []):
-                    if hasattr(task, "target"):
-                        if target_mode == "subsystem" and task.target in SUBSYSTEM_CLASS_TO_IDX:
-                            label_name = task.target
-                        elif target_mode == "coarse" and task.target in FAULT_CLASS_TO_IDX:
-                            label_name = task.target
+                    if hasattr(task, "target") and task.target:
+                        target_str = str(task.target).strip()
+                        if target_mode == "subsystem":
+                            if target_str in SUBSYSTEM_CLASS_TO_IDX:
+                                label_name = target_str
+                            elif target_str in COARSE_FAULT_TO_SUBSYSTEM:
+                                label_name = COARSE_FAULT_TO_SUBSYSTEM[target_str]
+                            elif target_str in FAULT_CLASS_TO_IDX:
+                                label_name = COARSE_FAULT_TO_SUBSYSTEM.get(target_str, "normal_operation")
+                        else:
+                            if target_str in FAULT_CLASS_TO_IDX:
+                                label_name = target_str
+                            elif target_str in SUBSYSTEM_TO_COARSE_FAULT:
+                                label_name = SUBSYSTEM_TO_COARSE_FAULT[target_str]
                 if target_mode == "subsystem":
                     self.labels.append(SUBSYSTEM_CLASS_TO_IDX.get(label_name, 0))
                 else:
@@ -109,15 +122,15 @@ class OpenTSLMWindDataset(Dataset):
         raw_idx = self.indices[i]
         sample = self.raw_torch_dataset[raw_idx]
 
-        # Stack the 8 channels into (72, 8) tensor
-        series_tuple = sample["series"]  # tuple of 8 tensors of shape (72,)
-        time_series_tensor = torch.stack(series_tuple, dim=-1).float()  # (72, 8)
+        # Stack the 11 channels into (WINDOW_STEPS, 11) tensor
+        series_tuple = sample["series"]  # tuple of 11 tensors of shape (WINDOW_STEPS,)
+        time_series_tensor = torch.stack(series_tuple, dim=-1).float()  # (WINDOW_STEPS, 11)
 
         # Extract AnswerTask and ClassificationTask
         prompt = ""
         rationale = ""
         action = ""
-        label_name = "Normal Operation"
+        label_name = "Normal Operation" if self.target_mode == "coarse" else "normal_operation"
         turbine_id = "Turbine"
 
         for anno in sample["annotations"]:
@@ -129,24 +142,42 @@ class OpenTSLMWindDataset(Dataset):
                 prompt = task.prompt or ""
                 rationale = task.rationale or ""
                 action = task.target or ""
-            elif hasattr(task, "target") and task.target in FAULT_CLASS_TO_IDX:
-                label_name = task.target
+            elif hasattr(task, "target") and task.target:
+                target_str = str(task.target).strip()
+                if self.target_mode == "subsystem":
+                    if target_str in SUBSYSTEM_CLASS_TO_IDX:
+                        label_name = target_str
+                    elif target_str in COARSE_FAULT_TO_SUBSYSTEM:
+                        label_name = COARSE_FAULT_TO_SUBSYSTEM[target_str]
+                    elif target_str in FAULT_CLASS_TO_IDX:
+                        label_name = COARSE_FAULT_TO_SUBSYSTEM.get(target_str, "normal_operation")
+                else:
+                    if target_str in FAULT_CLASS_TO_IDX:
+                        label_name = target_str
+                    elif target_str in SUBSYSTEM_TO_COARSE_FAULT:
+                        label_name = SUBSYSTEM_TO_COARSE_FAULT[target_str]
 
         # Composite answer for OpenTSLM training: rationale + diagnosis + action
-        full_answer = f"Rationale: {rationale}\nRecommendation: {action}"
-
-        label_idx = FAULT_CLASS_TO_IDX.get(label_name, 0)
+        if self.target_mode == "subsystem":
+            subsystem = label_name
+            triage = "normal" if subsystem == "normal_operation" else "fault"
+            full_answer = f"Triage: {triage}\nSubsystem: {subsystem}\nRationale: {rationale}\nRecommendation: {action}\nAnswer: {subsystem}"
+            label_idx = SUBSYSTEM_CLASS_TO_IDX.get(label_name, 0)
+        else:
+            full_answer = f"Rationale: {rationale}\nRecommendation: {action}"
+            label_idx = FAULT_CLASS_TO_IDX.get(label_name, 0)
 
         return {
             "record_id": sample["record_id"],
             "turbine_id": turbine_id,
-            "time_series": time_series_tensor,  # shape (72, 8)
+            "time_series": time_series_tensor,  # shape (WINDOW_STEPS, 11)
             "pre_prompt": prompt,
             "rationale": rationale,
             "action": action,
             "answer": full_answer,
             "label_idx": label_idx,
             "label_name": label_name,
+            "structured_target": full_answer,
         }
 
 
@@ -464,6 +495,7 @@ def get_softprompt_dataloaders(
     batch_size: int = 4,
     dataset_id: str = PENMANSHIEL_DATASET_ID,
     target_mode: Literal["coarse", "subsystem"] = "subsystem",
+    balanced: bool = False,
 ) -> tuple[DataLoader, DataLoader, DataLoader]:
     """Build dataloaders prepared with OpenTSLMSoftPromptDataCollator for generative training."""
     train_ds = OpenTSLMWindDataset(split="train", dataset_id=dataset_id, target_mode=target_mode)
@@ -472,7 +504,25 @@ def get_softprompt_dataloaders(
 
     collator = OpenTSLMSoftPromptDataCollator(tokenizer=tokenizer)
 
-    train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collator)
+    if balanced and len(train_ds) > 0:
+        train_labels = train_ds.get_labels()
+        num_classes = len(SUBSYSTEM_CLASSES) if target_mode == "subsystem" else len(FAULT_CLASSES)
+        sample_weights = compute_sample_weights(train_labels, num_classes=num_classes)
+        train_sampler = WeightedRandomSampler(
+            weights=sample_weights,
+            num_samples=len(train_labels),
+            replacement=True,
+        )
+        train_loader = DataLoader(
+            train_ds,
+            batch_size=batch_size,
+            sampler=train_sampler,
+            shuffle=False,
+            collate_fn=collator,
+        )
+    else:
+        train_loader = DataLoader(train_ds, batch_size=batch_size, shuffle=True, collate_fn=collator)
+
     val_loader = DataLoader(val_ds, batch_size=batch_size, shuffle=False, collate_fn=collator)
     test_loader = DataLoader(test_ds, batch_size=batch_size, shuffle=False, collate_fn=collator)
 
