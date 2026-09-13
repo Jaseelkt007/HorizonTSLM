@@ -122,6 +122,7 @@ class TurbineQADataset(QADataset):
     )  # t1 early warning; t3 post-hoc explanation derived from the 1 h positives
     answer_mode: str = "label"  # label: "Answer: ..." only (MVP); evidence: rule-based reasoning first (stage 2)
     evidence_sentences: int = 3
+    series_stats: str = "basic"  # basic: mean/std in the channel text; rich: + first 6 h, 6 h before the end, last hour
     registry = None
     _rows: list[dict[str, Any]] | None = None
 
@@ -168,8 +169,21 @@ class TurbineQADataset(QADataset):
     def _get_text_time_series_prompt_list(self, row) -> list[TextTimeSeriesPrompt]:
         prompts = []
         for name in CHANNEL_NAMES:
-            z, mean, std = z_score(row["series"][name])
-            prompts.append(TextTimeSeriesPrompt(series_text(name, mean, std), z))
+            v = row["series"][name]
+            z, mean, std = z_score(v)
+            if self.series_stats == "rich":
+                n = len(v)
+                text = series_text(
+                    name,
+                    mean,
+                    std,
+                    float(np.nanmean(v[: n // 4])),
+                    float(np.nanmean(v[n - 42 : n - 36])),
+                    float(np.nanmean(v[n - 6 :])),
+                )
+            else:
+                text = series_text(name, mean, std)
+            prompts.append(TextTimeSeriesPrompt(text, z))
         return prompts
 
     def _format_sample(self, row):
@@ -213,6 +227,7 @@ def make_dataset_class(name: str, **config) -> type[TurbineQADataset]:
         "answer_mode",
         "evidence_sentences",
         "tasks",
+        "series_stats",
     }
     if bad:
         raise TypeError(f"unknown dataset options {sorted(bad)}")

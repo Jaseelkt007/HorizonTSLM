@@ -54,6 +54,7 @@ DEFAULTS: dict[str, Any] = {
     ],  # t1 early warning (+ t3 post-hoc explanation rows derived from the 1 h positives)
     "answer_mode": "label",  # label (MVP) | evidence (rule-based reasoning before the Answer line)
     "evidence_sentences": 3,
+    "series_stats": "basic",  # rich: first-6h / 6h-before-end / last-hour values in every channel text
     "max_samples": None,  # per split, stratified (smoke runs)
     "horizons": None,  # e.g. [6]
     "dataset_ids": ["cubico/penmanshiel", "cubico/kelmarsh"],
@@ -223,6 +224,7 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         answer_mode=cfg["answer_mode"],
         evidence_sentences=cfg["evidence_sentences"],
         tasks=tuple(cfg["tasks"]),
+        series_stats=cfg["series_stats"],
     )
     sets = {s: DS(s, EOS_TOKEN=eos) for s in ("train", "validation", "test")}
     for s, d in sets.items():

@@ -33,9 +33,22 @@ def pre_prompt(
     )
 
 
-def series_text(channel_name: str, mean: float, std: float) -> str:
+def series_text(
+    channel_name: str,
+    mean: float,
+    std: float,
+    first6h: float | None = None,
+    ago6h: float | None = None,
+    last1h: float | None = None,
+) -> str:
+    """Per-channel description. With the optional window statistics ("rich" mode) the text also states the first
+    6 h mean, the value 6 h before the end and the last-hour mean — the quantities the evidence rules quote — so a
+    model can read them instead of guessing them from the z-scored series. All are computed inside the window."""
     ch = next(c for c in CHANNELS if c.name == channel_name)
-    return f"{ch.description} in {ch.unit_text}, 10-minute means over 24 h, mean {mean:.1f} std {std:.1f}:"
+    base = f"{ch.description} in {ch.unit_text}, 10-minute means over 24 h, mean {mean:.1f} std {std:.1f}"
+    if first6h is not None and ago6h is not None and last1h is not None:
+        base += f", first 6 h {first6h:.1f}, 6 h before the end {ago6h:.1f}, last hour {last1h:.1f}"
+    return base + ":"
 
 
 def answer_label(label: str) -> str:

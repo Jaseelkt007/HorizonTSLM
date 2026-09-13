@@ -69,3 +69,13 @@ def test_samples_follow_the_opentslm_contract():
         "Answer:" not in ex["pre_prompt"].split("End with")[0]
     )  # label never in the prompt
     assert sum(s["label"] != "none" for s in train) == 6
+
+
+def test_rich_series_text_quotes_window_statistics():
+    from turbine_tslm.data.prompts import series_text
+
+    t = series_text("gen_bearing_rear_temperature", 45.0, 3.6, 41.2, 43.0, 47.9)
+    assert t.endswith(
+        "mean 45.0 std 3.6, first 6 h 41.2, 6 h before the end 43.0, last hour 47.9:"
+    )
+    assert series_text("wind_speed", 7.8, 2.4).endswith("mean 7.8 std 2.4:")
