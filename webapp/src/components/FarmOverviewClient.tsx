@@ -14,9 +14,22 @@ import WeatherWidget from "./WeatherWidget";
 
 interface Props {
   windows: WindowSummary[];
+  weatherData?: Record<Farm, { windSpeedMs: number; windDirDeg: number; ambientTempC: number; gustsMs: number }>;
+  profileData?: Record<Farm, {
+    hours: Array<{ hour: string; wind: number; expectedMW: number; actualMW: number; cfPct: number }>;
+    gridMetrics: {
+      energeticAvailabilityPct: number;
+      timeAvailabilityPct: number;
+      mtbfHours: number;
+      mttrHours: number;
+      powerFactor: number;
+      frequencyExcursionHz: number;
+      voltageStepMaxV: number;
+    };
+  }>;
 }
 
-export default function FarmOverviewClient({ windows }: Props) {
+export default function FarmOverviewClient({ windows, weatherData, profileData }: Props) {
   const [selectedFarm, setSelectedFarm] = useState<Farm>("kelmarsh");
   const [consoleTab, setConsoleTab] = useState<"performance" | "maintenance" | "alarms">("performance");
 
@@ -43,6 +56,9 @@ export default function FarmOverviewClient({ windows }: Props) {
     const totalRevenueRisk = latestPerTurbine.reduce((acc, x) => acc + x.impact.revenueAtRiskGbp, 0);
     const totalAvoidedOpex = latestPerTurbine.reduce((acc, x) => acc + x.impact.avoidedOpexGbp, 0);
 
+    const totalPowerKw = latestPerTurbine.reduce((acc, x) => acc + (Number(x.w.facts?.power_last1h) || 0), 0);
+    const totalPowerMW = Math.round((totalPowerKw / 1000) * 10) / 10;
+
     // Fleet health score (100% - penalty for critical/advisory)
     const healthScore = Math.max(65, Math.round(100 - criticalCount * 12 - advisoryCount * 4));
 
@@ -54,12 +70,21 @@ export default function FarmOverviewClient({ windows }: Props) {
       totalLostMWh,
       totalRevenueRisk,
       totalAvoidedOpex,
+      totalPowerMW,
       healthScore,
       latestPerTurbine,
     };
   }, [farmWindows]);
 
   const f = FARM[selectedFarm];
+  const curWeather = weatherData?.[selectedFarm] ?? {
+    windSpeedMs: 12.4,
+    windDirDeg: 235,
+    ambientTempC: 8.5,
+    gustsMs: 15.8,
+  };
+  const curProfile = profileData?.[selectedFarm];
+  const ratedMW = selectedFarm === "kelmarsh" ? "12.3" : "28.7";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
@@ -101,10 +126,10 @@ export default function FarmOverviewClient({ windows }: Props) {
             ● {fleetMetrics.healthScore}% Health
           </span>
           <span className="chip neutral">
-            ⚡ {selectedFarm === "kelmarsh" ? "8.9 / 12.3 MW" : "21.4 / 28.7 MW"} Active
+            ⚡ {fleetMetrics.totalPowerMW} / {ratedMW} MW Active
           </span>
           <span className="chip neutral">
-            💨 {selectedFarm === "kelmarsh" ? "9.8 m/s · 235° SW" : "11.2 m/s · 220° SW"}
+            💨 {curWeather.windSpeedMs} m/s · {curWeather.windDirDeg}°
           </span>
           {fleetMetrics.totalRevenueRisk > 0 && (
             <span
@@ -122,7 +147,7 @@ export default function FarmOverviewClient({ windows }: Props) {
       </div>
 
       {/* 2. Centerpiece: Interactive 3D Plant Map */}
-      <PlantMap3D farm={selectedFarm} windows={windows} />
+      <PlantMap3D farm={selectedFarm} windows={windows} windDirDeg={curWeather.windDirDeg} windSpeedMs={curWeather.windSpeedMs} />
 
       {/* 3. Consolidated Minimalist Operations Console */}
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -140,7 +165,7 @@ export default function FarmOverviewClient({ windows }: Props) {
               aria-pressed={consoleTab === "maintenance"}
               onClick={() => setConsoleTab("maintenance")}
             >
-              Upcoming Maintenance {fleetMetrics.criticalCount > 0 ? `(1 Urgent)` : ""}
+              Upcoming Maintenance {fleetMetrics.criticalCount > 0 ? `(${fleetMetrics.criticalCount} Urgent)` : ""}
             </button>
             <button
               type="button"
@@ -158,21 +183,22 @@ export default function FarmOverviewClient({ windows }: Props) {
         </div>
 
         {consoleTab === "performance" && (
-          <FleetPerformanceCharts farm={selectedFarm} windows={windows} />
+          <FleetPerformanceCharts farm={selectedFarm} profile={curProfile} />
         )}
 
         {consoleTab === "maintenance" && (
           <div className="card" style={{ padding: "16px 20px" }}>
-            <UpcomingMaintenance farm={selectedFarm} />
+            <UpcomingMaintenance farm={selectedFarm} windows={farmWindows} />
           </div>
         )}
 
         {consoleTab === "alarms" && (
           <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
             <WeatherWidget
-              windSpeedMs={selectedFarm === "kelmarsh" ? 13.8 : 11.2}
-              windDirDeg={selectedFarm === "kelmarsh" ? 235 : 220}
-              ambientTempC={selectedFarm === "kelmarsh" ? 8.4 : 7.2}
+              windSpeedMs={curWeather.windSpeedMs}
+              windDirDeg={curWeather.windDirDeg}
+              ambientTempC={curWeather.ambientTempC}
+              gustsMs={curWeather.gustsMs}
             />
             <AlarmLogTable windows={farmWindows} limit={5} />
           </div>
@@ -181,3 +207,4 @@ export default function FarmOverviewClient({ windows }: Props) {
     </div>
   );
 }
+

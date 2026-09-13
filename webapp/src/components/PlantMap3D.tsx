@@ -17,7 +17,10 @@ interface Props {
   farm: Farm;
   windows: WindowSummary[];
   onSelectTurbine?: (turbine: number) => void;
+  windDirDeg?: number;
+  windSpeedMs?: number;
 }
+
 
 // 3D coordinates on ground plane (X, Z)
 const TURBINE_COORDS: Record<Farm, Record<number, [number, number]>> = {
@@ -47,9 +50,11 @@ const TURBINE_COORDS: Record<Farm, Record<number, [number, number]>> = {
   },
 };
 
-export default function PlantMap3D({ farm, windows, onSelectTurbine }: Props) {
+export default function PlantMap3D({ farm, windows, onSelectTurbine, windDirDeg, windSpeedMs }: Props) {
   const mountRef = useRef<HTMLDivElement>(null);
   const [selectedTurbine, setSelectedTurbine] = useState<number>(farm === "kelmarsh" ? 1 : 7);
+  const activeWindDir = windDirDeg ?? 235;
+
 
   const farmWindows = useMemo(() => windows.filter((w) => w.farm === farm), [windows, farm]);
 
@@ -131,8 +136,10 @@ export default function PlantMap3D({ farm, windows, onSelectTurbine }: Props) {
     const nacelleMat = new THREE.MeshStandardMaterial({ color: 0xf8fafc, roughness: 0.3, metalness: 0.2 });
     const bladeMat = new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.25 });
 
-    // Wind direction is 235° SW (convert to radians for nacelle yaw)
-    const windRad = (235 * Math.PI) / 180;
+    // Wind direction (convert to radians for nacelle yaw)
+    const activeWindDir = windDirDeg ?? 235;
+    const windRad = (activeWindDir * Math.PI) / 180;
+
 
     Object.entries(coords).forEach(([tStr, [x, z]]) => {
       const tNum = parseInt(tStr, 10);
@@ -334,10 +341,10 @@ export default function PlantMap3D({ farm, windows, onSelectTurbine }: Props) {
         </div>
 
         <div className={styles.windBadge}>
-          <span className={styles.windArrow} style={{ transform: "rotate(235deg)" }}>
+          <span className={styles.windArrow} style={{ transform: `rotate(${activeWindDir}deg)` }}>
             ⬆
           </span>
-          <span>Prevailing Wind: 235° SW @ 13.8 m/s</span>
+          <span>Prevailing Wind: {activeWindDir}° @ {(windSpeedMs ?? 12.4).toFixed(1)} m/s</span>
         </div>
       </div>
 
@@ -376,15 +383,15 @@ export default function PlantMap3D({ farm, windows, onSelectTurbine }: Props) {
 
           <div className={styles.previewStats}>
             <div className={styles.statBox}>
-              <div className={styles.statLabel}>Subsystem</div>
+              <div className={styles.statLabel}>Active Power</div>
               <div className={styles.statVal} style={{ fontSize: 13 }}>
-                {selectedData.w.pred !== "none" ? cls(selectedData.w.pred) : "Nominal Envelope"}
+                {typeof selectedData.w.facts?.power_last1h === "number" ? `${Math.round(selectedData.w.facts.power_last1h)} kW` : "Nominal"}
               </div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statLabel}>Loss at Risk</div>
-              <div className={styles.statVal}>
-                {selectedData.impact.lostMWh > 0 ? fmtMWh(selectedData.impact.lostMWh) : "0.0 MWh"}
+              <div className={styles.statLabel}>Subsystem Assessment</div>
+              <div className={styles.statVal} style={{ fontSize: 13 }}>
+                {selectedData.w.pred !== "none" ? cls(selectedData.w.pred) : "Nominal Envelope"}
               </div>
             </div>
             <div className={styles.statBox}>
@@ -394,12 +401,13 @@ export default function PlantMap3D({ farm, windows, onSelectTurbine }: Props) {
               </div>
             </div>
             <div className={styles.statBox}>
-              <div className={styles.statLabel}>Lead Time</div>
+              <div className={styles.statLabel}>Forecast Horizon</div>
               <div className={styles.statVal}>
-                {selectedData.impact.leadTimeHours ? `${selectedData.impact.leadTimeHours} h ahead` : "Nominal"}
+                {selectedData.w.pred !== "none" || selectedData.w.score >= 0.35 ? `+${selectedData.w.horizon_h}h lead` : "Clear"}
               </div>
             </div>
           </div>
+
 
           <Link href={`/turbines/${farm}/${selectedTurbine}`} className={styles.previewAction}>
             Step into Turbine Diagnostics <IconArrow />

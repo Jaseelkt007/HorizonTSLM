@@ -20,21 +20,15 @@ export default function AlarmLogTable({ windows, limit = 7 }: Props) {
     .filter((w) => w.pred !== "none" || w.score >= 0.35)
     .map((w) => {
       const isCritical = w.score >= 0.5;
-      const severity = isCritical ? "Critical Alert" : "Advisory Warning";
-      const sub = w.pred !== "none" ? w.pred : "generator_cooling";
-      const code =
-        sub === "generator_cooling"
-          ? "2550"
-          : sub === "structural_overspeed"
-            ? "3120"
-            : sub === "gearbox_lubrication"
-              ? "1420"
-              : "2100";
+      const severity = isCritical ? "Critical Alert" : "Advisory Precursor";
+      const targetPrecursor = w.pred !== "none" ? w.pred : "generator_cooling";
+      const physicalOutcome = w.outcome?.message || (w.gold !== "none" ? cls(w.gold) : "No controller stop");
+
       return {
         w,
         severity,
-        code,
-        message: `SCADA Alarm Precursor: ${cls(sub)}`,
+        precursor: cls(targetPrecursor),
+        physicalOutcome,
       };
     })
     .sort((a, b) => b.w.anchor.localeCompare(a.w.anchor));
@@ -51,8 +45,8 @@ export default function AlarmLogTable({ windows, limit = 7 }: Props) {
     <div className="card" style={{ padding: "16px 20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Live SCADA Event &amp; Alarm Journal</h3>
-          <span className="hint">Controller Status Logs &amp; Telemetry Early Warnings</span>
+          <h3 style={{ margin: 0, fontSize: 16, fontWeight: 600 }}>Predictive Early-Warning Dispatch Journal</h3>
+          <span className="hint">Model Precursor Detections &amp; Actual SCADA Controller Logs</span>
         </div>
         <div className="seg" role="group" aria-label="Severity filter">
           <button type="button" aria-pressed={filterSeverity === "all"} onClick={() => setFilterSeverity("all")}>All ({alarmRows.length})</button>
@@ -67,15 +61,15 @@ export default function AlarmLogTable({ windows, limit = 7 }: Props) {
             <tr>
               <th>Timestamp</th>
               <th>Turbine</th>
-              <th>Status / Severity</th>
-              <th>Fault Code</th>
-              <th>Alarm Precursor Message</th>
+              <th>Dispatch Urgency</th>
+              <th>Detected Precursor</th>
+              <th>Physical Event Followed</th>
               <th>Lead Horizon</th>
               <th className="r">Action</th>
             </tr>
           </thead>
           <tbody>
-            {displayed.map(({ w, severity, code, message }) => {
+            {displayed.map(({ w, severity, precursor, physicalOutcome }) => {
               const isCrit = severity.includes("Critical");
               return (
                 <tr key={w.id}>
@@ -94,8 +88,8 @@ export default function AlarmLogTable({ windows, limit = 7 }: Props) {
                       {severity}
                     </span>
                   </td>
-                  <td className="mono">{code}</td>
-                  <td style={{ fontWeight: 500 }}>{message}</td>
+                  <td style={{ fontWeight: 600, color: "var(--ink)" }}>{precursor}</td>
+                  <td style={{ fontSize: 12.5, color: "var(--ink-2)" }}>{physicalOutcome}</td>
                   <td className="num" style={{ color: isCrit ? "#dc2626" : "var(--ink-2)" }}>
                     +{w.horizon_h} h lead
                   </td>
@@ -113,3 +107,4 @@ export default function AlarmLogTable({ windows, limit = 7 }: Props) {
     </div>
   );
 }
+

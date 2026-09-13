@@ -44,7 +44,7 @@ export default function Sidebar({ model, nWindows }: { model: string; nWindows: 
       </nav>
       <div className={styles.foot}>
         <span>AI SCADA Engine<br /><code>{model}</code></span>
-        <span>Operational Telemetry · Live SCADA Stream</span>
+        <span>Operational Telemetry · 10-min SCADA Records</span>
         <ThemeToggle className={styles.theme} />
       </div>
     </aside>

@@ -44,7 +44,11 @@ export default function WindowView({ w, meta, prev, next }: Props) {
     const m = meta.find((c) => c.name === name)!;
     return { name, label: CHANNEL_SHORT[name] ?? m.label, unit: m.unit, values: w.channels[name], color: SERIES[k] };
   });
-  const event = w.pred !== "none" || w.score >= 0.5 ? { leadMin: w.horizon_h * 60, message: `Model precursor: ${cls(w.pred)}` } : null;
+  const isTripPredicted = w.pred !== "none" || w.score >= 0.5;
+  const event = isTripPredicted
+    ? { leadMin: w.horizon_h * 60, message: `Precursor Risk Horizon: +${w.horizon_h}h (${cls(w.pred)})` }
+    : null;
+
   const impact = computeImpact(w);
 
   return (

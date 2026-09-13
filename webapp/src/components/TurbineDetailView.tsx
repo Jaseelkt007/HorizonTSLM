@@ -3,7 +3,8 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { stateLabel, tcode, tname } from "@/lib/format";
+import { cls, stateLabel, tcode, tname } from "@/lib/format";
+
 import { computeImpact, fmtGbp } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, SERIES } from "@/lib/labels";
 import { fmtDateTime, parseAnchor } from "@/lib/time";
@@ -81,8 +82,9 @@ export default function TurbineDetailView({
   const w = currentRecord;
   const isTripPredicted = w.pred !== "none" || w.score >= 0.5;
   const event = isTripPredicted
-    ? { leadMin: (w.horizon_h || 3) * 60, message: `Trip Risk Horizon (+${w.horizon_h || 3}h)` }
+    ? { leadMin: (w.horizon_h || 3) * 60, message: `Precursor Risk Horizon: +${w.horizon_h || 3}h (${cls(w.pred)})` }
     : null;
+
 
   const series = pinned.map((name, k) => {
     const m = meta.find((c) => c.name === name)!;
@@ -159,8 +161,9 @@ export default function TurbineDetailView({
         {/* Minimalist Inline Vitals & Navigation */}
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
           <span className="chip neutral">
-            ⚡ {typeof w.facts?.power_last1h === "number" ? Math.round(w.facts.power_last1h) : 2040} kW Active
+            ⚡ {typeof w.facts?.power_last1h === "number" ? `${Math.round(w.facts.power_last1h)} kW Active` : "Nominal Active"}
           </span>
+
           <span className="chip neutral">
             📈 {impact.energeticAvailabilityPct}% Availability
           </span>

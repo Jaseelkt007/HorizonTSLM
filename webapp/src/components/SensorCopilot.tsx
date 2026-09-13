@@ -39,36 +39,62 @@ export default function SensorCopilot({
   const totalClaims = activeRecord.claims.length;
   const impact = computeImpact(activeRecord);
 
-  // Auto-generated sensor summary
+  // Dynamic sensor summary grounded in authentic SCADA facts
   const sensorSummary = useMemo(() => {
     const f = activeRecord.facts || {};
-    const p = Math.round(Number(f.power_last1h) || 2040);
-    const w = (Number(f.wind_last1h) || 13.8).toFixed(1);
-    const rearT = Math.round(Number(f.gen_bearing_rear_temperature_now) || 79);
-    const frontT = Math.round(Number(f.gen_bearing_front_temperature_now) || 41);
-    const asym = Math.round(Number(f.bearing_asym_now) || rearT - frontT);
-    const acc = Math.round(Number(f.tower_acc_last1h) || 54);
-    const oilP = (Number(f.oil_pressure_now) || 2.8).toFixed(1);
-    const residual = Math.round(Number(f.residual_last3h) || -45);
+    const p = Math.round(Number(f.power_last1h) || 0);
+    const w = (Number(f.wind_last1h) || 10.0).toFixed(1);
+    const rearT = typeof f.gen_bearing_rear_temperature_now === "number" ? Math.round(f.gen_bearing_rear_temperature_now) : null;
+    const frontT = typeof f.gen_bearing_front_temperature_now === "number" ? Math.round(f.gen_bearing_front_temperature_now) : null;
+    const asym = typeof f.bearing_asym_now === "number" ? Math.round(f.bearing_asym_now) : (rearT != null && frontT != null ? rearT - frontT : null);
+    const statorT = typeof f.stator_temperature_now === "number" ? Math.round(f.stator_temperature_now) : null;
+    const gearT = typeof f.gear_oil_temperature_now === "number" ? Math.round(f.gear_oil_temperature_now) : null;
+    const acc = typeof f.tower_acc_last1h === "number" ? Math.round(f.tower_acc_last1h) : null;
+    const oilP = typeof f.oil_pressure_now === "number" ? Number(f.oil_pressure_now).toFixed(1) : null;
+    const residual = typeof f.residual_last3h === "number" ? Math.round(f.residual_last3h) : null;
+    const pitch = typeof f.pitch_last1h === "number" ? Number(f.pitch_last1h).toFixed(1) : null;
 
     const isAlert = activeRecord.pred !== "none" || activeRecord.score >= 0.5;
 
     if (isAlert) {
+      const pred = activeRecord.pred;
+      let specificDetail = "";
+
+      if (pred === "generator_cooling") {
+        specificDetail = rearT != null
+          ? `Thermal channels indicate elevated temperature: generator rear bearing at ${rearT} °C${asym != null ? ` (${asym} °C hotter than front bearing)` : ""}${statorT != null ? `, stator at ${statorT} °C` : ""}.`
+          : "Thermal telemetry indicates generator cooling degradation under sustained electrical load.";
+      } else if (pred === "gearbox_lubrication") {
+        specificDetail = oilP != null || gearT != null
+          ? `Lubrication telemetry shows gear oil inlet pressure at ${oilP ?? "depressed"} bar and gear oil temperature at ${gearT ?? "elevated"} °C.`
+          : "Hydraulic and lubrication telemetry indicates oil pressure/flow anomaly.";
+      } else if (pred === "pitch_system") {
+        specificDetail = pitch != null || residual != null
+          ? `Aerodynamic telemetry registers blade pitch angle at ${pitch ?? 0}° and power curve residual at ${residual ?? 0} kW.`
+          : "Aerodynamic control telemetry indicates pitch asymmetry or actuator response lag.";
+      } else if (pred === "structural_overspeed") {
+        specificDetail = acc != null
+          ? `Vibration sensor registers tower lateral acceleration X at ${acc} mm/s² under ${w} m/s wind conditions.`
+          : "Dynamic vibration sensors indicate elevated structural tower acceleration.";
+      } else {
+        specificDetail = `Telemetry envelope shows anomalous drift across ${cls(pred)} channels under active load (${p} kW).`;
+      }
+
       return (
-        `Turbine ${tcode({ turbine })} is operating in near-rated conditions (${p} kW active power at ${w} m/s wind speed). ` +
-        `Primary Anomaly Detected: Generator rear bearing temperature has surged to ${rearT} °C (${asym} °C hotter than front bearing), ` +
-        `indicating cooling circuit degradation under sustained load. Tower acceleration X is elevated at ${acc} mm/s². ` +
-        `Lubrication oil inlet pressure is steady at ${oilP} bar. Aerodynamic power curve residual shows a ${residual} kW shortfall relative to farm expectation.`
+        `Turbine ${tcode({ turbine })} is operating at ${p} kW in ${w} m/s wind. ` +
+        `Model Precursor: ${cls(pred)}. ` +
+        specificDetail
       );
     }
 
     return (
       `Turbine ${tcode({ turbine })} is operating nominal at ${p} kW in ${w} m/s wind. ` +
-      `Thermal channels are tracking within standard operating limits (stator ${Math.round(Number(f.stator_temperature_now) || 58)} °C, ` +
-      `gear oil ${Math.round(Number(f.gear_oil_temperature_now) || 56)} °C). Tower dynamic acceleration is normal (${acc} mm/s²). ` +
+      `Thermal channels are within operating envelopes${statorT != null ? ` (stator ${statorT} °C` : ""}${gearT != null ? `, gear oil ${gearT} °C)` : ""}. ` +
+      `${acc != null ? `Tower dynamic acceleration is normal (${acc} mm/s²). ` : ""}` +
       `No precursor drift or thermal anomalies detected in the last 24 hours.`
     );
   }, [activeRecord, turbine]);
+
 
   return (
     <div className={styles.container}>
@@ -206,10 +232,11 @@ export default function SensorCopilot({
                 lineHeight: 1.4,
               }}
             >
-              <b>✓ De-rate to 1,200 kW Applied:</b> Bearing temp stabilizes at 74 °C (preventing trip +{dur(activeRecord.outcome.lead_time_min)}), saving £{impact.totalFinancialRiskGbp.toLocaleString()}.
+              <b>✓ De-rate to {Math.round((Number(activeRecord.facts?.power_last1h) || 2050) * 0.6).toLocaleString()} kW Applied:</b> Operating load reduced by 40% to relieve subsystem stresses ahead of +{activeRecord.horizon_h}h horizon, avoiding emergency callout and mitigating £{impact.totalFinancialRiskGbp.toLocaleString()} exposure.
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

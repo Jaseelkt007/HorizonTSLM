@@ -54,14 +54,30 @@ export default function TurbineBenchmark({ currentTurbine, farmWindows, currentR
       ? Math.round(currentRecord.facts.bearing_asym_now)
       : 6;
 
-  // Fleet baselines
-  const fleetAvgPower = 1820;
-  const fleetAvgRearTemp = 61;
-  const fleetAvgTowerAcc = 32;
+  const peerBaselines = useMemo(() => {
+    const peers = fleetMetrics.latestPerTurbine.map((x) => x.w.facts).filter(Boolean);
+    if (peers.length === 0) {
+      return { power: 1820, rearTemp: 61, towerAcc: 32 };
+    }
+    const powers = peers.map((f) => Number(f?.power_last1h)).filter(Number.isFinite);
+    const rearTemps = peers.map((f) => Number(f?.gen_bearing_rear_temperature_now)).filter(Number.isFinite);
+    const towerAccs = peers.map((f) => Number(f?.tower_acc_last1h)).filter(Number.isFinite);
 
-  const powerDiffPct = Math.round(((pNow - fleetAvgPower) / fleetAvgPower) * 100);
+    const avgP = powers.length > 0 ? Math.round(powers.reduce((a, b) => a + b, 0) / powers.length) : 1820;
+    const avgT = rearTemps.length > 0 ? Math.round(rearTemps.reduce((a, b) => a + b, 0) / rearTemps.length) : 61;
+    const avgA = towerAccs.length > 0 ? Math.round(towerAccs.reduce((a, b) => a + b, 0) / towerAccs.length) : 32;
+
+    return { power: avgP, rearTemp: avgT, towerAcc: avgA };
+  }, [fleetMetrics]);
+
+  const fleetAvgPower = peerBaselines.power;
+  const fleetAvgRearTemp = peerBaselines.rearTemp;
+  const fleetAvgTowerAcc = peerBaselines.towerAcc;
+
+  const powerDiffPct = Math.round(((pNow - fleetAvgPower) / (fleetAvgPower || 1)) * 100);
   const tempDiff = rearTemp - fleetAvgRearTemp;
-  const accDiffPct = Math.round(((towerAcc - fleetAvgTowerAcc) / fleetAvgTowerAcc) * 100);
+  const accDiffPct = Math.round(((towerAcc - fleetAvgTowerAcc) / (fleetAvgTowerAcc || 1)) * 100);
+
 
   return (
     <div className="card" style={{ padding: "16px 20px" }}>

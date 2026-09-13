@@ -1,87 +1,50 @@
 "use client";
 
 import Link from "next/link";
+import { useMemo } from "react";
 
-import { tcode } from "@/lib/format";
-import { fmtGbp } from "@/lib/impact";
-import type { Farm } from "@/lib/types";
+import { cls, tcode } from "@/lib/format";
+import { computeImpact, fmtGbp } from "@/lib/impact";
+import type { Farm, WindowSummary } from "@/lib/types";
 
 interface Props {
   farm: Farm;
+  windows?: WindowSummary[];
 }
 
-export default function UpcomingMaintenance({ farm }: Props) {
-  const items =
-    farm === "kelmarsh"
-      ? [
-          {
-            id: "WO-2026-081",
-            turbine: 1,
-            type: "Proactive AI Early-Warning",
-            subsystem: "Generator Cooling",
-            action: "Inspect generator radiator fan 1 & 2 contactors; de-rate to 1.2 MW",
-            scheduled: "Upcoming low-wind window (02:00–04:00)",
-            durationH: 1.5,
-            lossMWh: 1.8,
-            plannedCost: 250,
-            avoidedEmergencyCost: 2500,
-            status: "Action Required",
-          },
-          {
-            id: "WO-2026-074",
-            turbine: 2,
-            type: "Scheduled Statutory",
-            subsystem: "Brake & Hydraulics",
-            action: "Hydraulic accumulator nitrogen pre-charge pressure test",
-            scheduled: "Next Tuesday 08:00",
-            durationH: 0.8,
-            lossMWh: 0.9,
-            plannedCost: 350,
-            avoidedEmergencyCost: 0,
-            status: "Scheduled",
-          },
-          {
-            id: "WO-2026-069",
-            turbine: 4,
-            type: "Proactive Preventive",
-            subsystem: "Gearbox Lubrication",
-            action: "Bypass oil filter cartridge replacement & particle count sensor calibration",
-            scheduled: "Thursday 09:00",
-            durationH: 2.0,
-            lossMWh: 2.4,
-            plannedCost: 400,
-            avoidedEmergencyCost: 2500,
-            status: "Scheduled",
-          },
-        ]
-      : [
-          {
-            id: "WO-2026-112",
-            turbine: 7,
-            type: "Proactive AI Early-Warning",
-            subsystem: "Generator Cooling",
-            action: "Replace fan 1 thermal overload relay; clean air intake cowl",
-            scheduled: "Tomorrow morning lull (04:00–06:00)",
-            durationH: 1.2,
-            lossMWh: 1.4,
-            plannedCost: 250,
-            avoidedEmergencyCost: 2500,
-            status: "Action Required",
-          },
-          {
-            id: "WO-2026-098",
-            turbine: 12,
-            type: "Scheduled Statutory",
-            subsystem: "Pitch System",
-            action: "Annual blade root bearing lubrication & pitch motor seal check",
-            scheduled: "Next Wednesday 08:00",
-            durationH: 3.5,
-            lossMWh: 4.2,
-            plannedCost: 650,
-            avoidedEmergencyCost: 0,
-            status: "Scheduled",
-          },
-        ];
+export default function UpcomingMaintenance({ farm, windows = [] }: Props) {
+  const items = useMemo(() => {
+    const turbines = [...new Set(windows.map((w) => w.turbine))];
+    const alerts = turbines
+      .map((t) => {
+        const list = windows
+          .filter((w) => w.turbine === t)
+          .sort((a, b) => a.anchor.localeCompare(b.anchor));
+        const latest = list[list.length - 1];
+        if (!latest) return null;
+        const impact = computeImpact(latest);
+        const hasAlert = latest.pred !== "none" || latest.score >= 0.35;
+        if (!hasAlert) return null;
+
+        return {
+          id: `WO-${farm.slice(0, 3).toUpperCase()}-${String(t).padStart(2, "0")}`,
+          turbine: t,
+          type: impact.urgency === "critical" ? "Proactive AI Early-Warning" : "Advisory Precursor",
+          subsystem: cls(latest.pred !== "none" ? latest.pred : "generator_cooling"),
+          action: impact.prescriptive.title,
+          scheduled: `Ahead of +${latest.horizon_h}h horizon (${latest.anchor.slice(11)})`,
+          durationH: impact.downtimeHours,
+          lossMWh: impact.lostMWh,
+          plannedCost: 250,
+          avoidedEmergencyCost: impact.avoidedOpexGbp > 0 ? 2500 : 0,
+          status: impact.urgency === "critical" ? "Action Required" : "Advisory Scheduled",
+        };
+      })
+      .filter((x): x is NonNullable<typeof x> => x !== null);
+
+    return alerts;
+  }, [windows, farm]);
+
 
   const totalLossMWh = items.reduce((acc, i) => acc + i.lossMWh, 0);
   const totalAvoided = items.reduce((acc, i) => acc + (i.avoidedEmergencyCost ? i.avoidedEmergencyCost - i.plannedCost : 0), 0);
@@ -100,23 +63,29 @@ export default function UpcomingMaintenance({ farm }: Props) {
         </div>
       </div>
 
-      <div className="table-wrap">
-        <table className="data">
-          <thead>
-            <tr>
-              <th>Work Order</th>
-              <th>Turbine</th>
-              <th>Type</th>
-              <th>Target Subsystem & Action</th>
-              <th>Window</th>
-              <th className="r">Downtime</th>
-              <th className="r">Loss (MWh)</th>
-              <th className="r">O&M Impact</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {items.map((item) => (
+      {items.length === 0 ? (
+        <div style={{ padding: "28px 16px", textAlign: "center", color: "var(--ink-2)", fontSize: 13 }}>
+          ✓ All {farm} turbines operating within nominal telemetry limits. No unscheduled maintenance interventions required.
+        </div>
+      ) : (
+        <div className="table-wrap">
+          <table className="data">
+            <thead>
+              <tr>
+                <th>Work Order</th>
+                <th>Turbine</th>
+                <th>Type</th>
+                <th>Target Subsystem &amp; Action</th>
+                <th>Window</th>
+                <th className="r">Downtime</th>
+                <th className="r">Loss (MWh)</th>
+                <th className="r">O&amp;M Impact</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {items.map((item) => (
+
               <tr key={item.id}>
                 <td className="mono" style={{ fontWeight: 600 }}>{item.id}</td>
                 <td>
@@ -157,6 +126,8 @@ export default function UpcomingMaintenance({ farm }: Props) {
           </tbody>
         </table>
       </div>
+      )}
     </div>
   );
 }
+

@@ -65,6 +65,13 @@ export default function FleetMap({ windows, defaultFarm = "kelmarsh" }: Props) {
     });
   }, [farmWindows]);
 
+  const avgWind = useMemo(() => {
+    const winds = turbineStates.map((s) => Number(s.latest.facts?.wind_last1h) || 12.0);
+    const meanSpeed = winds.length > 0 ? winds.reduce((a, b) => a + b, 0) / winds.length : 12.0;
+    return Math.round(meanSpeed * 10) / 10;
+  }, [turbineStates]);
+
+  const windDir = farm === "kelmarsh" ? 235 : 220;
   const layout = LAYOUTS[farm];
 
   return (
@@ -72,7 +79,7 @@ export default function FleetMap({ windows, defaultFarm = "kelmarsh" }: Props) {
       <div className={styles.header}>
         <div>
           <h3 style={{ fontSize: 16, margin: 0 }}>
-            Fleet Spatial Layout & Wake Topology — {FARM[farm].name}
+            Fleet Spatial Layout &amp; Wake Topology — {FARM[farm].name}
           </h3>
           <span className="hint">
             {FARM[farm].type} · {turbineStates.length} turbines · click a turbine node to open its SCADA diagnostics
@@ -80,14 +87,15 @@ export default function FleetMap({ windows, defaultFarm = "kelmarsh" }: Props) {
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <div className={styles.windIndicator}>
-            <span className={styles.compassArrow} style={{ transform: "rotate(235deg)" }}>
+            <span className={styles.compassArrow} style={{ transform: `rotate(${windDir}deg)` }}>
               ⬆
             </span>
-            <span>Wind: 235° SW (12.4 m/s)</span>
+            <span>Wind: {windDir}° SW ({avgWind} m/s)</span>
           </div>
           <div className="seg" role="group" aria-label="Farm Switcher">
             <button
               type="button"
+
               aria-pressed={farm === "kelmarsh"}
               onClick={() => setFarm("kelmarsh")}
             >

@@ -83,7 +83,23 @@ export interface WindowSummary {
   n_claims: number;
   n_ok: number;
   t3_pred: string | null;
+  facts?: Record<string, number | string | null>;
 }
+
+export interface FarmWeather {
+  windSpeedMs: number;
+  windDirDeg: number;
+  ambientTempC: number;
+}
+
+export interface Farm24hProfile {
+  hour: string;
+  wind: number;
+  actualMW: number;
+  expectedMW: number;
+  cfPct: number;
+}
+
 
 export interface DemoData {
   meta: { channels: ChannelMeta[]; model: string; n: number };
