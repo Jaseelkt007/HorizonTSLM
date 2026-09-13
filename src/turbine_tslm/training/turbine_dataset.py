@@ -26,7 +26,12 @@ from timenet.types import AnswerTask
 
 from turbine_tslm.data.channels import CHANNEL_NAMES
 from turbine_tslm.data.evidence import evidence_text
-from turbine_tslm.data.prompts import POST_PROMPT, series_text
+from turbine_tslm.data.prompts import (
+    POST_PROMPT,
+    series_text,
+    t3_answer_label,
+    t3_pre_prompt,
+)
 
 DATASET_IDS: tuple[str, ...] = ("cubico/penmanshiel", "cubico/kelmarsh")
 SPLIT_MAP: dict[str, tuple[str, ...]] = {
@@ -62,6 +67,7 @@ def load_rows(
             rows.append(
                 {
                     "window_id": rec.record_id,
+                    "task": "t1",
                     "split": ann["split"],
                     "farm": ann["farm"],
                     "horizon_h": int(ann["horizon_h"]),
@@ -110,6 +116,9 @@ class TurbineQADataset(QADataset):
     max_samples: int | None = None  # per OpenTSLM split, stratified
     horizons: tuple[int, ...] | None = None  # e.g. (6,) to train on one question only
     seed: int = 0
+    tasks: tuple[str, ...] = (
+        "t1",
+    )  # t1 early warning; t3 post-hoc explanation derived from the 1 h positives
     answer_mode: str = "label"  # label: "Answer: ..." only (MVP); evidence: rule-based reasoning first (stage 2)
     evidence_sentences: int = 3
     registry = None
@@ -130,6 +139,9 @@ class TurbineQADataset(QADataset):
         rows = self.rows()
         if self.horizons:
             rows = [r for r in rows if r["horizon_h"] in self.horizons]
+        rows = [r for r in rows if "t1" in self.tasks] + (
+            t3_rows(rows) if "t3" in self.tasks else []
+        )
         out = []
         for key in ("train", "validation", "test"):
             sel = [r for r in rows if r["split"] in self.split_map[key]]
@@ -144,7 +156,9 @@ class TurbineQADataset(QADataset):
 
     def _get_answer(self, row) -> str:
         if self.answer_mode == "evidence":
-            return evidence_text(row["series"], row["label"], self.evidence_sentences)
+            return evidence_text(
+                row["series"], row["label"], self.evidence_sentences, task=row["task"]
+            )
         return row["answer"]
 
     def _get_text_time_series_prompt_list(self, row) -> list[TextTimeSeriesPrompt]:
@@ -156,9 +170,31 @@ class TurbineQADataset(QADataset):
 
     def _format_sample(self, row):
         sample = super()._format_sample(row)
-        for k in ("window_id", "split", "farm", "horizon_h", "label"):
+        for k in ("window_id", "task", "split", "farm", "horizon_h", "label"):
             sample[k] = row[k]
         return sample
+
+
+def t3_rows(rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Post-hoc explanation records from the 1 h positives: same window, T3 prompt, class-only answer."""
+    out = []
+    for r in rows:
+        if r["label"] == "none" or r["horizon_h"] != 1:
+            continue
+        month = (
+            r["pre_prompt"].split(" in ")[1].split(".")[0]
+            if " in " in r["pre_prompt"]
+            else ""
+        )
+        t3 = dict(r)
+        t3["task"] = "t3"
+        t3["window_id"] = r["window_id"] + "#t3"
+        t3["pre_prompt"] = t3_pre_prompt(
+            r["farm"], r["window_id"].rsplit("-", 2)[0], month
+        )
+        t3["answer"] = t3_answer_label(r["label"])
+        out.append(t3)
+    return out
 
 
 def make_dataset_class(name: str, **config) -> type[TurbineQADataset]:
@@ -172,11 +208,14 @@ def make_dataset_class(name: str, **config) -> type[TurbineQADataset]:
         "registry",
         "answer_mode",
         "evidence_sentences",
+        "tasks",
     }
     if bad:
         raise TypeError(f"unknown dataset options {sorted(bad)}")
     if config.get("horizons"):
         config["horizons"] = tuple(int(h) for h in config["horizons"])
+    if config.get("tasks"):
+        config["tasks"] = tuple(config["tasks"])
     return type(
         f"TurbineQADataset_{name}", (TurbineQADataset,), {**config, "_rows": None}
     )

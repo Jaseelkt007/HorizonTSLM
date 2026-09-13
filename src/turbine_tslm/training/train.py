@@ -49,6 +49,9 @@ DEFAULTS: dict[str, Any] = {
     "warmup_frac": 0.03,
     "grad_clip": 1.0,
     "early_stop_patience": 3,
+    "tasks": [
+        "t1"
+    ],  # t1 early warning (+ t3 post-hoc explanation rows derived from the 1 h positives)
     "answer_mode": "label",  # label (MVP) | evidence (rule-based reasoning before the Answer line)
     "evidence_sentences": 3,
     "max_samples": None,  # per split, stratified (smoke runs)
@@ -219,6 +222,7 @@ def make_loaders(cfg: dict[str, Any], eos: str):
         seed=cfg["seed"],
         answer_mode=cfg["answer_mode"],
         evidence_sentences=cfg["evidence_sentences"],
+        tasks=tuple(cfg["tasks"]),
     )
     sets = {s: DS(s, EOS_TOKEN=eos) for s in ("train", "validation", "test")}
     for s, d in sets.items():
@@ -429,9 +433,27 @@ def evidence_prefix(text: str) -> str:
     return (text if i < 0 else text[:i]).strip()
 
 
-def candidate_answers(model, classes: tuple[str, ...]) -> list[str]:
+def candidate_answers(model, classes: tuple[str, ...], task: str = "t1") -> list[str]:
+    """t1: 'no' + one 'yes, <class>' per class (index 0 = no); t3: one 'Answer: <class>' per class."""
     eos = model.get_eos_token()
+    if task == "t3":
+        return [f"Answer: {c}{eos}" for c in classes]
     return [f"Answer: no{eos}"] + [f"Answer: yes, {c}{eos}" for c in classes]
+
+
+def fill_record(
+    rec: dict[str, Any], p: torch.Tensor, task: str, classes: tuple[str, ...]
+) -> None:
+    """score / label / class_scores from the candidate probabilities (t1: index 0 is 'no'; t3: classes only)."""
+    if task == "t3":
+        cls_p = p
+        rec["score"] = 1.0  # every t3 record is a real stop; only the class is scored
+    else:
+        rec["score"] = float(1 - p[0])
+        cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
+    best = int(torch.argmax(cls_p))
+    rec["label"] = classes[best] if task == "t3" or rec["score"] >= 0.5 else "none"
+    rec["class_scores"] = {c: float(v) for c, v in zip(classes, cls_p, strict=True)}
 
 
 @torch.no_grad()
@@ -471,19 +493,32 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
     samples = [
         s for d in (sets["validation"], sets["test"]) for s in d if s["split"] in wanted
     ]
+    samples.sort(
+        key=lambda s: s.get("task", "t1")
+    )  # chunks never mix tasks (different candidate sets)
     mode = cfg["predict_mode"]
     classes = fault_classes()
-    cands = candidate_answers(model, classes)
     print(f"[predict] {len(samples)} windows over {sorted(wanted)}, mode={mode}")
     out_path.parent.mkdir(parents=True, exist_ok=True)
     bs = cfg["eval_batch_size"]
     t0 = time.time()
+    n_chunks = 0
     with open(out_path, "w", encoding="utf-8") as fh:
-        for i in range(0, len(samples), bs):
+        i = 0
+        while i < len(samples):
             chunk = samples[i : i + bs]
+            task = chunk[0].get("task", "t1")
+            if any(c.get("task", "t1") != task for c in chunk):
+                chunk = chunk[
+                    : next(
+                        k for k, c in enumerate(chunk) if c.get("task", "t1") != task
+                    )
+                ]
+            cands = candidate_answers(model, classes, task)
             recs = [
                 {
                     "window_id": s["window_id"],
+                    "task": task,
                     "split": s["split"],
                     "horizon_h": s["horizon_h"],
                     "gold": s["label"],
@@ -494,14 +529,7 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                 ll = score_candidates(cfg, model, chunk, cands, collate)
                 probs = torch.softmax(ll, dim=1)
                 for rec, p in zip(recs, probs, strict=True):
-                    p_yes = float(1 - p[0])
-                    cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
-                    best = int(torch.argmax(cls_p))
-                    rec["score"] = p_yes
-                    rec["label"] = classes[best] if p_yes >= 0.5 else "none"
-                    rec["class_scores"] = {
-                        c: float(v) for c, v in zip(classes, cls_p, strict=True)
-                    }
+                    fill_record(rec, p, task, classes)
             if mode in ("generate", "both"):
                 with autocast(cfg):
                     texts = model.generate(
@@ -515,24 +543,24 @@ def predict(cfg: dict[str, Any], model, sets, collate, out_path: Path) -> None:
                     ll = score_candidates(cfg, model, chunk, cands, collate, prefixes)
                     probs = torch.softmax(ll, dim=1)
                     for rec, text, p in zip(recs, texts, probs, strict=True):
-                        rec["label"] = scoring.parse_answer(text)
-                        rec["score"] = float(1 - p[0])
-                        cls_p = p[1:] / max(float(p[1:].sum()), 1e-12)
-                        rec["class_scores"] = {
-                            c: float(v) for c, v in zip(classes, cls_p, strict=True)
-                        }
+                        fill_record(rec, p, task, classes)
+                        rec["label"] = scoring.parse_answer(
+                            text
+                        )  # what the model actually wrote
             for rec in recs:
                 fh.write(json.dumps(rec) + "\n")
-            if (i // bs) % 20 == 0:
+            i += len(chunk)
+            n_chunks += 1
+            if n_chunks % 20 == 1:
                 print(
-                    f"[predict] {i + len(chunk)}/{len(samples)} ({time.time() - t0:.0f}s)",
+                    f"[predict] {i}/{len(samples)} ({time.time() - t0:.0f}s)",
                     flush=True,
                 )
 
 
 def score_predictions(cfg: dict[str, Any], pred_path: Path) -> dict[str, Any]:
     preds = scoring.load_predictions(pred_path)
-    labels = scoring.load_labels(cfg["windows"])
+    labels = scoring.load_labels(cfg["windows"], tasks=tuple(cfg["tasks"]))
     res = scoring.score(preds, labels)
     report = scoring.format_report(res, cfg["run_name"])
     print(report)

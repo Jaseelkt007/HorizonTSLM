@@ -308,7 +308,7 @@ def state_sentence(f: dict[str, Any]) -> str:
 
 
 def evidence_text(
-    series: dict[str, np.ndarray], label: str, max_sentences: int = 3
+    series: dict[str, np.ndarray], label: str, max_sentences: int = 3, task: str = "t1"
 ) -> str:
     """Reason-first answer: state, up to ``max_sentences`` evidence sentences, conclusion, then the scored line.
 
@@ -335,4 +335,14 @@ def evidence_text(
         parts.append(
             f"No specific precursor for it is visible in these signals, but a {label.replace('_', ' ')} stop follows."
         )
+    if task == "t3":
+        relevant = bool(tags & RELEVANT.get(label, set()))
+        parts[-1] = (
+            CONCLUSION[label].replace(
+                "This pattern precedes", "This is consistent with"
+            )
+            if relevant and label in CONCLUSION
+            else f"The signals show no specific precursor; the log attributes the stop to the {label.replace('_', ' ')}."
+        )
+        return " ".join(parts) + "\n" + f"Answer: {label}"
     return " ".join(parts) + "\n" + answer_label(label)

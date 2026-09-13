@@ -19,7 +19,9 @@ PRE_PROMPT = (
 )
 
 
-def pre_prompt(farm: str, turbine_id: str, month: str, state: str, horizon_h: int) -> str:
+def pre_prompt(
+    farm: str, turbine_id: str, month: str, state: str, horizon_h: int
+) -> str:
     return PRE_PROMPT.format(
         turbine_id=turbine_id,
         turbine_type=TURBINE_TYPE[farm],
@@ -39,3 +41,27 @@ def series_text(channel_name: str, mean: float, std: float) -> str:
 def answer_label(label: str) -> str:
     """MVP answer: the scored line only."""
     return "Answer: no" if label == "none" else f"Answer: yes, {label}"
+
+
+# ---- T3 post-hoc explanation (docs/problem-statement.md §5), derived from the 1 h early-warning windows:
+# the window ends about one hour before the event, so the prompt says so (the spec's 30 min anchor would need a rebuild).
+T3_PRE_PROMPT = (
+    "You are reviewing wind turbine {turbine_id} ({turbine_type}, {rated_kw} kW) in {month}. "
+    "Below are 24 hours of 10-minute SCADA signals. A status event began about one hour after the end of this window "
+    "and stopped the turbine. Describe what the signals show and name the subsystem from: {classes}. "
+    'Do not state a decision until the final line. End with "Answer: ".'
+)
+
+
+def t3_pre_prompt(farm: str, turbine_id: str, month: str) -> str:
+    return T3_PRE_PROMPT.format(
+        turbine_id=turbine_id,
+        turbine_type=TURBINE_TYPE[farm],
+        rated_kw=RATED_KW,
+        month=month,
+        classes=", ".join(fault_classes()),
+    )
+
+
+def t3_answer_label(label: str) -> str:
+    return f"Answer: {label}"

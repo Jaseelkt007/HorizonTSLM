@@ -145,12 +145,28 @@ def _normalise(obj: dict[str, Any], classes: tuple[str, ...]) -> dict[str, Any]:
     }
 
 
-def load_labels(paths: tuple[str, ...] | list[str] = DEFAULT_WINDOWS) -> pd.DataFrame:
-    """Only the label columns of the window tables (the 19 list columns are not read)."""
+def load_labels(
+    paths: tuple[str, ...] | list[str] = DEFAULT_WINDOWS,
+    tasks: tuple[str, ...] = ("t1",),
+) -> pd.DataFrame:
+    """Only the label columns of the window tables (the 19 list columns are not read).
+
+    ``tasks``: ``t1`` = the windows as built; ``t3`` = post-hoc records derived from the 1 h positives (ids get a
+    ``#t3`` suffix, matching ``training.turbine_dataset.t3_rows``). The returned frame has a ``task`` column.
+    """
     frames = [pd.read_parquet(p, columns=LABEL_COLUMNS) for p in paths]
     df = pd.concat(frames, ignore_index=True)
     df["label"] = df["label"].astype(str)
-    return df
+    df["task"] = "t1"
+    parts = []
+    if "t1" in tasks:
+        parts.append(df)
+    if "t3" in tasks:
+        t3 = df[(df["label"] != NONE) & (df["horizon_h"] == 1)].copy()
+        t3["window_id"] = t3["window_id"] + "#t3"
+        t3["task"] = "t3"
+        parts.append(t3)
+    return pd.concat(parts, ignore_index=True)
 
 
 # --------------------------------------------------------------------------------------------- metrics
@@ -294,6 +310,8 @@ def score(
 ) -> dict[str, Any]:
     """Merge and score. Returns ``{"coverage": ..., "results": {split: {horizon: metrics}}}`` (horizon 'all' pooled)."""
     classes = classes or fault_classes()
+    if "task" not in labels.columns:
+        labels = labels.assign(task="t1")
     merged = labels.merge(predictions, on="window_id", how="left", indicator=True)
     unknown = set(predictions["window_id"]) - set(labels["window_id"])
     have = merged["_merge"] == "both"
@@ -306,11 +324,15 @@ def score(
     }
     merged = merged[have]
     results: dict[str, dict[str, Any]] = {}
-    for split, gs in merged.groupby("split", sort=True):
+    for split, gs in merged[merged["task"] == "t1"].groupby("split", sort=True):
         results[str(split)] = {}
         for h, gh in gs.groupby("horizon_h", sort=True):
             results[str(split)][str(int(h))] = score_group(gh, classes)
         results[str(split)]["all"] = score_group(gs, classes)
+    for (task, split), gs in merged[merged["task"] != "t1"].groupby(
+        ["task", "split"], sort=True
+    ):
+        results[f"{task}/{split}"] = {"all": score_group(gs, classes)}
     return {"coverage": coverage, "results": results}
 
 
