@@ -138,6 +138,21 @@ _RULES: list[tuple[re.Pattern[str], Any]] = [
 _NUMBER = re.compile(r"\d")
 
 
+def claim_spans(text: str, facts: dict[str, Any]) -> list[dict[str, Any]]:
+    """(start, end, ok) for every recognised numeric claim in the text's evidence part — for highlighting."""
+    body = text.split("Answer")[0] if "Answer" in text else text
+    out = []
+    for pat, ok in _RULES:
+        for m in pat.finditer(body):
+            try:
+                good = bool(ok(m, facts))
+            except (KeyError, ValueError, TypeError):
+                good = False
+            out.append({"start": m.start(), "end": m.end(), "ok": good})
+    out.sort(key=lambda d: d["start"])
+    return out
+
+
 def check_text(text: str, series: dict[str, np.ndarray]) -> dict[str, Any]:
     """Verify one generated paragraph against its window."""
     facts = extract_facts(series)

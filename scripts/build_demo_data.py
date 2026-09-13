@@ -26,7 +26,7 @@ import pandas as pd
 
 from turbine_tslm.data.channels import CHANNEL_NAMES, CHANNELS
 from turbine_tslm.data.evidence import extract_facts
-from turbine_tslm.eval.faithfulness import _RULES
+from turbine_tslm.eval.faithfulness import claim_spans as _claim_spans
 from turbine_tslm.eval.score import DEFAULT_WINDOWS
 
 # human labels for the Results tab (naming only; every number comes from the run's results.json)
@@ -71,18 +71,9 @@ META = [
 ]
 
 
-def claim_spans(text: str, facts: dict) -> list[dict]:
-    body = text.split("Answer")[0] if "Answer" in text else text
-    out = []
-    for pat, ok in _RULES:
-        for m in pat.finditer(body):
-            try:
-                good = bool(ok(m, facts))
-            except Exception:  # noqa: BLE001
-                good = False
-            out.append({"start": m.start(), "end": m.end(), "ok": good})
-    out.sort(key=lambda d: d["start"])
-    return out
+claim_spans = (
+    _claim_spans  # kept for compatibility; implementation lives in eval.faithfulness
+)
 
 
 def _split_summary(block: dict) -> dict:

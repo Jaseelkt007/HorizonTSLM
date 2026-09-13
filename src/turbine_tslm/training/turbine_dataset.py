@@ -109,6 +109,30 @@ def z_score(v: np.ndarray) -> tuple[np.ndarray, float, float]:
     )
 
 
+def channel_prompts(
+    series: dict[str, np.ndarray], series_stats: str = "basic"
+) -> list[TextTimeSeriesPrompt]:
+    """One TextTimeSeriesPrompt per channel: z-scored values + description with the window statistics."""
+    prompts = []
+    for name in CHANNEL_NAMES:
+        v = series[name]
+        z, mean, std = z_score(v)
+        if series_stats == "rich":
+            n = len(v)
+            text = series_text(
+                name,
+                mean,
+                std,
+                float(np.nanmean(v[: n // 4])),
+                float(np.nanmean(v[n - 42 : n - 36])),
+                float(np.nanmean(v[n - 6 :])),
+            )
+        else:
+            text = series_text(name, mean, std)
+        prompts.append(TextTimeSeriesPrompt(text, z))
+    return prompts
+
+
 class TurbineQADataset(QADataset):
     """Class attributes are the run configuration; subclass (``make_dataset_class``) rather than mutate."""
 
@@ -172,24 +196,7 @@ class TurbineQADataset(QADataset):
         return row["answer"]
 
     def _get_text_time_series_prompt_list(self, row) -> list[TextTimeSeriesPrompt]:
-        prompts = []
-        for name in CHANNEL_NAMES:
-            v = row["series"][name]
-            z, mean, std = z_score(v)
-            if self.series_stats == "rich":
-                n = len(v)
-                text = series_text(
-                    name,
-                    mean,
-                    std,
-                    float(np.nanmean(v[: n // 4])),
-                    float(np.nanmean(v[n - 42 : n - 36])),
-                    float(np.nanmean(v[n - 6 :])),
-                )
-            else:
-                text = series_text(name, mean, std)
-            prompts.append(TextTimeSeriesPrompt(text, z))
-        return prompts
+        return channel_prompts(row["series"], self.series_stats)
 
     def _format_sample(self, row):
         sample = super()._format_sample(row)
