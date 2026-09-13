@@ -132,6 +132,58 @@ DATA_DIR=~/data uv run python scripts/replay_case.py configs/t1_flamingo_llama1b
 Every run logs to Weights & Biases when `wandb_project` is set in its config, and its results are copied to
 `docs/results/<run>/`.
 
+## Inference with a trained checkpoint
+
+Checkpoints hold only the trainable parameters (`$DATA_DIR/checkpoints/<run>/best.pt`, ~1 GB); the base LLM is
+re-downloaded from the Hugging Face Hub by `llm_id` (Llama-3.2-1B is gated: set `HF_TOKEN`). One GPU with ≥ 16 GB
+is enough for inference.
+
+**1. Score the held-out splits with an existing checkpoint** (no training):
+
+```bash
+uv run python -m turbine_tslm.training.train configs/t1_flamingo_llama1b_evidence_rich.yaml --predict-only \
+    --set "eval_splits=[val, test_a, test_b]"        # generate mode: explanation + label + score per window
+```
+
+Output: `outputs/<run>/predictions.jsonl` (one record per window: `window_id, task, split, gold, text, label,
+score, class_scores`), `report.md` and `results.json` from the shared scorer. Add `--set max_samples=64` for a smoke
+test, `--set predict_mode=rescore --set rescore_from=<predictions.jsonl>` for the graded probability.
+
+**2. Ask about any turbine and time (needs the raw exports):** `scripts/replay_case.py` rebuilds the 24 h window
+ending at each hourly anchor from the raw SCADA files, runs the model for the 1 / 3 / 6 h questions and the
+post-hoc question, checks every number in the text, and writes one JSON per case:
+
+```bash
+DATA_DIR=~/data uv run python scripts/replay_case.py configs/t1_flamingo_llama1b_evidence_rich.yaml \
+    --checkpoint ~/data/checkpoints/t1_flamingo_llama1b_evidence_rich/best.pt \
+    --farm kelmarsh --turbine 1 --end "2019-03-15 12:13" --hours-before 12 --name my_case --out outputs/replay/my_case.json
+```
+
+For a single window, use `--hours-before 0`. The schema is documented in `docs/results/replay/README.md`.
+
+**3. From Python** (any 144 × 19 window as a `{channel: np.ndarray}` dict, channel names in
+`turbine_tslm.data.channels.CHANNEL_NAMES`):
+
+```python
+from turbine_tslm.training import train as T
+from turbine_tslm.training.turbine_dataset import channel_prompts
+from turbine_tslm.data.prompts import POST_PROMPT, pre_prompt
+from turbine_tslm.eval.faithfulness import check_text
+from opentslm.time_series_datasets.util import extend_time_series_to_match_patch_size_and_aggregate as collate_fn
+
+cfg = T.load_config("configs/t1_flamingo_llama1b_evidence_rich.yaml", ["wandb_project=null"])
+model = T.build_model(cfg); T.load_checkpoint(model, "best.pt"); model.eval()
+prompts = channel_prompts(series, series_stats="rich")
+sample = {"pre_prompt": pre_prompt("kelmarsh", "kelmarsh-01", "March", "producing", 6),
+          "time_series": [p.get_time_series() for p in prompts], "time_series_text": [p.get_text() for p in prompts],
+          "post_prompt": POST_PROMPT, "answer": ""}
+text = T.generate_texts(model, collate_fn([sample], patch_size=4), 160)[0]   # "...\nAnswer: yes, structural_overspeed"
+print(text, check_text(text, series))                                       # numbers verified / wrong, conclusion consistent
+```
+
+The prompt wording, channel order and statistics must match training exactly; `channel_prompts` and `pre_prompt`
+guarantee that. No alarm-log information ever enters the prompt.
+
 ## Limitations
 
 - Ground truth is the controller's alarm log, not a technician's diagnosis; "subsystem" is the message class.
