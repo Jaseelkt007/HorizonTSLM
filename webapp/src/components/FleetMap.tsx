@@ -60,7 +60,7 @@ export default function FleetMap({ windows, defaultFarm = "kelmarsh" }: Props) {
         turbine: t,
         latest,
         impact,
-        hasFaultUpcoming: latest.gold !== "none",
+        hasFaultUpcoming: latest.pred !== "none" || latest.score >= 0.5,
       };
     });
   }, [farmWindows]);
@@ -130,12 +130,12 @@ export default function FleetMap({ windows, defaultFarm = "kelmarsh" }: Props) {
                 ? "#f59e0b"
                 : "#10b981";
 
-          const subClass = latest.pred !== "none" ? latest.pred : latest.gold;
+          const subClass = latest.pred !== "none" ? latest.pred : "none";
 
           return (
             <Link
               key={turbine}
-              href={`/window/${latest.id}/`}
+              href={`/turbines/${farm}/${turbine}/`}
               className={`${styles.turbineNode} ${nodeStyle}`}
               style={{ left: `${pos.x}%`, top: `${pos.y}%` }}
               title={`Turbine ${tcode({ turbine })}: ${impact.urgency.toUpperCase()} risk. Click to inspect.`}

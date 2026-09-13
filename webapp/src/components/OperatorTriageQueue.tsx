@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 
-import { cls, dur, tname } from "@/lib/format";
+import { cls, tname } from "@/lib/format";
 import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
 import { FARM } from "@/lib/labels";
 import type { UrgencyLevel, WindowSummary } from "@/lib/types";
@@ -128,13 +128,12 @@ export default function OperatorTriageQueue({ windows, limit = 8 }: Props) {
                   ? styles.advisoryBadge
                   : styles.nominalBadge;
 
-            const hasLead = w.outcome.lead_time_min != null;
-            const targetClass = w.pred !== "none" ? w.pred : w.gold;
+            const targetClass = w.pred !== "none" ? w.pred : "none";
 
             return (
               <Link
                 key={w.id}
-                href={`/window/${w.id}/`}
+                href={`/turbines/${w.farm}/${w.turbine}/`}
                 className={`${styles.item} ${urgencyClass}`}
               >
                 <div className={styles.turbineCol}>
@@ -143,7 +142,7 @@ export default function OperatorTriageQueue({ windows, limit = 8 }: Props) {
                     <span className={`chip ${badgeClass}`}>{impact.urgency}</span>
                   </div>
                   <span className={styles.metaSub}>
-                    {FARM[w.farm].tag} · asked {w.horizon_h}h ahead · {w.anchor}
+                    {FARM[w.farm].tag} · lead window {w.horizon_h}h · {w.anchor}
                   </span>
                 </div>
 
@@ -172,21 +171,21 @@ export default function OperatorTriageQueue({ windows, limit = 8 }: Props) {
                 </div>
 
                 <div className={styles.leadCol}>
-                  {hasLead ? (
+                  {w.pred !== "none" || w.score >= 0.5 ? (
                     <>
-                      <span className={`${styles.leadTime} num`}>+{dur(w.outcome.lead_time_min)}</span>
-                      <span className={styles.metaSub}>lead time</span>
+                      <span className={`${styles.leadTime} num`}>+{w.horizon_h}h</span>
+                      <span className={styles.metaSub}>risk horizon</span>
                     </>
                   ) : (
                     <>
-                      <span className={styles.leadNone}>no stop</span>
-                      <span className={styles.metaSub}>in {w.horizon_h}h</span>
+                      <span className={styles.leadNone}>clear</span>
+                      <span className={styles.metaSub}>nominal</span>
                     </>
                   )}
                 </div>
 
                 <span className={styles.openBtn}>
-                  Triage <IconArrow />
+                  Diagnose <IconArrow />
                 </span>
               </Link>
             );

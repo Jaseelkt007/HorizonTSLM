@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 
-import { cls, stateLabel, tcode, tname } from "@/lib/format";
+import { stateLabel, tcode, tname } from "@/lib/format";
 import { computeImpact, fmtGbp } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, SERIES } from "@/lib/labels";
 import { fmtDateTime, parseAnchor } from "@/lib/time";
@@ -79,11 +79,10 @@ export default function TurbineDetailView({
 
   const impact = computeImpact(currentRecord);
   const w = currentRecord;
-  const o = w.outcome;
-  const event =
-    w.gold === "none" || o.lead_time_min == null
-      ? null
-      : { leadMin: o.lead_time_min, message: o.message ?? cls(w.gold) };
+  const isTripPredicted = w.pred !== "none" || w.score >= 0.5;
+  const event = isTripPredicted
+    ? { leadMin: (w.horizon_h || 3) * 60, message: `Trip Risk Horizon (+${w.horizon_h || 3}h)` }
+    : null;
 
   const series = pinned.map((name, k) => {
     const m = meta.find((c) => c.name === name)!;

@@ -100,7 +100,7 @@ const PRESCRIPTIVE_PLAYBOOK: Record<string, { title: string; rationale: string; 
 };
 
 export interface ImpactInput {
-  gold: string;
+  gold?: string;
   pred: string;
   score: number;
   horizon_h: number;
@@ -117,21 +117,18 @@ export function computeImpact(w: ImpactInput): ImpactAssessment {
         ? Math.max(0, w.channels.power[w.channels.power.length - 1] ?? 0)
         : 1200; // fallback operating power
 
-  const targetClass = w.pred !== "none" ? w.pred : w.gold !== "none" ? w.gold : "none";
-  const downtimeHours =
-    w.outcome.duration_h != null && w.outcome.duration_h > 0
-      ? w.outcome.duration_h
-      : (DEFAULT_DOWNTIME_HOURS[targetClass] ?? 1.0);
+  const targetClass = w.pred !== "none" ? w.pred : w.score >= 0.35 ? "generator_cooling" : "none";
+  const downtimeHours = DEFAULT_DOWNTIME_HOURS[targetClass] ?? 1.5;
 
   // Lost MWh = (Operating kW * Downtime Hours) / 1000
-  const isActualOrPredictedFault = targetClass !== "none" || w.gold !== "none";
-  const lostMWh = isActualOrPredictedFault
+  const isPredictedFault = targetClass !== "none" || w.score >= 0.35;
+  const lostMWh = isPredictedFault
     ? Math.round(((pNow * downtimeHours) / 1000) * 10) / 10
     : 0;
 
   const revenueAtRiskGbp = Math.round(lostMWh * WHOLESALE_GBP_PER_MWH);
-  const avoidedOpexGbp = isActualOrPredictedFault ? EMERGENCY_CALLOUT_COST_GBP - PLANNED_ACTION_COST_GBP : 0;
-  const totalFinancialRiskGbp = revenueAtRiskGbp + (isActualOrPredictedFault ? EMERGENCY_CALLOUT_COST_GBP : 0);
+  const avoidedOpexGbp = isPredictedFault ? EMERGENCY_CALLOUT_COST_GBP - PLANNED_ACTION_COST_GBP : 0;
+  const totalFinancialRiskGbp = revenueAtRiskGbp + (isPredictedFault ? EMERGENCY_CALLOUT_COST_GBP : 0);
 
   const avgPower24h = w.channels?.power
     ? w.channels.power.reduce((a, b) => a + b, 0) / w.channels.power.length
@@ -143,7 +140,7 @@ export function computeImpact(w: ImpactInput): ImpactAssessment {
       ? Math.round(w.facts.residual_last3h)
       : 0;
 
-  const energeticAvailabilityPct = isActualOrPredictedFault
+  const energeticAvailabilityPct = isPredictedFault
     ? Math.max(68, Math.min(99, Math.round(98 - (lostMWh / (RATED_POWER_KW * 0.024)) * 10)))
     : 99;
 

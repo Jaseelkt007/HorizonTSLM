@@ -51,7 +51,7 @@ export default function SensorCopilot({
     const oilP = (Number(f.oil_pressure_now) || 2.8).toFixed(1);
     const residual = Math.round(Number(f.residual_last3h) || -45);
 
-    const isAlert = activeRecord.gold !== "none" || activeRecord.pred !== "none";
+    const isAlert = activeRecord.pred !== "none" || activeRecord.score >= 0.5;
 
     if (isAlert) {
       return (
@@ -157,7 +157,7 @@ export default function SensorCopilot({
               )}
             </div>
             <span className="hint" style={{ fontSize: 11.5, marginTop: 2, display: "block" }}>
-              ✓ <b>{nOk} of {totalClaims}</b> numerical telemetry claims verified against SCADA ground truth
+              ✓ <b>{nOk} of {totalClaims}</b> numerical telemetry claims verified against SCADA sensor streams
             </span>
           </div>
 

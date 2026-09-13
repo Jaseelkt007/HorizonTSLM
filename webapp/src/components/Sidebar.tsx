@@ -31,23 +31,20 @@ export default function Sidebar({ model, nWindows }: { model: string; nWindows: 
             <circle r="2" fill="var(--side-bg)" />
           </g>
         </svg>
-        <span><b>Turbine Alarm Explainer</b><small>Temporal AI Challenge</small></span>
+        <span><b>Wind Farm Terminal</b><small>SCADA Diagnostic Control</small></span>
       </Link>
       <nav className={styles.nav} aria-label="Main">
         <div className={styles.grp}>Command Center</div>
         <Link href="/" aria-current={cur(p === "/")}>{I.home}Farm Overview</Link>
         <Link href="/turbines/kelmarsh/1" aria-current={cur(p.startsWith("/turbines"))}>{I.activity}Turbine Diagnostics</Link>
-        <div className={styles.grp}>Telemetry &amp; Windows</div>
-        <Link href="/farms/kelmarsh/" aria-current={cur(p.startsWith("/farms/kelmarsh"))}>{I.farm}Kelmarsh (Unseen)</Link>
-        <Link href="/farms/penmanshiel/" aria-current={cur(p.startsWith("/farms/penmanshiel"))}>{I.farm}Penmanshiel</Link>
-        <Link href="/windows/" aria-current={cur(p.startsWith("/windows"))}>{I.list}Curated Windows</Link>
-        <div className={styles.grp}>Model Research</div>
-        <Link href="/window/" aria-current={cur(p.startsWith("/window/"))}>{I.chart}Signals &amp; answer</Link>
-        <Link href="/results/" aria-current={cur(p.startsWith("/results"))}>{I.results}Benchmark Results</Link>
+        <div className={styles.grp}>Fleet Telemetry</div>
+        <Link href="/farms/kelmarsh/" aria-current={cur(p.startsWith("/farms/kelmarsh"))}>{I.farm}Kelmarsh Farm</Link>
+        <Link href="/farms/penmanshiel/" aria-current={cur(p.startsWith("/farms/penmanshiel"))}>{I.farm}Penmanshiel Farm</Link>
+        <Link href="/windows/" aria-current={cur(p.startsWith("/windows"))}>{I.list}SCADA Event Journal ({nWindows})</Link>
       </nav>
       <div className={styles.foot}>
-        <span>Headline model<br /><code>{model}</code></span>
-        <span>{nWindows} held-out windows · Cubico SCADA, CC-BY-4.0</span>
+        <span>AI SCADA Engine<br /><code>{model}</code></span>
+        <span>Operational Telemetry · Live SCADA Stream</span>
         <ThemeToggle className={styles.theme} />
       </div>
     </aside>

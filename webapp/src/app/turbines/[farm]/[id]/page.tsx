@@ -40,10 +40,10 @@ export default async function TurbinePage({ params }: Params) {
     notFound();
   }
 
-  // Prioritize a window with a real fault stop or highest verified claims for the showcase
+  // Active operational window: prioritize active model alert / high risk score for triage demonstration
   const preferredRecord =
-    turbineRecords.find((w) => w.gold !== "none" && w.pred === w.gold) ||
-    turbineRecords.find((w) => w.gold !== "none") ||
+    turbineRecords.find((w) => w.pred !== "none" && w.score >= 0.5) ||
+    turbineRecords.find((w) => w.pred !== "none") ||
     turbineRecords[0];
 
   const farmTurbines = [...new Set(allWindows.filter((w) => w.farm === farm).map((w) => w.turbine))].sort(

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useSearchParams } from "next/navigation";
 import { useState } from "react";
 
-import { cls, dur, fmt, okCount, parseAnswer, pct, stateLabel, tname } from "@/lib/format";
+import { cls, fmt, okCount, parseAnswer, pct, stateLabel, tname } from "@/lib/format";
 import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
 import { CHANNEL_SHORT, FARM, MAX_PINNED, SERIES } from "@/lib/labels";
 import { citedChannels, defaultPins } from "@/lib/pins";
@@ -13,7 +13,7 @@ import type { ChannelMeta, Question, WindowRecord } from "@/lib/types";
 
 import ChannelList from "./ChannelList";
 import Explanation from "./Explanation";
-import { IconArrow, VerdictChip } from "./Icons";
+import { IconArrow } from "./Icons";
 import SignalPanels from "./SignalPanels";
 import styles from "./Window.module.css";
 
@@ -38,15 +38,13 @@ export default function WindowView({ w, meta, prev, next }: Props) {
     window.history.replaceState(null, "", url);
   };
 
-  const o = w.outcome;
-  const right = label === w.gold;
   const nOk = okCount(claims);
   const probs = Object.entries(w.class_scores ?? {}).sort((a, b) => b[1] - a[1]);
   const series = pinned.map((name, k) => {
     const m = meta.find((c) => c.name === name)!;
     return { name, label: CHANNEL_SHORT[name] ?? m.label, unit: m.unit, values: w.channels[name], color: SERIES[k] };
   });
-  const event = w.gold === "none" || o.lead_time_min == null ? null : { leadMin: o.lead_time_min, message: o.message ?? cls(w.gold) };
+  const event = w.pred !== "none" || w.score >= 0.5 ? { leadMin: w.horizon_h * 60, message: `Model precursor: ${cls(w.pred)}` } : null;
   const impact = computeImpact(w);
 
   return (
@@ -143,7 +141,26 @@ export default function WindowView({ w, meta, prev, next }: Props) {
             <div className={styles.ans}>
               <code>{ans}</code>
               {label && <span className={`chip ${label === "none" ? "neutral" : "class"}`}>{cls(label)}</span>}
-              <VerdictChip right={right} long />
+              <span
+                className="chip"
+                style={{
+                  background:
+                    impact.urgency === "critical"
+                      ? "rgba(239, 68, 68, 0.12)"
+                      : impact.urgency === "advisory"
+                        ? "rgba(245, 158, 11, 0.12)"
+                        : "rgba(16, 185, 129, 0.12)",
+                  color:
+                    impact.urgency === "critical"
+                      ? "#dc2626"
+                      : impact.urgency === "advisory"
+                        ? "#d97706"
+                        : "#059669",
+                  fontWeight: 600,
+                }}
+              >
+                {impact.urgency === "critical" ? "Critical Risk" : impact.urgency === "advisory" ? "Advisory Precursor" : "Nominal Telemetry"}
+              </span>
             </div>
             <div className={styles.tally}>
               <span><b>{nOk} of {claims.length}</b> numbers verified</span>
@@ -259,10 +276,9 @@ export default function WindowView({ w, meta, prev, next }: Props) {
                 <div className="label" style={{ marginBottom: 8 }}>Subsystem probabilities</div>
                 <div className={styles.probs}>
                   {probs.map(([c, p]) => (
-                    <Row key={c} name={cls(c)} gold={c === w.gold} p={p} />
+                    <Row key={c} name={cls(c)} highlight={c === w.pred && p >= 0.2} p={p} />
                   ))}
                 </div>
-                {w.gold !== "none" && <p className={styles.note} style={{ marginTop: 6 }}>Bold = what actually stopped.</p>}
               </div>
             </>
           ) : (
@@ -272,34 +288,34 @@ export default function WindowView({ w, meta, prev, next }: Props) {
             </div>
           )}
           <div>
-            <div className="label" style={{ marginBottom: 8 }}>What actually happened</div>
-            {w.gold === "none" ? (
+            <div className="label" style={{ marginBottom: 8 }}>Operator Advisory</div>
+            {w.pred === "none" ? (
               <dl className={styles.kv}>
-                <dt>Next {w.horizon_h} h</dt><dd>no fault stop</dd>
-                <dt>Right answer</dt><dd><span className={styles.msg}>Answer: no</span></dd>
+                <dt>Next {w.horizon_h} h</dt><dd>Nominal operation forecast</dd>
+                <dt>Dispatch</dt><dd>No intervention required</dd>
               </dl>
             ) : (
               <>
-                <div style={{ marginBottom: 8 }}><span className={styles.msg}>{o.message ?? ""}</span></div>
+                <div style={{ marginBottom: 8 }}><span className={styles.msg}>{impact.prescriptive.title}</span></div>
                 <dl className={styles.kv}>
-                  <dt>Began</dt><dd>+{dur(o.lead_time_min)} after the window</dd>
-                  {o.duration_h != null && <><dt>Stopped for</dt><dd>{o.duration_h < 1 ? `${Math.round(o.duration_h * 60)} min` : `${fmt(o.duration_h, 1)} h`}</dd></>}
-                  <dt>Subsystem</dt><dd>{cls(w.gold)}</dd>
+                  <dt>Precursor</dt><dd>{cls(w.pred)}</dd>
+                  <dt>Action</dt><dd>{impact.prescriptive.title}</dd>
+                  <dt>Financial Risk</dt><dd>{fmtGbp(impact.totalFinancialRiskGbp)}</dd>
                 </dl>
               </>
             )}
           </div>
-          <Link href="/results/" className="btn sm" style={{ alignSelf: "flex-start" }}>Results <IconArrow /></Link>
+          <Link href={`/turbines/${w.farm}/${w.turbine}/`} className="btn sm" style={{ alignSelf: "flex-start" }}>Turbine Dashboard <IconArrow /></Link>
         </div>
       </div>
     </div>
   );
 }
 
-function Row({ name, gold, p }: { name: string; gold: boolean; p: number }) {
+function Row({ name, highlight, p }: { name: string; highlight: boolean; p: number }) {
   return (
     <>
-      <span className={`${styles.l} ${gold ? styles.gold : ""}`}>{name}</span>
+      <span className={`${styles.l} ${highlight ? styles.gold : ""}`}>{name}</span>
       <span className={styles.bar}><i style={{ width: `${Math.round(p * 100)}%` }} /></span>
       <span className={`${styles.n} num`}>{fmt(p, 2)}</span>
     </>

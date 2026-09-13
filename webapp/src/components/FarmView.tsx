@@ -1,14 +1,14 @@
 import Link from "next/link";
 
 import FleetMap from "@/components/FleetMap";
-import { cls, dur, isRight, pct, stateLabel, tcode, turbineKey } from "@/lib/format";
+import { cls, pct, stateLabel, tcode } from "@/lib/format";
 import { computeImpact, fmtGbp, fmtMWh } from "@/lib/impact";
 import { FARM } from "@/lib/labels";
 import type { Farm, WindowSummary } from "@/lib/types";
 
 import styles from "./FarmView.module.css";
 import HistoryStrip from "./HistoryStrip";
-import { IconArrow, VerdictChip } from "./Icons";
+import { IconArrow } from "./Icons";
 
 export default function FarmView({ farm, windows }: { farm: Farm; windows: WindowSummary[] }) {
   const ws = windows.filter((w) => w.farm === farm);
@@ -22,13 +22,14 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
     })
     .sort((a, b) => b.latest.score - a.latest.score || a.t - b.t);
 
-  const pos = ws.filter((w) => w.gold !== "none").length;
-  const ok = ws.filter((w) => isRight(w)).length;
   const alarms = ws.filter((w) => w.pred !== "none").length;
+  const criticalCount = rows.filter((r) => r.impact.urgency === "critical").length;
+  const advisoryCount = rows.filter((r) => r.impact.urgency === "advisory").length;
+  const nominalCount = rows.filter((r) => r.impact.urgency === "nominal").length;
+  const healthIndex = turbines.length > 0 ? Math.round((nominalCount / turbines.length) * 100) : 100;
 
   const fleetLostMWh = rows.reduce((acc, r) => acc + r.impact.lostMWh, 0);
   const fleetRevenueRisk = rows.reduce((acc, r) => acc + r.impact.revenueAtRiskGbp, 0);
-  const criticalCount = rows.filter((r) => r.impact.urgency === "critical").length;
   const f = FARM[farm];
 
   return (
@@ -68,12 +69,12 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
         <div className="card kpi">
           <span className="v">{alarms}</span>
           <span className="l">alarms raised</span>
-          <span className="c">{pos} actual forced stops followed</span>
+          <span className="c">{criticalCount > 0 ? `${criticalCount} critical, ${advisoryCount} advisory` : "fleet operating nominally"}</span>
         </div>
         <div className="card kpi">
-          <span className="v">{ok} <span className="muted" style={{ fontSize: 16, fontWeight: 500 }}>/ {ws.length}</span></span>
-          <span className="l">answers matching log</span>
-          <span className="c">no-leakage evaluation</span>
+          <span className="v">{healthIndex}%</span>
+          <span className="l">fleet health index</span>
+          <span className="c">{nominalCount} / {turbines.length} turbines nominal</span>
         </div>
       </div>
 
@@ -118,21 +119,24 @@ export default function FarmView({ farm, windows }: { farm: Farm; windows: Windo
               <span className={styles.l}>P(fault stop) · {w.pred === "none" ? "no fault stop expected" : <b>{cls(w.pred)}</b>}</span>
             </div>
             <div className={styles.line}>
-              <span className="label" style={{ marginRight: 4 }}>Followed</span>
-              {w.gold === "none" ? <span>no fault stop in {w.horizon_h} h</span> : <><span className="mono">{w.outcome.message ?? cls(w.gold)}</span><span className="muted">+{dur(w.outcome.lead_time_min)}</span></>}
-              <VerdictChip right={isRight(w)} />
+              <span className="label" style={{ marginRight: 4 }}>Status</span>
+              <span className="mono" style={{ color: impact.urgency === "critical" ? "#dc2626" : impact.urgency === "advisory" ? "#d97706" : "var(--ink-2)" }}>
+                {w.pred === "none" ? "Nominal operation · no trip risk" : `Precursor: ${cls(w.pred)}`}
+              </span>
+              <Link href={`/turbines/${farm}/${t}/`} className="btn sm" style={{ marginLeft: "auto", padding: "2px 8px", fontSize: 11 }}>
+                Diagnose <IconArrow />
+              </Link>
             </div>
             <div className={styles.hist}>
               <HistoryStrip list={list} />
-              <div className={styles.cap}><span>{list.length} windows · {list[0].anchor.slice(0, 7)} → {w.anchor.slice(0, 7)}</span><Link href={`/windows/?turbine=${encodeURIComponent(turbineKey(w))}`}>list <IconArrow /></Link></div>
+              <div className={styles.cap}><span>{list.length} windows · {list[0].anchor.slice(0, 7)} → {w.anchor.slice(0, 7)}</span><Link href={`/turbines/${farm}/${t}/`}>details <IconArrow /></Link></div>
             </div>
           </div>
         ))}
       </div>
       <p className="legend">
         <span><i style={{ background: "var(--risk)" }} />P(fault stop) per sampled window</span>
-        <span><i className="dot" style={{ background: "var(--ink)" }} />a fault stop followed</span>
-        <span className="muted">Click a bar to open it.</span>
+        <span className="muted">Click any turbine card or bar to inspect SCADA telemetry.</span>
       </p>
     </div>
   );

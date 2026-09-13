@@ -49,15 +49,14 @@ export function getWindow(id: string): WindowRecord | undefined {
   return loadDemo().windows.find((w) => w.id === id);
 }
 
-/** The window the demo opens on: a Kelmarsh alarm the model got right, with a post-hoc answer, every number verified
- *  in both — the most claims wins. */
+/** The window the demo opens on: a Kelmarsh active precursor alarm with verified SCADA telemetry claims. */
 export function showcaseId(): string {
   const ws = loadDemo().windows;
   const allOk = (cs: { ok: boolean }[] | null) => !!cs && cs.length > 0 && cs.every((c) => c.ok);
   const ranked = ws
-    .filter((w) => w.farm === "kelmarsh" && w.gold !== "none" && w.pred === w.gold && w.t3_text && allOk(w.claims) && allOk(w.t3_claims))
+    .filter((w) => w.farm === "kelmarsh" && w.pred !== "none" && w.score >= 0.5 && w.t3_text && allOk(w.claims) && allOk(w.t3_claims))
     .sort((a, b) => b.claims.length + (b.t3_claims?.length ?? 0) - (a.claims.length + (a.t3_claims?.length ?? 0)) || a.anchor.localeCompare(b.anchor));
-  return (ranked[0] ?? ws.find((w) => w.pred === w.gold && w.gold !== "none") ?? ws[0]).id;
+  return (ranked[0] ?? ws.find((w) => w.pred !== "none" && w.score >= 0.5) ?? ws[0]).id;
 }
 
 /** Previous / next sampled window of the same turbine, by date. */
