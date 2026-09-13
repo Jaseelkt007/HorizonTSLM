@@ -1,0 +1,15 @@
+{
+ "coverage": {
+  "n_predictions": 0,
+  "n_unknown_window_ids": 0,
+  "n_windows": 6556,
+  "n_scored": 0,
+  "missing_per_split": {
+   "test_a": 1741,
+   "test_b": 2655,
+   "train": 1716,
+   "val": 444
+  }
+ },
+ "results": {}
+}
