@@ -152,16 +152,16 @@ select{font:12.5px var(--fu);color:var(--ink);background:var(--card);border:1px 
 .colsq i{width:20px;height:9px;border-radius:2.5px}
 .colsq i.lat.on{background:linear-gradient(90deg,var(--accent),#7c3aed)}
 .more{font:600 12px var(--fu);color:var(--ink-4);line-height:1}
-.llm{width:var(--llmw);min-height:200px;border-radius:14px;background:linear-gradient(160deg,var(--accent) 0%,var(--accent-deep) 100%);color:#fff;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;text-align:center;padding:12px 10px;box-shadow:0 8px 24px rgba(37,99,235,.25);transition:box-shadow .3s,transform .3s}
-.llm.on{box-shadow:0 10px 32px rgba(37,99,235,.45);transform:translateY(-2px)}
-.llm svg{width:34px;height:34px;opacity:.95}
-.llm b{font:700 13.5px/1.2 var(--fu)}
-.llm span{font:400 11px/1.3 var(--fu);opacity:.85}
-.llm .xa{display:flex;flex-direction:column;gap:2px;margin-top:4px}
-.llm .xa i{display:block;width:64px;height:3px;border-radius:2px;background:rgba(255,255,255,.28);transition:background .2s}
-.llm .xa i.on{background:#fff}
-.llm .dots{display:flex;gap:4px;margin-top:4px}
-.llm .dots i{width:5px;height:5px;border-radius:50%;background:#fff;opacity:.35}
+.llm{width:var(--llmw);min-height:200px;border-radius:12px;background:var(--card);border:1px dashed var(--line-2);color:var(--ink);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;text-align:center;padding:12px 10px;transition:box-shadow .3s,border-color .3s}
+.llm.on{border-color:var(--accent);box-shadow:0 0 0 4px var(--accent-soft)}
+.llm svg{width:26px;height:26px;color:var(--ink-3)}
+.llm b{font:600 12.5px/1.2 var(--fu)}
+.llm span{font:400 11px/1.3 var(--fu);color:var(--ink-3)}
+.llm .xa{display:flex;flex-direction:column;gap:3px;margin-top:6px}
+.llm .xa i{display:block;width:64px;height:6px;border-radius:2px;background:var(--line);border-left:10px solid var(--accent-line);transition:background .2s,border-color .2s}
+.llm .xa i.on{border-left-color:var(--accent);background:var(--card-2)}
+.llm .dots{display:flex;gap:4px;margin-top:6px}
+.llm .dots i{width:5px;height:5px;border-radius:50%;background:var(--accent);opacity:.3}
 .llm.on .dots i{animation:pulse 1s ease-in-out infinite}
 .llm.on .dots i:nth-child(2){animation-delay:.2s} .llm.on .dots i:nth-child(3){animation-delay:.4s}
 .stream{align-self:stretch;height:100%;min-height:190px;border:1px solid var(--line);border-radius:12px;background:var(--card);padding:10px 12px;font:400 11.5px/1.55 var(--fm);color:var(--ink-2);white-space:pre-wrap;word-break:break-word;overflow:auto}
@@ -241,7 +241,7 @@ details.prompt summary{cursor:pointer;color:var(--accent-ink);font-weight:500;fo
     <label class="f">Turbine-day<select id="c-case"></select></label>
     <label class="f">24 h window<select id="c-step"></select></label>
     <label class="f">Horizon<select id="c-hz"><option value="t1_h6">next 6 h</option><option value="t1_h3" selected>next 3 h</option><option value="t1_h1">next 1 h</option></select></label>
-    <label class="f">Pace<select id="c-speed"><option value="1.6">slow</option><option value="1" selected>normal</option><option value="0.5">quick</option></select></label>
+    <label class="f">Pace<select id="c-speed"><option value="1.5">slow</option><option value="1" selected>normal</option><option value="0.6">quick</option></select></label>
   </div>
   <div class="ctl">
     <button class="btn primary" id="b-run" type="button"><svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run</button>
@@ -370,13 +370,13 @@ async function run(){
   const {s,a,anchor}=cur();const pace=state.pace;const wait=ms=>waitOrSkip(ms*pace,tok);const cited=citedOf(a);
   $("#abody").innerHTML=`<div class="wait"><span>Waiting for the model…</span></div>`;$("#chkcard").hidden=true;
   // 1 input
-  state.stage=1;renderRail();renderInput(s,new Set(),true);if(await wait(3200))return;
+  state.stage=1;renderRail();renderInput(s,new Set(),true);if(await wait(1900))return;
   // 2 question
-  state.stage=2;renderRail();$("#qbox").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#q-hint").textContent=`asked at ${clock(anchor)}`;if(await wait(2200))return;
+  state.stage=2;renderRail();$("#qbox").innerHTML=`Will a fault stop begin within the next <b>${HZH[state.hz]} hours</b>? If yes, which subsystem?`;$("#q-hint").textContent=`asked at ${clock(anchor)}`;if(await wait(1300))return;
   // 3 model
-  state.stage=3;renderRail();await animateModel(s,a,tok,cited);if(tok!==state.token)return;if(await wait(400))return;
+  state.stage=3;renderRail();await animateModel(s,a,tok,cited);if(tok!==state.token)return;if(await wait(250))return;
   // 4 answer
-  state.stage=4;renderRail();renderInput(s,cited,false);await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(900))return;
+  state.stage=4;renderRail();renderInput(s,cited,false);await renderAnswer(s,a,tok);if(tok!==state.token)return;if(await wait(500))return;
   // 5 check
   state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false;$("#col-out").scrollTo({top:$("#col-out").scrollHeight,behavior:"smooth"});
   state.running=false;$("#b-next").disabled=true;$("#b-run").disabled=false;$("#b-run").innerHTML=`<svg viewBox="0 0 12 12" fill="currentColor"><path d="M3 2v8l6-4z"/></svg>Run again`;$("#f-state").textContent="Done";
@@ -389,7 +389,7 @@ function renderInput(s,cited,animate){
   ORDER.forEach((n,k)=>{const m=D.channels.find(c=>c.name===n);const y=s.channels[n];if(!m||!y)return;
     const div=document.createElement("div");div.className="chr"+(animate?" dim":"")+(cited.has(n)?" cited":"");div.style.setProperty("--c",COLOR[n]);
     div.innerHTML=`<span class="dot"></span><span class="nm">${esc(SHORT[n]||m.label)}<small>${esc(m.unit)}${cited.has(n)?" · cited":""}</small></span>${spark(y,70,20,COLOR[n])}<span class="v">${fv(y[N-1])} <small>${esc(m.unit)}</small></span>`;
-    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),700*state.pace)},(100+120*k)*state.pace)});
+    host.appendChild(div);if(animate)setTimeout(()=>{div.classList.remove("dim");div.classList.add("hot");setTimeout(()=>div.classList.remove("hot"),500*state.pace)},(60+70*k)*state.pace)});
 }
 
 /* ---------- prompt ---------- */
@@ -414,7 +414,7 @@ function buildFlow(s,cited){
     ${arrow}
     <div class="fc"><div class="fbox" id="fb-lat"><div class="colsq" id="lats">${Array.from({length:12},()=>'<i class="lat"></i>').join("")}<span class="more">⋮</span></div></div><div class="fl"><b>Latent tokens</b>64 per channel</div></div>
     ${arrow}
-    <div class="fc"><div class="llm" id="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3 3 3 0 0 0 2 3v1a3 3 0 0 0 3 3h1V4zM15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3 3 3 0 0 1-2 3v1a3 3 0 0 1-3 3h-1V4z"/></svg><b>Llama-3.2-1B</b><span>16 blocks · frozen</span><span>gated cross-attention</span><div class="xa" id="xa">${Array.from({length:8},()=>"<i></i>").join("")}</div><div class="dots"><i></i><i></i><i></i></div></div><div class="fl"><b>Transformer</b>reasons over the tokens</div></div>
+    <div class="fc"><div class="llm" id="llm"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 4a3 3 0 0 0-3 3v1a3 3 0 0 0-2 3 3 3 0 0 0 2 3v1a3 3 0 0 0 3 3h1V4zM15 4a3 3 0 0 1 3 3v1a3 3 0 0 1 2 3 3 3 0 0 1-2 3v1a3 3 0 0 1-3 3h-1V4z"/></svg><b>Llama-3.2-1B</b><span>16 blocks · frozen ❄</span><span>gated cross-attention (blue) before each block</span><div class="xa" id="xa">${Array.from({length:8},()=>"<i></i>").join("")}</div><div class="dots"><i></i><i></i><i></i></div></div><div class="fl"><b>Transformer</b>reasons over the tokens</div></div>
     ${arrow}
     <div class="fc"><div class="fbox" id="fb-gen"><div class="colsq" id="gens">${Array.from({length:12},()=>"<i></i>").join("")}<span class="more">⋮</span></div></div><div class="fl"><b>Generated tokens</b>streaming</div></div>
     <div class="fc" style="align-self:stretch"><div class="stream" id="stream"><span class="tag">assessment</span>\n</div></div>`;
@@ -428,23 +428,23 @@ async function animateModel(s,a,tok,cited){
   const step=async(ms)=>waitOrSkip(ms*pace,tok);
   const arrows=[...document.querySelectorAll("#flow .arrow")];
   // 1 inputs
-  stepsOn(0);live("fan",true);setProg("Processing… reading the 24 h window",6,"6%");if(await step(900))return;
+  stepsOn(0);live("fan",true);setProg("Processing… reading the 24 h window",6,"6%");if(await step(500))return;
   // 2 patches
   stepsOn(1);on("fb-patch",true);setProg("Encoding patches…",18,"18%");
-  const sq=[...document.querySelectorAll("#patches i")];sq.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*45*pace));
-  if(await step(36*45+400))return;live("fan",false);on("fb-patch",false);
+  const sq=[...document.querySelectorAll("#patches i")];sq.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*25*pace));
+  if(await step(36*25+250))return;live("fan",false);on("fb-patch",false);
   // 3 latents
   stepsOn(2);arrows[0].classList.add("live");on("fb-lat",true);setProg("Resampling into latent tokens…",38,"38%");
-  const lt=[...document.querySelectorAll("#lats i")];lt.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*110*pace));
-  if(await step(12*110+500))return;arrows[0].classList.remove("live");on("fb-lat",false);
+  const lt=[...document.querySelectorAll("#lats i")];lt.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},i*65*pace));
+  if(await step(12*65+300))return;arrows[0].classList.remove("live");on("fb-lat",false);
   // 4 transformer
   stepsOn(3);arrows[1].classList.add("live");on("llm",true);setProg("Reasoning… gated cross-attention over the latents",60,"60%");
-  const xa=[...document.querySelectorAll("#xa i")];xa.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},(200+i*160)*pace));
-  if(await step(2400))return;arrows[1].classList.remove("live");
+  const xa=[...document.querySelectorAll("#xa i")];xa.forEach((el,i)=>setTimeout(()=>{if(tok===state.token)el.classList.add("on")},(120+i*110)*pace));
+  if(await step(1400))return;arrows[1].classList.remove("live");
   // 5 generation
   stepsOn(4);arrows[2].classList.add("live");on("fb-gen",true);
   const {body,ans}=parseAnswer(a.text);const words=body.split(/\s+/);const gens=[...document.querySelectorAll("#gens i")];const st=$("#stream");
-  const per=Math.max(40,Math.round(120*pace));
+  const per=Math.max(25,Math.round(70*pace));
   for(let i=0;i<words.length;i++){if(tok!==state.token)return;const g=gens[i%gens.length];gens.forEach(x=>x.classList.remove("on"));g.classList.add("on");
     st.innerHTML=`<span class="tag">assessment</span>\n${esc(words.slice(0,i+1).join(" "))}<span class="caret"></span>`;st.scrollTop=st.scrollHeight;
     setProg("Generating tokens…",60+Math.round(35*(i+1)/words.length),`${60+Math.round(35*(i+1)/words.length)}%`);await sleep(per)}
@@ -473,7 +473,7 @@ async function renderAnswer(s,a,tok){
   $("#b-check").addEventListener("click",()=>{if(skipResolve)skipResolve();else if(state.stage<5){state.stage=5;renderRail();renderCheck(s,a);$("#chkcard").hidden=false}});
   await sleep(40);const pb=$("#pb");pb.style.width=`${Math.round(a.p_fault*100)}%`;pb.className=a.p_fault>=ALARM?"hi":a.p_fault>=WARM?"mid":"";
   const pv=$("#pv");const t0=performance.now(),durMs=1100;const tick=()=>{const t=Math.min(1,(performance.now()-t0)/durMs);pv.textContent=fmt(a.p_fault*t,2);if(t<1&&tok===state.token)requestAnimationFrame(tick)};tick();
-  const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(420*state.pace);evs[i].classList.add("show")}
+  const evs=[...document.querySelectorAll("#abody .ev")];for(let i=0;i<evs.length;i++){if(tok!==state.token)return;await sleep(260*state.pace);evs[i].classList.add("show")}
 }
 
 /* ---------- check ---------- */
