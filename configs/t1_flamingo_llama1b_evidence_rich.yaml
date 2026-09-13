@@ -11,7 +11,7 @@ answer_mode: evidence
 evidence_sentences: 3
 tasks: [t1, t3]   # early warning + post-hoc explanation rows (same windows, different prompt)
 epochs: 5
-batch_size: 8
+batch_size: 4   # rich channel text adds ~400 prompt tokens; batch 8 OOMs on 96 GB
 eval_batch_size: 16
 lr: 1.0e-4
 warmup_frac: 0.03
