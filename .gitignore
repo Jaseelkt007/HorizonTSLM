@@ -62,11 +62,20 @@ wandb/
 hackathon-25-bypass.pdf
 Serverless-hackathon-guide.pdf
 
-# Local tooling state
-.claude/
-.codex/
-.entire/
+# Local tooling state. The shared hook configs (.claude/settings.json, .codex/hooks.json, .gemini/settings.json,
+# .entire/settings.json) are tracked on purpose so the team's Entire session tracking works; only local state is ignored.
+.claude/settings.local.json
+.codex/*.local.json
+.gemini/settings.local.json
+.devin/
 .env
+
+# Removed from the public repo (third-party / organiser material, private notes); local copies may remain on disk
+brief.pdf
+ts-corpus-list.md
+docs/opentslm-paper/
+docs/notes/
+docs/session-handoff.md
 
 # Committed on purpose: data/README.md and the two preprocessed window tables (28 + 19 MB) for local training
 !/data/README.md

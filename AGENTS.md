@@ -15,8 +15,7 @@ Read these before touching anything — they are the spec, not background:
 - `docs/problem-statement.md` — target user, signals, the six tasks (T1–T6) with exact inputs/outputs, splits,
   output template, subsystem taxonomy, evaluation plan, limitations. **Section 11 lists decisions still open.**
 - `docs/team-brief.html` — challenge rules, what the judges reward, how OpenTSLM works, TimeNet basics.
-- `brief.pdf`, `ts-corpus-list.md` — the organisers' brief and their dataset shortlist (we chose an off-list dataset).
-- `docs/opentslm-paper/03_methods.tex` — the OpenTSLM architecture/training section, verbatim.
+- OpenTSLM paper (arXiv 2510.02410, §3 Methods) — the architecture/training reference; not vendored here.
 - `third_party/OpenTSLM`, `third_party/TimeNet` — upstream repos as pinned submodules (`git submodule update --init`).
   Read them, do not edit them in place; anything we change goes in `src/turbine_tslm/` (or a fork, bumped here).
 
@@ -80,7 +79,7 @@ Key conventions everyone depends on:
 
 ## Working on the shared Nebius VM
 
-`ssh <user>@<vm-host>` (RTX PRO 6000, 96 GB VRAM; no network disk — everything lives on its root disk).
+`ssh <user>@<vm-host>` (address in the team chat, not in git) (RTX PRO 6000, 96 GB VRAM; no network disk — everything lives on its root disk).
 Repo is at `~/zurich_ehl_timeseries`, data at `~/data`. Team rule: **one person runs on the VM at a time, and
 everything worth keeping is committed and pushed** — the VM may be preempted. Edit locally, push, `git pull` on the
 VM, run there. Checkpoint to `~/data/checkpoints` every N steps.

@@ -318,6 +318,5 @@ uv run python scripts/build_demo_data.py docs/results/t1_flamingo_llama1b_eviden
 
 `src/turbine_tslm/data` (readers, channels, windows, taxonomy, prompts, evidence rules) · `connectors/cubico`
 (TimeNet) · `training` (dataset, trainer, RFT) · `eval` (scorer, baselines, faithfulness) · `configs/` (one YAML per
-run) · `docs/results/<run>/` (every scored run) · `docs/benchmark.md` (baselines) · `docs/session-handoff.md`
-(chronological log) · `docs/notes/mentor-session-2026-09-12.md` · `webapp/` (demo) · `third_party/{OpenTSLM,TimeNet}`
+run) · `docs/results/<run>/` (every scored run) · `docs/benchmark.md` (baselines) · `webapp/` (demo) · `third_party/{OpenTSLM,TimeNet}`
 (pinned submodules, unmodified).

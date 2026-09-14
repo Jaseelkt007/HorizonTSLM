@@ -122,7 +122,7 @@ def _fmt(x: float, nd: int = 0) -> str:
     return f"{x:.{nd}f}"
 
 
-# thresholds from the Penmanshiel window tables (docs/session-handoff.md, 13 Sep): 6 h temperature deltas correlate
+# thresholds from the Penmanshiel window tables (measured 13 Sep 2026): 6 h temperature deltas correlate
 # 0.6 with the 6 h power change (5–95 % at steady load ±14 °C), rear-front asymmetry change 95 % = 5.3 °C, tower
 # acceleration last-hour/median 90 % = 1.7 / 99 % = 5.9, grid voltage 10-min step 99 % = 8.6 V, frequency deviation
 # 99 % = 0.18 Hz, |yaw error| 90 % = 9° / 99 % = 60°, gear-oil pressure (recorded units, 100–280 while producing).

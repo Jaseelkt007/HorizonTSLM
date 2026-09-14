@@ -86,7 +86,7 @@ Reason-first rows use the graded probability (conclusion candidates scored condi
 | [`docs/results/`](docs/results/) | every scored run (report, metrics, faithfulness, predictions), the final table, bootstrap intervals, LLM-judge output, replay cases; its [README](docs/results/README.md) explains every column |
 | [`docs/benchmark.md`](docs/benchmark.md) | the baseline comparison (XGBoost ablations, text-only LLM) |
 | [`docs/problem-statement.md`](docs/problem-statement.md), [`docs/team-brief.html`](docs/team-brief.html) | the specification and the challenge brief |
-| [`docs/pitch.md`](docs/pitch.md), [`docs/session-handoff.md`](docs/session-handoff.md) | slide outline with sourced numbers; chronological engineering log |
+| [`docs/pitch.md`](docs/pitch.md) | slide outline with sourced numbers |
 | [`src/turbine_tslm/`](src/turbine_tslm/) | the package (below) |
 | [`configs/`](configs/) | one YAML per experiment |
 | [`scripts/`](scripts/) | data download and build, baselines, judge, bootstrap, replay, demo data |
