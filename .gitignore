@@ -62,8 +62,7 @@ wandb/
 hackathon-25-bypass.pdf
 Serverless-hackathon-guide.pdf
 
-# Local tooling state. The shared hook configs (.claude/settings.json, .codex/hooks.json, .gemini/settings.json,
-# .entire/settings.json) are tracked on purpose so the team's Entire session tracking works; only local state is ignored.
+# Local AI-tool state
 .claude/settings.local.json
 .codex/*.local.json
 .gemini/settings.local.json

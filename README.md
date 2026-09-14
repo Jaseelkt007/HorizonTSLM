@@ -126,7 +126,7 @@ src/turbine_tslm/
 ## Setup
 
 ```bash
-git clone --recurse-submodules https://github.com/Jaseelkt007/zurich_ehl_timeseries.git
+git clone --recurse-submodules https://github.com/Jaseelkt007/EHL_turbine_fault.git
 cd zurich_ehl_timeseries
 uv sync --group dev --extra wandb        # Python >= 3.12; opentslm from the submodule, timenet[cli,torch]
 uv run pytest tests/
